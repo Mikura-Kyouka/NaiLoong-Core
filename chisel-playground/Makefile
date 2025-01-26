@@ -6,7 +6,6 @@ test:
 	mill -i $(PRJ).test
 
 verilog:
-	$(call git_commit, "generate verilog")
 	mkdir -p $(BUILD_DIR)
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 
