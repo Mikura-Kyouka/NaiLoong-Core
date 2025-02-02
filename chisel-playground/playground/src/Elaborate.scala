@@ -9,11 +9,21 @@ object Elaborate extends App {
     ).reduce(_ + "," + _)
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new gcd.GCD(), 
+    new core.ALU(), 
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",
       "--target-dir=./build"
     ), 
-    firtoolOptions)
+    firtoolOptions
+  )
+  circt.stage.ChiselStage.emitSystemVerilogFile(
+    new core.IDU(), 
+    args = Array(
+      "--throw-on-first-error",
+      "--split-verilog",
+      "--target-dir=./build"
+    ), 
+    firtoolOptions
+  )
 }
