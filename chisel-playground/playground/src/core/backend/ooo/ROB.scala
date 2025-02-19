@@ -13,7 +13,9 @@ object InstType {
 
 class DispatchEntry extends Bundle {
   val pc = UInt(32.W)
-  val areg = UInt(5.W)
+  val rj = UInt(5.W)
+  val rk = UInt(5.W)
+  val rd = UInt(5.W)
   val preg = UInt(6.W)
   val opreg = UInt(6.W)
   val instType = UInt(3.W)
@@ -28,7 +30,9 @@ class WriteBackEntry extends Bundle {
 
 class CommitInfo extends Bundle {
   val pc = UInt(32.W)
-  val areg = UInt(5.W)
+  val rj = UInt(5.W)
+  val rk = UInt(5.W)
+  val rd = UInt(5.W)
   val preg = UInt(6.W)
   val opreg = UInt(6.W)
   val instType = UInt(3.W)
@@ -39,7 +43,9 @@ class CommitInfo extends Bundle {
 class RobEntry extends Bundle {
   val valid = Bool()
   val complete = Bool()
-  val areg = UInt(5.W)
+  val rj = UInt(5.W)
+  val rk = UInt(5.W)
+  val rd = UInt(5.W)
   val preg = UInt(6.W)
   val opreg = UInt(6.W)
   val pc = UInt(32.W)
@@ -95,7 +101,9 @@ class ROB extends Module {
           val entry = Wire(new RobEntry)
           entry.valid := true.B
           entry.complete := false.B
-          entry.areg := io.disp_info(i).areg
+          entry.rj := io.disp_info(i).rj
+          entry.rk := io.disp_info(i).rk
+          entry.rd := io.disp_info(i).rd
           entry.preg := io.disp_info(i).preg
           entry.opreg := io.disp_info(i).opreg
           entry.pc := io.disp_info(i).pc
@@ -112,7 +120,6 @@ class ROB extends Module {
     count := count + numDispatch
   }
 
-  // WriteBack（写回）逻辑
   for (i <- 0 until 4) {
     when(io.wb_valid(i)) {
       val idx = io.wb_info(i).idx
@@ -122,23 +129,19 @@ class ROB extends Module {
     }
   }
 
-  // Commit（提交）逻辑
   val commit_valid_vec = Wire(Vec(4, Bool()))
   val commit_info_vec = Wire(Vec(4, new CommitInfo))
-  val storePending = Wire(Vec(4, Bool()))
 
   for (i <- 0 until 4) {
     val idx = wrapIndex(head + i.U)
     val entry = robEntries(idx)
     val canCommit = entry.valid && entry.complete
-    val isStore = (entry.instType === InstType.store)
-    val storeOk = Mux(isStore, io.storeCommitAck, true.B)
-
-    commit_valid_vec(i) := canCommit && storeOk
-    storePending(i) := isStore && canCommit && !io.storeCommitAck
+    commit_valid_vec(i) := canCommit
 
     commit_info_vec(i).pc := entry.pc
-    commit_info_vec(i).areg := entry.areg
+    commit_info_vec(i).rj := entry.rj
+    commit_info_vec(i).rk := entry.rk
+    commit_info_vec(i).rd := entry.rd
     commit_info_vec(i).preg := entry.preg
     commit_info_vec(i).opreg := entry.opreg
     commit_info_vec(i).instType := entry.instType
@@ -154,36 +157,4 @@ class ROB extends Module {
 
   io.commit_valid := commit_valid_ordered
   io.commit_info := commit_info_vec
-
-  val commitCount = Wire(UInt(3.W))
-  commitCount := PopCount(commit_valid_ordered)
-
-  when(commitCount > 0.U) {
-    for (i <- 0 until 4) {
-      when(i.U < commitCount) {
-        val idx = wrapIndex(head + i.U)
-        robEntries(idx).valid := false.B
-      }
-    }
-    head := wrapIndex(head + commitCount)
-    count := count - commitCount
-  }
-
-  io.storeCommitReq := storePending.head
-
-  // Flush（恢复）逻辑
-  when(io.flush_valid) {
-    val flushIdx = io.flush_index
-    val newCount = Mux(flushIdx >= head, flushIdx - head, flushIdx + ROB_SIZE.U - head)
-
-    for (i <- 0 until ROB_SIZE) {
-      when(wrapIndex(i.U) >= head && wrapIndex(i.U) < flushIdx) {
-        robEntries(i).valid := false.B
-      }
-    }
-
-    tail := flushIdx
-    head := flushIdx
-    count := newCount
-  }
 }
