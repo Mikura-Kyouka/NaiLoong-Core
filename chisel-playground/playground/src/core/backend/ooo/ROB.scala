@@ -1,6 +1,5 @@
 package core
 
-import core._
 import chisel3._
 import chisel3.util._
 
@@ -9,6 +8,17 @@ object InstType {
   val load = 1.U(3.W)
   val store = 2.U(3.W)
   val branch = 3.U(3.W)
+}
+
+class DispatchEntry extends Bundle {
+  val pc = UInt(32.W)
+  val rj = UInt(5.W)
+  val rk = UInt(5.W)
+  val rd = UInt(5.W)
+  val preg = UInt(7.W)
+  val opreg = UInt(7.W)
+  val instType = UInt(3.W)
+  val checkpoint = UInt(6.W)
 }
 
 class WriteBackEntry extends Bundle {
@@ -22,11 +32,16 @@ class CommitInfo extends Bundle {
   val rj = UInt(5.W)
   val rk = UInt(5.W)
   val rd = UInt(5.W)
-  val preg = UInt(6.W)
-  val opreg = UInt(6.W)
+  val preg = UInt(7.W)
+  val opreg = UInt(7.W)
   val instType = UInt(3.W)
   val exception = Bool()
   val excpCode = UInt(4.W)
+}
+
+class RecycleEntry extends Bundle {
+  val valid = Bool()
+  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
 }
 
 class RobEntry extends Bundle {
@@ -35,8 +50,8 @@ class RobEntry extends Bundle {
   val rj = UInt(5.W)
   val rk = UInt(5.W)
   val rd = UInt(5.W)
-  val preg = UInt(6.W)
-  val opreg = UInt(6.W)
+  val preg = UInt(7.W)
+  val opreg = UInt(7.W)
   val pc = UInt(32.W)
   val exception = Bool()
   val excpCode = UInt(4.W)
@@ -64,6 +79,11 @@ class ROB extends Module {
 
     val commit_valid = Output(Vec(4, Bool()))
     val commit_info = Output(Vec(4, new CommitInfo))
+
+    val rob_commit = Output(Vec(4, new Bundle {
+      val valid = Bool()
+      val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
+    }))
   })
 
   val robEntries = RegInit(
@@ -120,12 +140,14 @@ class ROB extends Module {
 
   val commit_valid_vec = Wire(Vec(4, Bool()))
   val commit_info_vec = Wire(Vec(4, new CommitInfo))
+  val commit_old_preg_valid = VecInit(robEntries.map(e => e.valid && e.complete))
 
   for (i <- 0 until 4) {
     val idx = wrapIndex(head + i.U)
     val entry = robEntries(idx)
     val canCommit = entry.valid && entry.complete
-    commit_valid_vec(i) := canCommit
+    commit_valid_vec(i) := entry.valid && entry.complete && 
+                      (entry.instType =/= InstType.store || io.storeCommitAck)
 
     commit_info_vec(i).pc := entry.pc
     commit_info_vec(i).rj := entry.rj
@@ -138,20 +160,84 @@ class ROB extends Module {
     commit_info_vec(i).excpCode := entry.excpCode
   }
 
+
+  val has_exception = commit_info_vec.map(_.exception).reduce(_ || _)
+
   val commit_valid_ordered = Wire(Vec(4, Bool()))
+
   commit_valid_ordered(0) := commit_valid_vec(0)
   for (i <- 1 until 4) {
-    commit_valid_ordered(i) := commit_valid_vec(i) && commit_valid_ordered(
-      i - 1
-    )
+    commit_valid_ordered(i) := commit_valid_vec(i) && 
+                              commit_valid_ordered(i-1) && 
+                              robEntries(wrapIndex(head + i.U)).instType =/= InstType.store
   }
 
-  io.storeCommitReq := false.B
+  // 物理寄存器回收队列
+  val RecycleQueueDepth = 8
+  val recycleQueue = Module(new Queue(
+    gen = Vec(4, new RecycleEntry),
+    entries = RecycleQueueDepth,
+    pipe = true,
+    hasFlush = true
+  ))
 
-  when(commit_valid_ordered(0) && robEntries(head).instType === InstType.store) {
-    io.storeCommitReq := true.B
+  recycleQueue.io.enq.valid := io.commit_valid.asUInt.orR
+  recycleQueue.io.enq.bits := VecInit(io.commit_info.zip(io.commit_valid).map {
+    case (info, valid) => {
+      val entry = Wire(new RecycleEntry)
+      entry.valid := valid
+      entry.old_preg := info.opreg
+      entry
+    }
+  })
+
+  when(io.flush_valid) {
+    head := io.flush_index
+    tail := io.flush_index
+    count := 0.U
+    robEntries.foreach(_.valid := false.B)
+    recycleQueue.flush := true.B
   }
 
-  io.commit_valid := commit_valid_ordered
+  val exceptionIndex = PriorityMux(
+    commit_info_vec.map(_.exception).zipWithIndex.map { 
+      case (e, idx) => (e, idx.U) 
+    }
+  )
+
+  when(has_exception) {
+    recycleQueue.io.enq.valid := (PriorityEncoder(commit_valid_ordered) + 1.U) >= exceptionIndex
+  }
+  
+  val CommitValidPreMask = VecInit.tabulate(4) { i =>
+    commit_valid_ordered(i) && (!has_exception || (i.U <= exceptionIndex))
+  }
+
+  val storeMask = VecInit(commit_info_vec.map(_.instType === InstType.store)).asUInt
+  val pendingStore = (storeMask & CommitValidPreMask.asUInt).orR && !io.storeCommitAck
+  val isBlockedByStore = VecInit.tabulate(4) { i =>
+    (i > 0).B && pendingStore && (storeMask(i-1, 0).orR)
+  }
+
+  io.commit_valid := VecInit.tabulate(4) { i =>
+    CommitValidPreMask(i) && !isBlockedByStore(i)
+  }
+
+  io.storeCommitReq := pendingStore
   io.commit_info := commit_info_vec
+
+  val commit_num = PopCount(io.commit_valid)
+  when(commit_num > 0.U && !has_exception) {
+    head := wrapIndex(head + commit_num)
+    count := count - commit_num
+  }
+
+  val rob_commit_reg = RegNext(recycleQueue.io.deq.bits)
+  val rob_commit_valid_reg = RegNext(recycleQueue.io.deq.valid)
+  io.rob_commit := Mux(rob_commit_valid_reg, rob_commit_reg, 0.U.asTypeOf(Vec(4, new Bundle {
+    val valid = Bool()
+    val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
+  })))
+
+  recycleQueue.io.deq.ready := true.B
 }
