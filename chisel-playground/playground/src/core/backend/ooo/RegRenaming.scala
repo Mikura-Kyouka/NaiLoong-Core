@@ -1,5 +1,6 @@
 package core
 
+import core._ 
 import chisel3._
 import chisel3.util._
 
@@ -9,15 +10,6 @@ object RegConfig {
   val PHYS_REG_BITS   = log2Ceil(PHYS_REG_NUM)
   val FREE_LIST_SIZE  = PHYS_REG_NUM - ARCH_REG_NUM
   val FREE_LIST_BITS  = log2Ceil(FREE_LIST_SIZE + 1)
-}
-
-class DispatchEntry extends Bundle {
-  val pc         = UInt(32.W)
-  val areg       = UInt(5.W)
-  val preg       = UInt(RegConfig.PHYS_REG_BITS.W)
-  val opreg      = UInt(RegConfig.PHYS_REG_BITS.W)
-  val instType   = UInt(3.W)
-  val checkpoint = UInt(6.W)
 }
 
 class RenameCheckpoint extends Bundle {

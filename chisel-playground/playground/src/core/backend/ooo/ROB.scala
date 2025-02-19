@@ -1,5 +1,6 @@
 package core
 
+import core._ 
 import chisel3._
 import chisel3.util._
 
@@ -83,8 +84,10 @@ class ROB extends Module {
 
   val wrapIndex = (idx: UInt) => idx % ROB_SIZE.U
 
+  val allocated = RegInit(0.U(2.W))
+  allocated := 0.U
+
   when(io.rob_alloc_ready && numDispatch =/= 0.U) {
-    var allocated = 0.U(2.W)
     for (i <- 0 until 4) {
       when(io.disp_valid(i)) {
         val allocIdx = wrapIndex(tail + allocated)
