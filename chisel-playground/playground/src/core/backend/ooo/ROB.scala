@@ -1,6 +1,6 @@
 package core
 
-import core._ 
+import core._
 import chisel3._
 import chisel3.util._
 
@@ -9,17 +9,6 @@ object InstType {
   val load = 1.U(3.W)
   val store = 2.U(3.W)
   val branch = 3.U(3.W)
-}
-
-class DispatchEntry extends Bundle {
-  val pc = UInt(32.W)
-  val rj = UInt(5.W)
-  val rk = UInt(5.W)
-  val rd = UInt(5.W)
-  val preg = UInt(6.W)
-  val opreg = UInt(6.W)
-  val instType = UInt(3.W)
-  val checkpoint = UInt(6.W)
 }
 
 class WriteBackEntry extends Bundle {
@@ -152,7 +141,15 @@ class ROB extends Module {
   val commit_valid_ordered = Wire(Vec(4, Bool()))
   commit_valid_ordered(0) := commit_valid_vec(0)
   for (i <- 1 until 4) {
-    commit_valid_ordered(i) := commit_valid_vec(i) && commit_valid_ordered(i - 1)
+    commit_valid_ordered(i) := commit_valid_vec(i) && commit_valid_ordered(
+      i - 1
+    )
+  }
+
+  io.storeCommitReq := false.B
+
+  when(commit_valid_ordered(0) && robEntries(head).instType === InstType.store) {
+    io.storeCommitReq := true.B
   }
 
   io.commit_valid := commit_valid_ordered

@@ -50,157 +50,2534 @@
   `endif // not def ENABLE_INITIAL_MEM_
 `endif // not def SYNTHESIS
 
-module RegRenaming(	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  input         clock,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-                reset,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  output        io_from_0_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_from_0_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [31:0] io_from_0_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [4:0]  io_from_0_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_0_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_from_0_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [2:0]  io_from_0_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_0_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_from_1_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_from_1_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [31:0] io_from_1_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [4:0]  io_from_1_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_1_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_from_1_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [2:0]  io_from_1_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_1_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_from_2_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_from_2_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [31:0] io_from_2_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [4:0]  io_from_2_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_2_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_from_2_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [2:0]  io_from_2_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_2_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_from_3_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_from_3_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [31:0] io_from_3_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [4:0]  io_from_3_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_3_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_from_3_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [2:0]  io_from_3_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_from_3_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_to_0_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_to_0_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [31:0] io_to_0_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [4:0]  io_to_0_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_0_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_to_0_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [2:0]  io_to_0_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_0_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_to_1_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_to_1_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [31:0] io_to_1_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [4:0]  io_to_1_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_1_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_to_1_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [2:0]  io_to_1_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_1_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_to_2_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_to_2_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [31:0] io_to_2_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [4:0]  io_to_2_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_2_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_to_2_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [2:0]  io_to_2_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_2_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_to_3_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_to_3_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [31:0] io_to_3_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [4:0]  io_to_3_bits_areg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_3_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_to_3_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [2:0]  io_to_3_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [5:0]  io_to_3_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_commit_free_valid_0,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_valid_1,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_valid_2,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_valid_3,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [6:0]  io_commit_free_preg_0,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_preg_1,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_preg_2,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-                io_commit_free_preg_3,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input         io_recover,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  input  [5:0]  io_recover_chk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_recover_done,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output [6:0]  io_free_list_count,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
-  output        io_ren_alloc_ready	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:38:14]
+module RegRenaming(	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  input         clock,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+                reset,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  output        io_from_0_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_from_0_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [31:0] io_from_0_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [4:0]  io_from_0_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_0_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_0_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_0_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_0_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [2:0]  io_from_0_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_0_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_from_1_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_from_1_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [31:0] io_from_1_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [4:0]  io_from_1_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_1_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_1_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_1_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_1_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [2:0]  io_from_1_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_1_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_from_2_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_from_2_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [31:0] io_from_2_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [4:0]  io_from_2_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_2_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_2_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_2_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_2_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [2:0]  io_from_2_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_2_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_from_3_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_from_3_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [31:0] io_from_3_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [4:0]  io_from_3_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_3_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_3_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_3_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_from_3_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [2:0]  io_from_3_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_from_3_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_to_0_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_to_0_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [31:0] io_to_0_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [4:0]  io_to_0_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_0_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_0_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_0_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_0_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [2:0]  io_to_0_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_0_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_to_1_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_to_1_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [31:0] io_to_1_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [4:0]  io_to_1_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_1_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_1_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_1_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_1_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [2:0]  io_to_1_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_1_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_to_2_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_to_2_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [31:0] io_to_2_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [4:0]  io_to_2_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_2_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_2_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_2_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_2_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [2:0]  io_to_2_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_2_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_to_3_ready,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_to_3_valid,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [31:0] io_to_3_bits_pc,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [4:0]  io_to_3_bits_rj,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_3_bits_rk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_3_bits_rd,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_3_bits_preg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_to_3_bits_opreg,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [2:0]  io_to_3_bits_instType,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [5:0]  io_to_3_bits_checkpoint,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_commit_free_valid_0,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_valid_1,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_valid_2,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_valid_3,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [6:0]  io_commit_free_preg_0,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_preg_1,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_preg_2,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+                io_commit_free_preg_3,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input         io_recover,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  input  [5:0]  io_recover_chk,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_recover_done,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output [6:0]  io_free_list_count,	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+  output        io_ren_alloc_ready	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
 );
 
-  reg  [6:0] freeCount;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:46:26]
+  reg  [6:0] rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20]
+  reg  [6:0] freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_32;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_33;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_34;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_35;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_36;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_37;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_38;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_39;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_40;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_41;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_42;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_43;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_44;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_45;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_46;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_47;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_48;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_49;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_50;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_51;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_52;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_53;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_54;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_55;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_56;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_57;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_58;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_59;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_60;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_61;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_62;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_63;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_64;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_65;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_66;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_67;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_68;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_69;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_70;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_71;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_72;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_73;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_74;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_75;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_76;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_77;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_78;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_79;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_80;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_81;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_82;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_83;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_84;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_85;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_86;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_87;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_88;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_89;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_90;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_91;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_92;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_93;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_94;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeList_95;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+  reg  [6:0] freeHead;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:60:25]
+  reg  [6:0] freeTail;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:61:25]
+  reg  [6:0] freeCount;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26]
   wire       ren_alloc_ready =
     freeCount >= {4'h0,
                   {1'h0, {1'h0, io_from_0_valid} + {1'h0, io_from_1_valid}}
-                    + {1'h0, {1'h0, io_from_2_valid} + {1'h0, io_from_3_valid}}};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:46:26, :53:37, :60:28, :61:35]
-  always @(posedge clock) begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-    if (reset)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-      freeCount <= 7'h60;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:42:33, :46:26]
-    else	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-      freeCount <=
-        freeCount
-        + {4'h0,
-           {1'h0, {1'h0, io_commit_free_valid_0} + {1'h0, io_commit_free_valid_1}}
-             + {1'h0, {1'h0, io_commit_free_valid_2} + {1'h0, io_commit_free_valid_3}}};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:46:26, :53:37, :61:35, :82:33, :90:26]
+                    + {1'h0, {1'h0, io_from_2_valid} + {1'h0, io_from_3_valid}}};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :69:33, :75:28, :76:35]
+  wire       io_to_0_valid_0 = io_from_0_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:76:35, :81:40]
+  reg  [6:0] casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:84:24]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:84:24]
+    casez (freeHead)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:60:25, :84:24]
+      7'b0000000:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000001:
+        casez_tmp = freeList_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000010:
+        casez_tmp = freeList_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000011:
+        casez_tmp = freeList_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000100:
+        casez_tmp = freeList_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000101:
+        casez_tmp = freeList_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000110:
+        casez_tmp = freeList_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0000111:
+        casez_tmp = freeList_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001000:
+        casez_tmp = freeList_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001001:
+        casez_tmp = freeList_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001010:
+        casez_tmp = freeList_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001011:
+        casez_tmp = freeList_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001100:
+        casez_tmp = freeList_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001101:
+        casez_tmp = freeList_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001110:
+        casez_tmp = freeList_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0001111:
+        casez_tmp = freeList_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010000:
+        casez_tmp = freeList_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010001:
+        casez_tmp = freeList_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010010:
+        casez_tmp = freeList_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010011:
+        casez_tmp = freeList_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010100:
+        casez_tmp = freeList_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010101:
+        casez_tmp = freeList_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010110:
+        casez_tmp = freeList_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0010111:
+        casez_tmp = freeList_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011000:
+        casez_tmp = freeList_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011001:
+        casez_tmp = freeList_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011010:
+        casez_tmp = freeList_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011011:
+        casez_tmp = freeList_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011100:
+        casez_tmp = freeList_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011101:
+        casez_tmp = freeList_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011110:
+        casez_tmp = freeList_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0011111:
+        casez_tmp = freeList_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100000:
+        casez_tmp = freeList_32;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100001:
+        casez_tmp = freeList_33;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100010:
+        casez_tmp = freeList_34;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100011:
+        casez_tmp = freeList_35;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100100:
+        casez_tmp = freeList_36;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100101:
+        casez_tmp = freeList_37;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100110:
+        casez_tmp = freeList_38;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0100111:
+        casez_tmp = freeList_39;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101000:
+        casez_tmp = freeList_40;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101001:
+        casez_tmp = freeList_41;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101010:
+        casez_tmp = freeList_42;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101011:
+        casez_tmp = freeList_43;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101100:
+        casez_tmp = freeList_44;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101101:
+        casez_tmp = freeList_45;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101110:
+        casez_tmp = freeList_46;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0101111:
+        casez_tmp = freeList_47;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110000:
+        casez_tmp = freeList_48;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110001:
+        casez_tmp = freeList_49;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110010:
+        casez_tmp = freeList_50;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110011:
+        casez_tmp = freeList_51;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110100:
+        casez_tmp = freeList_52;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110101:
+        casez_tmp = freeList_53;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110110:
+        casez_tmp = freeList_54;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0110111:
+        casez_tmp = freeList_55;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111000:
+        casez_tmp = freeList_56;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111001:
+        casez_tmp = freeList_57;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111010:
+        casez_tmp = freeList_58;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111011:
+        casez_tmp = freeList_59;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111100:
+        casez_tmp = freeList_60;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111101:
+        casez_tmp = freeList_61;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111110:
+        casez_tmp = freeList_62;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b0111111:
+        casez_tmp = freeList_63;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000000:
+        casez_tmp = freeList_64;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000001:
+        casez_tmp = freeList_65;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000010:
+        casez_tmp = freeList_66;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000011:
+        casez_tmp = freeList_67;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000100:
+        casez_tmp = freeList_68;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000101:
+        casez_tmp = freeList_69;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000110:
+        casez_tmp = freeList_70;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1000111:
+        casez_tmp = freeList_71;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001000:
+        casez_tmp = freeList_72;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001001:
+        casez_tmp = freeList_73;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001010:
+        casez_tmp = freeList_74;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001011:
+        casez_tmp = freeList_75;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001100:
+        casez_tmp = freeList_76;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001101:
+        casez_tmp = freeList_77;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001110:
+        casez_tmp = freeList_78;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1001111:
+        casez_tmp = freeList_79;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010000:
+        casez_tmp = freeList_80;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010001:
+        casez_tmp = freeList_81;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010010:
+        casez_tmp = freeList_82;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010011:
+        casez_tmp = freeList_83;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010100:
+        casez_tmp = freeList_84;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010101:
+        casez_tmp = freeList_85;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010110:
+        casez_tmp = freeList_86;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1010111:
+        casez_tmp = freeList_87;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011000:
+        casez_tmp = freeList_88;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011001:
+        casez_tmp = freeList_89;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011010:
+        casez_tmp = freeList_90;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011011:
+        casez_tmp = freeList_91;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011100:
+        casez_tmp = freeList_92;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011101:
+        casez_tmp = freeList_93;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011110:
+        casez_tmp = freeList_94;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1011111:
+        casez_tmp = freeList_95;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100000:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100001:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100010:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100011:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100100:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100101:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100110:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1100111:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101000:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101001:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101010:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101011:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101100:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101101:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101110:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1101111:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110000:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110001:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110010:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110011:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110100:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110101:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110110:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1110111:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111000:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111001:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111010:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111011:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111100:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111101:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      7'b1111110:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+      default:
+        casez_tmp = freeList_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :84:24]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:60:25, :84:24]
+  end // always_comb
+  reg  [6:0] casez_tmp_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_0_bits_rj)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_0 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_0 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_0 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_0 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_0 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_0 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_0 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_0 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_0 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_0 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_0 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_0 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_0 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_0 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_0 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_0 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_0 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_0 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_0 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_0 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_0 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_0 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_0 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_0 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_0 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_0 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_0 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_0 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_0 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_0 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_0 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_0 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  reg  [6:0] casez_tmp_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:86:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_0_bits_rk)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_1 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_1 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_1 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_1 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_1 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_1 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_1 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_1 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_1 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_1 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_1 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_1 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_1 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_1 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_1 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_1 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_1 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_1 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_1 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_1 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_1 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_1 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_1 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_1 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_1 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_1 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_1 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_1 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_1 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_1 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_1 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_1 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  wire       io_to_1_valid_0 = io_from_1_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:76:35, :81:40]
+  reg  [6:0] casez_tmp_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_1_bits_rj)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_2 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_2 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_2 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_2 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_2 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_2 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_2 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_2 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_2 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_2 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_2 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_2 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_2 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_2 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_2 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_2 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_2 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_2 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_2 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_2 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_2 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_2 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_2 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_2 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_2 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_2 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_2 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_2 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_2 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_2 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_2 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_2 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  reg  [6:0] casez_tmp_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:86:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_1_bits_rk)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_3 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_3 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_3 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_3 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_3 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_3 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_3 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_3 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_3 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_3 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_3 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_3 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_3 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_3 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_3 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_3 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_3 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_3 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_3 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_3 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_3 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_3 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_3 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_3 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_3 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_3 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_3 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_3 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_3 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_3 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_3 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_3 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  wire       io_to_2_valid_0 = io_from_2_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:76:35, :81:40]
+  reg  [6:0] casez_tmp_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_2_bits_rj)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_4 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_4 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_4 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_4 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_4 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_4 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_4 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_4 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_4 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_4 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_4 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_4 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_4 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_4 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_4 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_4 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_4 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_4 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_4 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_4 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_4 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_4 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_4 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_4 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_4 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_4 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_4 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_4 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_4 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_4 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_4 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_4 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  reg  [6:0] casez_tmp_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:86:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_2_bits_rk)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_5 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_5 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_5 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_5 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_5 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_5 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_5 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_5 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_5 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_5 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_5 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_5 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_5 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_5 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_5 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_5 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_5 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_5 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_5 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_5 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_5 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_5 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_5 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_5 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_5 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_5 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_5 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_5 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_5 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_5 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_5 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_5 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  wire       io_to_3_valid_0 = io_from_3_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:76:35, :81:40]
+  reg  [6:0] casez_tmp_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_3_bits_rj)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_6 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_6 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_6 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_6 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_6 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_6 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_6 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_6 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_6 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_6 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_6 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_6 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_6 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_6 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_6 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_6 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_6 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_6 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_6 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_6 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_6 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_6 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_6 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_6 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_6 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_6 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_6 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_6 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_6 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_6 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_6 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_6 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  reg  [6:0] casez_tmp_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:86:22]
+  always_comb begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+    casez (io_from_3_bits_rk)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+      5'b00000:
+        casez_tmp_7 = rmt_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00001:
+        casez_tmp_7 = rmt_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00010:
+        casez_tmp_7 = rmt_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00011:
+        casez_tmp_7 = rmt_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00100:
+        casez_tmp_7 = rmt_4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00101:
+        casez_tmp_7 = rmt_5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00110:
+        casez_tmp_7 = rmt_6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b00111:
+        casez_tmp_7 = rmt_7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01000:
+        casez_tmp_7 = rmt_8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01001:
+        casez_tmp_7 = rmt_9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01010:
+        casez_tmp_7 = rmt_10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01011:
+        casez_tmp_7 = rmt_11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01100:
+        casez_tmp_7 = rmt_12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01101:
+        casez_tmp_7 = rmt_13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01110:
+        casez_tmp_7 = rmt_14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b01111:
+        casez_tmp_7 = rmt_15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10000:
+        casez_tmp_7 = rmt_16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10001:
+        casez_tmp_7 = rmt_17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10010:
+        casez_tmp_7 = rmt_18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10011:
+        casez_tmp_7 = rmt_19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10100:
+        casez_tmp_7 = rmt_20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10101:
+        casez_tmp_7 = rmt_21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10110:
+        casez_tmp_7 = rmt_22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b10111:
+        casez_tmp_7 = rmt_23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11000:
+        casez_tmp_7 = rmt_24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11001:
+        casez_tmp_7 = rmt_25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11010:
+        casez_tmp_7 = rmt_26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11011:
+        casez_tmp_7 = rmt_27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11100:
+        casez_tmp_7 = rmt_28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11101:
+        casez_tmp_7 = rmt_29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      5'b11110:
+        casez_tmp_7 = rmt_30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+      default:
+        casez_tmp_7 = rmt_31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :85:22]
+    endcase	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:85:22]
+  end // always_comb
+  wire       _GEN = freeTail == 7'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_0 = freeTail == 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_1 = freeTail == 7'h2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_2 = freeTail == 7'h3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_3 = freeTail == 7'h4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_4 = freeTail == 7'h5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_5 = freeTail == 7'h6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_6 = freeTail == 7'h7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_7 = freeTail == 7'h8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_8 = freeTail == 7'h9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_9 = freeTail == 7'hA;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_10 = freeTail == 7'hB;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_11 = freeTail == 7'hC;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_12 = freeTail == 7'hD;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_13 = freeTail == 7'hE;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_14 = freeTail == 7'hF;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_15 = freeTail == 7'h10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_16 = freeTail == 7'h11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_17 = freeTail == 7'h12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_18 = freeTail == 7'h13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_19 = freeTail == 7'h14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_20 = freeTail == 7'h15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_21 = freeTail == 7'h16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_22 = freeTail == 7'h17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_23 = freeTail == 7'h18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_24 = freeTail == 7'h19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_25 = freeTail == 7'h1A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_26 = freeTail == 7'h1B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_27 = freeTail == 7'h1C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_28 = freeTail == 7'h1D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_29 = freeTail == 7'h1E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_30 = freeTail == 7'h1F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :99:28]
+  wire       _GEN_31 = freeTail == 7'h20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_32 = freeTail == 7'h21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_33 = freeTail == 7'h22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_34 = freeTail == 7'h23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_35 = freeTail == 7'h24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_36 = freeTail == 7'h25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_37 = freeTail == 7'h26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_38 = freeTail == 7'h27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_39 = freeTail == 7'h28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_40 = freeTail == 7'h29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_41 = freeTail == 7'h2A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_42 = freeTail == 7'h2B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_43 = freeTail == 7'h2C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_44 = freeTail == 7'h2D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_45 = freeTail == 7'h2E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_46 = freeTail == 7'h2F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_47 = freeTail == 7'h30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_48 = freeTail == 7'h31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_49 = freeTail == 7'h32;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_50 = freeTail == 7'h33;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_51 = freeTail == 7'h34;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_52 = freeTail == 7'h35;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_53 = freeTail == 7'h36;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_54 = freeTail == 7'h37;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_55 = freeTail == 7'h38;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_56 = freeTail == 7'h39;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_57 = freeTail == 7'h3A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_58 = freeTail == 7'h3B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_59 = freeTail == 7'h3C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_60 = freeTail == 7'h3D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_61 = freeTail == 7'h3E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_62 = freeTail == 7'h3F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_63 = freeTail == 7'h40;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_64 = freeTail == 7'h41;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_65 = freeTail == 7'h42;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_66 = freeTail == 7'h43;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_67 = freeTail == 7'h44;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_68 = freeTail == 7'h45;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_69 = freeTail == 7'h46;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_70 = freeTail == 7'h47;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_71 = freeTail == 7'h48;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_72 = freeTail == 7'h49;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_73 = freeTail == 7'h4A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_74 = freeTail == 7'h4B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_75 = freeTail == 7'h4C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_76 = freeTail == 7'h4D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_77 = freeTail == 7'h4E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_78 = freeTail == 7'h4F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_79 = freeTail == 7'h50;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_80 = freeTail == 7'h51;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_81 = freeTail == 7'h52;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_82 = freeTail == 7'h53;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_83 = freeTail == 7'h54;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_84 = freeTail == 7'h55;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_85 = freeTail == 7'h56;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_86 = freeTail == 7'h57;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_87 = freeTail == 7'h58;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_88 = freeTail == 7'h59;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_89 = freeTail == 7'h5A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_90 = freeTail == 7'h5B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_91 = freeTail == 7'h5C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_92 = freeTail == 7'h5D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_93 = freeTail == 7'h5E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_94 = freeTail == 7'h5F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :61:25, :99:28]
+  wire       _GEN_95 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h0 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_96 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_97 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h2 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_98 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h3 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_99 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h4 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_100 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h5 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_101 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h6 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_102 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h7 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_103 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h8 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_104 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h9 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_105 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hA | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hA;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_106 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hB | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hB;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_107 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hC | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hC;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_108 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hD | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hD;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_109 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hE | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hE;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_110 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'hF | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'hF;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_111 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h10 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_112 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h11 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_113 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h12 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_114 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h13 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_115 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h14 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_116 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h15 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_117 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h16 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_118 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h17 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_119 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h18 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_120 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h19 | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_121 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1A | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_122 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1B | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_123 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1C | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_124 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1D | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_125 =
+    io_to_1_valid_0 & io_from_1_bits_rd == 5'h1E | io_to_0_valid_0
+    & io_from_0_bits_rd == 5'h1E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_126 =
+    io_to_1_valid_0 & (&io_from_1_bits_rd) | io_to_0_valid_0 & (&io_from_0_bits_rd);	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :81:40, :88:47, :89:31]
+  wire       _GEN_127 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_128 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_129 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_130 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_131 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_132 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_133 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_134 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_135 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_136 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_137 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hA;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_138 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hB;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_139 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hC;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_140 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hD;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_141 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hE;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_142 = io_to_2_valid_0 & io_from_2_bits_rd == 5'hF;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_143 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_144 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_145 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_146 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_147 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_148 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_149 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_150 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_151 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_152 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_153 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_154 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_155 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_156 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40, :88:47, :89:31]
+  wire       _GEN_157 = io_to_2_valid_0 & io_from_2_bits_rd == 5'h1E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40, :88:47, :89:31]
+  wire       _GEN_158 = io_to_2_valid_0 & (&io_from_2_bits_rd);	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40, :88:47, :89:31]
+  wire [2:0] commitFreeCount =
+    {1'h0, {1'h0, io_commit_free_valid_0} + {1'h0, io_commit_free_valid_1}}
+    + {1'h0, {1'h0, io_commit_free_valid_2} + {1'h0, io_commit_free_valid_3}};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:69:33, :95:33]
+  always @(posedge clock) begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+    if (reset) begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+      rmt_0 <= 7'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_1 <= 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_2 <= 7'h2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_3 <= 7'h3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_4 <= 7'h4;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_5 <= 7'h5;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_6 <= 7'h6;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_7 <= 7'h7;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_8 <= 7'h8;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_9 <= 7'h9;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_10 <= 7'hA;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_11 <= 7'hB;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_12 <= 7'hC;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_13 <= 7'hD;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_14 <= 7'hE;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_15 <= 7'hF;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_16 <= 7'h10;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_17 <= 7'h11;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_18 <= 7'h12;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_19 <= 7'h13;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_20 <= 7'h14;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_21 <= 7'h15;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_22 <= 7'h16;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_23 <= 7'h17;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_24 <= 7'h18;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_25 <= 7'h19;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_26 <= 7'h1A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_27 <= 7'h1B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_28 <= 7'h1C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_29 <= 7'h1D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_30 <= 7'h1E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      rmt_31 <= 7'h1F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:{20,28}]
+      freeList_0 <= 7'h20;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_1 <= 7'h21;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_2 <= 7'h22;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_3 <= 7'h23;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_4 <= 7'h24;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_5 <= 7'h25;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_6 <= 7'h26;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_7 <= 7'h27;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_8 <= 7'h28;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_9 <= 7'h29;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_10 <= 7'h2A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_11 <= 7'h2B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_12 <= 7'h2C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_13 <= 7'h2D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_14 <= 7'h2E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_15 <= 7'h2F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_16 <= 7'h30;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_17 <= 7'h31;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_18 <= 7'h32;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_19 <= 7'h33;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_20 <= 7'h34;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_21 <= 7'h35;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_22 <= 7'h36;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_23 <= 7'h37;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_24 <= 7'h38;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_25 <= 7'h39;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_26 <= 7'h3A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_27 <= 7'h3B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_28 <= 7'h3C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_29 <= 7'h3D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_30 <= 7'h3E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_31 <= 7'h3F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_32 <= 7'h40;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_33 <= 7'h41;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_34 <= 7'h42;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_35 <= 7'h43;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_36 <= 7'h44;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_37 <= 7'h45;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_38 <= 7'h46;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_39 <= 7'h47;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_40 <= 7'h48;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_41 <= 7'h49;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_42 <= 7'h4A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_43 <= 7'h4B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_44 <= 7'h4C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_45 <= 7'h4D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_46 <= 7'h4E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_47 <= 7'h4F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_48 <= 7'h50;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_49 <= 7'h51;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_50 <= 7'h52;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_51 <= 7'h53;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_52 <= 7'h54;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_53 <= 7'h55;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_54 <= 7'h56;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_55 <= 7'h57;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_56 <= 7'h58;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_57 <= 7'h59;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_58 <= 7'h5A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_59 <= 7'h5B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_60 <= 7'h5C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_61 <= 7'h5D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_62 <= 7'h5E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_63 <= 7'h5F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_64 <= 7'h60;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_65 <= 7'h61;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_66 <= 7'h62;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_67 <= 7'h63;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_68 <= 7'h64;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_69 <= 7'h65;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_70 <= 7'h66;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_71 <= 7'h67;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_72 <= 7'h68;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_73 <= 7'h69;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_74 <= 7'h6A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_75 <= 7'h6B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_76 <= 7'h6C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_77 <= 7'h6D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_78 <= 7'h6E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_79 <= 7'h6F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_80 <= 7'h70;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_81 <= 7'h71;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_82 <= 7'h72;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_83 <= 7'h73;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_84 <= 7'h74;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_85 <= 7'h75;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_86 <= 7'h76;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_87 <= 7'h77;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_88 <= 7'h78;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_89 <= 7'h79;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_90 <= 7'h7A;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_91 <= 7'h7B;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_92 <= 7'h7C;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_93 <= 7'h7D;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_94 <= 7'h7E;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeList_95 <= 7'h7F;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :55:12]
+      freeHead <= 7'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :60:25]
+      freeTail <= 7'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25]
+      freeCount <= 7'h60;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:55:12, :62:26]
+    end
+    else begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h0 | _GEN_127 | _GEN_95
+            : _GEN_127 | _GEN_95)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_0 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1 | _GEN_128 | _GEN_96
+            : _GEN_128 | _GEN_96)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_1 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h2 | _GEN_129 | _GEN_97
+            : _GEN_129 | _GEN_97)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_2 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h3 | _GEN_130 | _GEN_98
+            : _GEN_130 | _GEN_98)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_3 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h4 | _GEN_131 | _GEN_99
+            : _GEN_131 | _GEN_99)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_4 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h5 | _GEN_132 | _GEN_100
+            : _GEN_132 | _GEN_100)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_5 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h6 | _GEN_133 | _GEN_101
+            : _GEN_133 | _GEN_101)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_6 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h7 | _GEN_134 | _GEN_102
+            : _GEN_134 | _GEN_102)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_7 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h8 | _GEN_135 | _GEN_103
+            : _GEN_135 | _GEN_103)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_8 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h9 | _GEN_136 | _GEN_104
+            : _GEN_136 | _GEN_104)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_9 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hA | _GEN_137 | _GEN_105
+            : _GEN_137 | _GEN_105)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_10 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hB | _GEN_138 | _GEN_106
+            : _GEN_138 | _GEN_106)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_11 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hC | _GEN_139 | _GEN_107
+            : _GEN_139 | _GEN_107)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_12 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hD | _GEN_140 | _GEN_108
+            : _GEN_140 | _GEN_108)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_13 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hE | _GEN_141 | _GEN_109
+            : _GEN_141 | _GEN_109)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_14 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'hF | _GEN_142 | _GEN_110
+            : _GEN_142 | _GEN_110)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_15 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h10 | _GEN_143 | _GEN_111
+            : _GEN_143 | _GEN_111)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_16 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h11 | _GEN_144 | _GEN_112
+            : _GEN_144 | _GEN_112)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_17 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h12 | _GEN_145 | _GEN_113
+            : _GEN_145 | _GEN_113)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_18 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h13 | _GEN_146 | _GEN_114
+            : _GEN_146 | _GEN_114)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_19 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h14 | _GEN_147 | _GEN_115
+            : _GEN_147 | _GEN_115)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_20 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h15 | _GEN_148 | _GEN_116
+            : _GEN_148 | _GEN_116)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_21 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h16 | _GEN_149 | _GEN_117
+            : _GEN_149 | _GEN_117)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_22 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h17 | _GEN_150 | _GEN_118
+            : _GEN_150 | _GEN_118)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_23 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h18 | _GEN_151 | _GEN_119
+            : _GEN_151 | _GEN_119)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_24 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h19 | _GEN_152 | _GEN_120
+            : _GEN_152 | _GEN_120)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_25 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1A | _GEN_153 | _GEN_121
+            : _GEN_153 | _GEN_121)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_26 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1B | _GEN_154 | _GEN_122
+            : _GEN_154 | _GEN_122)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_27 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1C | _GEN_155 | _GEN_123
+            : _GEN_155 | _GEN_123)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_28 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1D | _GEN_156 | _GEN_124
+            : _GEN_156 | _GEN_124)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20, :81:40, :88:47, :89:31]
+        rmt_29 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? io_from_3_bits_rd == 5'h1E | _GEN_157 | _GEN_125
+            : _GEN_157 | _GEN_125)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :81:40, :88:47, :89:31]
+        rmt_30 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (io_to_3_valid_0
+            ? (&io_from_3_bits_rd) | _GEN_158 | _GEN_126
+            : _GEN_158 | _GEN_126)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :81:40, :88:47, :89:31]
+        rmt_31 <= casez_tmp;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:20, :84:24]
+      if (|commitFreeCount) begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:95:33, :96:24]
+        if (io_commit_free_valid_3 & _GEN)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_0 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_0 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_0 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_0 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_1 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_1 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_1 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_1 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_1)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_2 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_1)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_2 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_1)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_2 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_1)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_2 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_2)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_3 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_2)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_3 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_2)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_3 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_2)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_3 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_3)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_4 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_3)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_4 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_3)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_4 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_3)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_4 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_4)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_5 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_4)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_5 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_4)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_5 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_4)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_5 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_5)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_6 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_5)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_6 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_5)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_6 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_5)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_6 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_6)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_7 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_6)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_7 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_6)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_7 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_6)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_7 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_7)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_8 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_7)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_8 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_7)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_8 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_7)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_8 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_8)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_9 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_8)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_9 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_8)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_9 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_8)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_9 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_9)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_10 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_9)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_10 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_9)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_10 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_9)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_10 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_10)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_11 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_10)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_11 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_10)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_11 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_10)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_11 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_11)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_12 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_11)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_12 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_11)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_12 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_11)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_12 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_12)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_13 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_12)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_13 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_12)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_13 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_12)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_13 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_13)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_14 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_13)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_14 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_13)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_14 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_13)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_14 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_14)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_15 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_14)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_15 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_14)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_15 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_14)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_15 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_15)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_16 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_15)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_16 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_15)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_16 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_15)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_16 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_16)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_17 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_16)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_17 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_16)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_17 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_16)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_17 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_17)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_18 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_17)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_18 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_17)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_18 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_17)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_18 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_18)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_19 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_18)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_19 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_18)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_19 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_18)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_19 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_19)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_20 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_19)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_20 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_19)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_20 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_19)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_20 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_20)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_21 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_20)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_21 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_20)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_21 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_20)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_21 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_21)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_22 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_21)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_22 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_21)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_22 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_21)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_22 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_22)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_23 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_22)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_23 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_22)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_23 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_22)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_23 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_23)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_24 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_23)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_24 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_23)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_24 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_23)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_24 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_24)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_25 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_24)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_25 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_24)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_25 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_24)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_25 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_25)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_26 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_25)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_26 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_25)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_26 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_25)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_26 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_26)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_27 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_26)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_27 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_26)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_27 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_26)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_27 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_27)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_28 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_27)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_28 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_27)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_28 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_27)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_28 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_28)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_29 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_28)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_29 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_28)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_29 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_28)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_29 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_29)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_30 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_29)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_30 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_29)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_30 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_29)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_30 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_30)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_31 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_30)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_31 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_30)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_31 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_30)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_31 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_31)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_32 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_31)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_32 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_31)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_32 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_31)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_32 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_32)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_33 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_32)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_33 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_32)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_33 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_32)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_33 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_33)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_34 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_33)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_34 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_33)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_34 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_33)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_34 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_34)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_35 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_34)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_35 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_34)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_35 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_34)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_35 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_35)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_36 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_35)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_36 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_35)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_36 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_35)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_36 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_36)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_37 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_36)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_37 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_36)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_37 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_36)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_37 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_37)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_38 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_37)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_38 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_37)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_38 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_37)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_38 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_38)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_39 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_38)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_39 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_38)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_39 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_38)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_39 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_39)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_40 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_39)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_40 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_39)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_40 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_39)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_40 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_40)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_41 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_40)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_41 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_40)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_41 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_40)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_41 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_41)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_42 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_41)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_42 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_41)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_42 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_41)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_42 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_42)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_43 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_42)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_43 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_42)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_43 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_42)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_43 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_43)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_44 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_43)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_44 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_43)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_44 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_43)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_44 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_44)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_45 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_44)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_45 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_44)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_45 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_44)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_45 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_45)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_46 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_45)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_46 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_45)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_46 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_45)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_46 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_46)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_47 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_46)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_47 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_46)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_47 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_46)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_47 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_47)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_48 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_47)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_48 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_47)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_48 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_47)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_48 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_48)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_49 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_48)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_49 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_48)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_49 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_48)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_49 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_49)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_50 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_49)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_50 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_49)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_50 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_49)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_50 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_50)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_51 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_50)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_51 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_50)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_51 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_50)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_51 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_51)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_52 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_51)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_52 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_51)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_52 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_51)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_52 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_52)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_53 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_52)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_53 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_52)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_53 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_52)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_53 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_53)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_54 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_53)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_54 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_53)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_54 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_53)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_54 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_54)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_55 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_54)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_55 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_54)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_55 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_54)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_55 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_55)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_56 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_55)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_56 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_55)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_56 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_55)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_56 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_56)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_57 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_56)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_57 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_56)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_57 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_56)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_57 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_57)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_58 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_57)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_58 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_57)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_58 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_57)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_58 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_58)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_59 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_58)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_59 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_58)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_59 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_58)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_59 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_59)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_60 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_59)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_60 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_59)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_60 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_59)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_60 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_60)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_61 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_60)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_61 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_60)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_61 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_60)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_61 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_61)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_62 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_61)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_62 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_61)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_62 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_61)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_62 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_62)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_63 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_62)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_63 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_62)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_63 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_62)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_63 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_63)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_64 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_63)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_64 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_63)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_64 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_63)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_64 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_64)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_65 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_64)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_65 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_64)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_65 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_64)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_65 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_65)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_66 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_65)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_66 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_65)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_66 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_65)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_66 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_66)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_67 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_66)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_67 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_66)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_67 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_66)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_67 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_67)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_68 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_67)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_68 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_67)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_68 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_67)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_68 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_68)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_69 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_68)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_69 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_68)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_69 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_68)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_69 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_69)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_70 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_69)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_70 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_69)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_70 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_69)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_70 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_70)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_71 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_70)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_71 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_70)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_71 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_70)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_71 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_71)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_72 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_71)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_72 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_71)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_72 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_71)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_72 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_72)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_73 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_72)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_73 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_72)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_73 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_72)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_73 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_73)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_74 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_73)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_74 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_73)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_74 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_73)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_74 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_74)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_75 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_74)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_75 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_74)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_75 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_74)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_75 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_75)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_76 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_75)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_76 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_75)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_76 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_75)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_76 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_76)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_77 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_76)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_77 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_76)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_77 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_76)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_77 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_77)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_78 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_77)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_78 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_77)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_78 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_77)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_78 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_78)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_79 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_78)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_79 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_78)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_79 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_78)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_79 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_79)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_80 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_79)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_80 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_79)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_80 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_79)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_80 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_80)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_81 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_80)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_81 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_80)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_81 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_80)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_81 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_81)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_82 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_81)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_82 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_81)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_82 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_81)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_82 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_82)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_83 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_82)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_83 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_82)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_83 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_82)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_83 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_83)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_84 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_83)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_84 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_83)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_84 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_83)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_84 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_84)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_85 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_84)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_85 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_84)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_85 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_84)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_85 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_85)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_86 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_85)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_86 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_85)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_86 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_85)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_86 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_86)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_87 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_86)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_87 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_86)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_87 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_86)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_87 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_87)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_88 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_87)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_88 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_87)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_88 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_87)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_88 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_88)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_89 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_88)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_89 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_88)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_89 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_88)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_89 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_89)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_90 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_89)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_90 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_89)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_90 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_89)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_90 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_90)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_91 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_90)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_91 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_90)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_91 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_90)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_91 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_91)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_92 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_91)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_92 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_91)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_92 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_91)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_92 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_92)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_93 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_92)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_93 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_92)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_93 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_92)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_93 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_93)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_94 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_93)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_94 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_93)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_94 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_93)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_94 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3 & _GEN_94)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_95 <= io_commit_free_preg_3;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_2 & _GEN_94)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_95 <= io_commit_free_preg_2;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_1 & _GEN_94)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:98:37, :99:28]
+          freeList_95 <= io_commit_free_preg_1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        else if (io_commit_free_valid_0 & _GEN_94)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25, :98:37, :99:28]
+          freeList_95 <= io_commit_free_preg_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:54:25]
+        if (io_commit_free_valid_3)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+          freeTail <= freeTail + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :100:30]
+        else if (io_commit_free_valid_2)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+          freeTail <= freeTail + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :100:30]
+        else if (io_commit_free_valid_1)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+          freeTail <= freeTail + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :100:30]
+        else if (io_commit_free_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:48:14]
+          freeTail <= freeTail + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :61:25, :100:30]
+        freeCount <= freeCount + {4'h0, commitFreeCount};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :76:35, :95:33, :103:28]
+      end
+      else if (io_to_3_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeCount <= freeCount - 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :91:30]
+      else if (io_to_2_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeCount <= freeCount - 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :91:30]
+      else if (io_to_1_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeCount <= freeCount - 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :91:30]
+      else if (io_to_0_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeCount <= freeCount - 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:62:26, :91:30]
+      if (io_to_3_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeHead <= freeHead + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :60:25, :90:28]
+      else if (io_to_2_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeHead <= freeHead + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :60:25, :90:28]
+      else if (io_to_1_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeHead <= freeHead + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :60:25, :90:28]
+      else if (io_to_0_valid_0)	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:81:40]
+        freeHead <= freeHead + 7'h1;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:50:28, :60:25, :90:28]
+    end
   end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-    `ifdef FIRRTL_BEFORE_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-      `FIRRTL_BEFORE_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
+  `ifdef ENABLE_INITIAL_REG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+    `ifdef FIRRTL_BEFORE_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+      `FIRRTL_BEFORE_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
     `endif // FIRRTL_BEFORE_INITIAL
-    logic [31:0] _RANDOM[0:28];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-    initial begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-      `ifdef INIT_RANDOM_PROLOG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-        `INIT_RANDOM_PROLOG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
+    logic [31:0] _RANDOM[0:28];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+    initial begin	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+      `ifdef INIT_RANDOM_PROLOG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+        `INIT_RANDOM_PROLOG_	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
       `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
+      `ifdef RANDOMIZE_REG_INIT	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
         for (logic [4:0] i = 5'h0; i < 5'h1D; i += 5'h1) begin
-          _RANDOM[i] = `RANDOM;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-        end	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-        freeCount = _RANDOM[5'h1C][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :46:26]
+          _RANDOM[i] = `RANDOM;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+        end	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+        rmt_0 = _RANDOM[5'h0][6:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_1 = _RANDOM[5'h0][13:7];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_2 = _RANDOM[5'h0][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_3 = _RANDOM[5'h0][27:21];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_4 = {_RANDOM[5'h0][31:28], _RANDOM[5'h1][2:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_5 = _RANDOM[5'h1][9:3];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_6 = _RANDOM[5'h1][16:10];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_7 = _RANDOM[5'h1][23:17];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_8 = _RANDOM[5'h1][30:24];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_9 = {_RANDOM[5'h1][31], _RANDOM[5'h2][5:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_10 = _RANDOM[5'h2][12:6];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_11 = _RANDOM[5'h2][19:13];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_12 = _RANDOM[5'h2][26:20];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_13 = {_RANDOM[5'h2][31:27], _RANDOM[5'h3][1:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_14 = _RANDOM[5'h3][8:2];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_15 = _RANDOM[5'h3][15:9];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_16 = _RANDOM[5'h3][22:16];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_17 = _RANDOM[5'h3][29:23];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_18 = {_RANDOM[5'h3][31:30], _RANDOM[5'h4][4:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_19 = _RANDOM[5'h4][11:5];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_20 = _RANDOM[5'h4][18:12];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_21 = _RANDOM[5'h4][25:19];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_22 = {_RANDOM[5'h4][31:26], _RANDOM[5'h5][0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_23 = _RANDOM[5'h5][7:1];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_24 = _RANDOM[5'h5][14:8];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_25 = _RANDOM[5'h5][21:15];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_26 = _RANDOM[5'h5][28:22];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_27 = {_RANDOM[5'h5][31:29], _RANDOM[5'h6][3:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_28 = _RANDOM[5'h6][10:4];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_29 = _RANDOM[5'h6][17:11];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_30 = _RANDOM[5'h6][24:18];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        rmt_31 = _RANDOM[5'h6][31:25];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :50:20]
+        freeList_0 = _RANDOM[5'h7][6:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_1 = _RANDOM[5'h7][13:7];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_2 = _RANDOM[5'h7][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_3 = _RANDOM[5'h7][27:21];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_4 = {_RANDOM[5'h7][31:28], _RANDOM[5'h8][2:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_5 = _RANDOM[5'h8][9:3];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_6 = _RANDOM[5'h8][16:10];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_7 = _RANDOM[5'h8][23:17];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_8 = _RANDOM[5'h8][30:24];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_9 = {_RANDOM[5'h8][31], _RANDOM[5'h9][5:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_10 = _RANDOM[5'h9][12:6];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_11 = _RANDOM[5'h9][19:13];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_12 = _RANDOM[5'h9][26:20];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_13 = {_RANDOM[5'h9][31:27], _RANDOM[5'hA][1:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_14 = _RANDOM[5'hA][8:2];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_15 = _RANDOM[5'hA][15:9];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_16 = _RANDOM[5'hA][22:16];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_17 = _RANDOM[5'hA][29:23];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_18 = {_RANDOM[5'hA][31:30], _RANDOM[5'hB][4:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_19 = _RANDOM[5'hB][11:5];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_20 = _RANDOM[5'hB][18:12];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_21 = _RANDOM[5'hB][25:19];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_22 = {_RANDOM[5'hB][31:26], _RANDOM[5'hC][0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_23 = _RANDOM[5'hC][7:1];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_24 = _RANDOM[5'hC][14:8];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_25 = _RANDOM[5'hC][21:15];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_26 = _RANDOM[5'hC][28:22];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_27 = {_RANDOM[5'hC][31:29], _RANDOM[5'hD][3:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_28 = _RANDOM[5'hD][10:4];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_29 = _RANDOM[5'hD][17:11];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_30 = _RANDOM[5'hD][24:18];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_31 = _RANDOM[5'hD][31:25];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_32 = _RANDOM[5'hE][6:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_33 = _RANDOM[5'hE][13:7];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_34 = _RANDOM[5'hE][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_35 = _RANDOM[5'hE][27:21];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_36 = {_RANDOM[5'hE][31:28], _RANDOM[5'hF][2:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_37 = _RANDOM[5'hF][9:3];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_38 = _RANDOM[5'hF][16:10];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_39 = _RANDOM[5'hF][23:17];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_40 = _RANDOM[5'hF][30:24];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_41 = {_RANDOM[5'hF][31], _RANDOM[5'h10][5:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_42 = _RANDOM[5'h10][12:6];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_43 = _RANDOM[5'h10][19:13];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_44 = _RANDOM[5'h10][26:20];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_45 = {_RANDOM[5'h10][31:27], _RANDOM[5'h11][1:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_46 = _RANDOM[5'h11][8:2];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_47 = _RANDOM[5'h11][15:9];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_48 = _RANDOM[5'h11][22:16];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_49 = _RANDOM[5'h11][29:23];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_50 = {_RANDOM[5'h11][31:30], _RANDOM[5'h12][4:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_51 = _RANDOM[5'h12][11:5];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_52 = _RANDOM[5'h12][18:12];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_53 = _RANDOM[5'h12][25:19];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_54 = {_RANDOM[5'h12][31:26], _RANDOM[5'h13][0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_55 = _RANDOM[5'h13][7:1];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_56 = _RANDOM[5'h13][14:8];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_57 = _RANDOM[5'h13][21:15];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_58 = _RANDOM[5'h13][28:22];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_59 = {_RANDOM[5'h13][31:29], _RANDOM[5'h14][3:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_60 = _RANDOM[5'h14][10:4];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_61 = _RANDOM[5'h14][17:11];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_62 = _RANDOM[5'h14][24:18];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_63 = _RANDOM[5'h14][31:25];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_64 = _RANDOM[5'h15][6:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_65 = _RANDOM[5'h15][13:7];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_66 = _RANDOM[5'h15][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_67 = _RANDOM[5'h15][27:21];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_68 = {_RANDOM[5'h15][31:28], _RANDOM[5'h16][2:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_69 = _RANDOM[5'h16][9:3];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_70 = _RANDOM[5'h16][16:10];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_71 = _RANDOM[5'h16][23:17];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_72 = _RANDOM[5'h16][30:24];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_73 = {_RANDOM[5'h16][31], _RANDOM[5'h17][5:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_74 = _RANDOM[5'h17][12:6];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_75 = _RANDOM[5'h17][19:13];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_76 = _RANDOM[5'h17][26:20];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_77 = {_RANDOM[5'h17][31:27], _RANDOM[5'h18][1:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_78 = _RANDOM[5'h18][8:2];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_79 = _RANDOM[5'h18][15:9];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_80 = _RANDOM[5'h18][22:16];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_81 = _RANDOM[5'h18][29:23];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_82 = {_RANDOM[5'h18][31:30], _RANDOM[5'h19][4:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_83 = _RANDOM[5'h19][11:5];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_84 = _RANDOM[5'h19][18:12];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_85 = _RANDOM[5'h19][25:19];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_86 = {_RANDOM[5'h19][31:26], _RANDOM[5'h1A][0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_87 = _RANDOM[5'h1A][7:1];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_88 = _RANDOM[5'h1A][14:8];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_89 = _RANDOM[5'h1A][21:15];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_90 = _RANDOM[5'h1A][28:22];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_91 = {_RANDOM[5'h1A][31:29], _RANDOM[5'h1B][3:0]};	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_92 = _RANDOM[5'h1B][10:4];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_93 = _RANDOM[5'h1B][17:11];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_94 = _RANDOM[5'h1B][24:18];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeList_95 = _RANDOM[5'h1B][31:25];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :54:25]
+        freeHead = _RANDOM[5'h1C][6:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :60:25]
+        freeTail = _RANDOM[5'h1C][13:7];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :60:25, :61:25]
+        freeCount = _RANDOM[5'h1C][20:14];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :60:25, :62:26]
       `endif // RANDOMIZE_REG_INIT
     end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-      `FIRRTL_AFTER_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
+    `ifdef FIRRTL_AFTER_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+      `FIRRTL_AFTER_INITIAL	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
     `endif // FIRRTL_AFTER_INITIAL
   `endif // ENABLE_INITIAL_REG_
-  assign io_from_0_ready = io_to_0_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :65:40]
-  assign io_from_1_ready = io_to_1_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :65:40]
-  assign io_from_2_ready = io_to_2_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :65:40]
-  assign io_from_3_ready = io_to_3_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :65:40]
-  assign io_to_0_valid = io_from_0_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :66:42]
-  assign io_to_0_bits_pc = io_from_0_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_0_bits_areg = io_from_0_bits_areg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_0_bits_preg = io_from_0_bits_preg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_0_bits_opreg = io_from_0_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_0_bits_instType = io_from_0_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_0_bits_checkpoint = io_from_0_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_valid = io_from_1_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :66:42]
-  assign io_to_1_bits_pc = io_from_1_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_bits_areg = io_from_1_bits_areg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_bits_preg = io_from_1_bits_preg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_bits_opreg = io_from_1_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_bits_instType = io_from_1_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_1_bits_checkpoint = io_from_1_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_valid = io_from_2_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :66:42]
-  assign io_to_2_bits_pc = io_from_2_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_bits_areg = io_from_2_bits_areg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_bits_preg = io_from_2_bits_preg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_bits_opreg = io_from_2_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_bits_instType = io_from_2_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_2_bits_checkpoint = io_from_2_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_valid = io_from_3_valid & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35, :66:42]
-  assign io_to_3_bits_pc = io_from_3_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_bits_areg = io_from_3_bits_areg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_bits_preg = io_from_3_bits_preg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_bits_opreg = io_from_3_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_bits_instType = io_from_3_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_to_3_bits_checkpoint = io_from_3_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7]
-  assign io_recover_done = 1'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :53:37]
-  assign io_free_list_count = freeCount;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :46:26]
-  assign io_ren_alloc_ready = ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:37:7, :61:35]
+  assign io_from_0_ready = io_to_0_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :76:35, :80:40]
+  assign io_from_1_ready = io_to_1_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :76:35, :80:40]
+  assign io_from_2_ready = io_to_2_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :76:35, :80:40]
+  assign io_from_3_ready = io_to_3_ready & ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :76:35, :80:40]
+  assign io_to_0_valid = io_to_0_valid_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40]
+  assign io_to_0_bits_pc = io_from_0_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_0_bits_rj = casez_tmp_0[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :85:22]
+  assign io_to_0_bits_rk = casez_tmp_1[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :86:22]
+  assign io_to_0_bits_rd = io_from_0_bits_rd;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_0_bits_preg = casez_tmp[5:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :84:24]
+  assign io_to_0_bits_opreg = io_from_0_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_0_bits_instType = io_from_0_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_0_bits_checkpoint = io_from_0_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_1_valid = io_to_1_valid_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40]
+  assign io_to_1_bits_pc = io_from_1_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_1_bits_rj = casez_tmp_2[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :85:22]
+  assign io_to_1_bits_rk = casez_tmp_3[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :86:22]
+  assign io_to_1_bits_rd = io_from_1_bits_rd;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_1_bits_preg = casez_tmp[5:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :84:24]
+  assign io_to_1_bits_opreg = io_from_1_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_1_bits_instType = io_from_1_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_1_bits_checkpoint = io_from_1_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_2_valid = io_to_2_valid_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40]
+  assign io_to_2_bits_pc = io_from_2_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_2_bits_rj = casez_tmp_4[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :85:22]
+  assign io_to_2_bits_rk = casez_tmp_5[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :86:22]
+  assign io_to_2_bits_rd = io_from_2_bits_rd;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_2_bits_preg = casez_tmp[5:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :84:24]
+  assign io_to_2_bits_opreg = io_from_2_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_2_bits_instType = io_from_2_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_2_bits_checkpoint = io_from_2_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_3_valid = io_to_3_valid_0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :81:40]
+  assign io_to_3_bits_pc = io_from_3_bits_pc;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_3_bits_rj = casez_tmp_6[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :85:22]
+  assign io_to_3_bits_rk = casez_tmp_7[4:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :86:22]
+  assign io_to_3_bits_rd = io_from_3_bits_rd;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_3_bits_preg = casez_tmp[5:0];	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :84:24]
+  assign io_to_3_bits_opreg = io_from_3_bits_opreg;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_3_bits_instType = io_from_3_bits_instType;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_to_3_bits_checkpoint = io_from_3_bits_checkpoint;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7]
+  assign io_recover_done = 1'h0;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :69:33]
+  assign io_free_list_count = freeCount;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :62:26]
+  assign io_ren_alloc_ready = ren_alloc_ready;	// @[Users/kyoukamikura/JLU-NSCSCC-25/chisel-playground/playground/src/core/backend/ooo/RegRenaming.scala:47:7, :76:35]
 endmodule
 
