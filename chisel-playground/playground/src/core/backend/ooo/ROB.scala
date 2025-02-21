@@ -39,11 +39,6 @@ class CommitInfo extends Bundle {
   val excpCode = UInt(4.W)
 }
 
-class RecycleEntry extends Bundle {
-  val valid = Bool()
-  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
-}
-
 class RobEntry extends Bundle {
   val valid = Bool()
   val complete = Bool()
@@ -57,6 +52,11 @@ class RobEntry extends Bundle {
   val excpCode = UInt(4.W)
   val instType = UInt(3.W)
   val checkpoint = UInt(6.W)
+}
+
+class RobCommitBundle extends Bundle {
+  val valid = Bool()
+  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
 }
 
 class ROB extends Module {
@@ -80,10 +80,7 @@ class ROB extends Module {
     val commit_valid = Output(Vec(4, Bool()))
     val commit_info = Output(Vec(4, new CommitInfo))
 
-    val rob_commit = Output(Vec(4, new Bundle {
-      val valid = Bool()
-      val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
-    }))
+    val rob_commit = Output(Vec(4, new RobCommitBundle))
   })
 
   val robEntries = RegInit(
@@ -175,16 +172,17 @@ class ROB extends Module {
   // 物理寄存器回收队列
   val RecycleQueueDepth = 8
   val recycleQueue = Module(new Queue(
-    gen = Vec(4, new RecycleEntry),
+    gen = Vec(4, new RobCommitBundle),
     entries = RecycleQueueDepth,
     pipe = true,
     hasFlush = true
   ))
+  recycleQueue.io.flush.get := io.flush_valid
 
   recycleQueue.io.enq.valid := io.commit_valid.asUInt.orR
   recycleQueue.io.enq.bits := VecInit(io.commit_info.zip(io.commit_valid).map {
     case (info, valid) => {
-      val entry = Wire(new RecycleEntry)
+      val entry = Wire(new RobCommitBundle)
       entry.valid := valid
       entry.old_preg := info.opreg
       entry
@@ -196,7 +194,6 @@ class ROB extends Module {
     tail := io.flush_index
     count := 0.U
     robEntries.foreach(_.valid := false.B)
-    recycleQueue.flush := true.B
   }
 
   val exceptionIndex = PriorityMux(
@@ -234,10 +231,11 @@ class ROB extends Module {
 
   val rob_commit_reg = RegNext(recycleQueue.io.deq.bits)
   val rob_commit_valid_reg = RegNext(recycleQueue.io.deq.valid)
-  io.rob_commit := Mux(rob_commit_valid_reg, rob_commit_reg, 0.U.asTypeOf(Vec(4, new Bundle {
-    val valid = Bool()
-    val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
-  })))
+  io.rob_commit := Mux(
+    rob_commit_valid_reg,
+    rob_commit_reg,
+    0.U.asTypeOf(Vec(4, new RobCommitBundle))
+  )
 
   recycleQueue.io.deq.ready := true.B
 }
