@@ -7,18 +7,20 @@ class inst_info extends Bundle {
   val preg1 = UInt(PHYS_REG_BITS.W)
   val dest = UInt(PHYS_REG_BITS.W)
   val op = UInt(3.W)
+
+  // use imm
+  val imm = UInt(32.W)
+  val src2_is_imm = Bool()
 }
 
-class renaming_to_issue extends Bundle {
-  val inst = new inst_info
+// 相当于给inst_info改名
+class renaming_to_issue extends inst_info {
 }
 
-class issue_to_execute extends Bundle {
-  val inst = new inst_info
+class issue_to_execute extends inst_info {
 }
 
-class dispatch_in_info extends Bundle {
-  val inst = new inst_info
+class dispatch_in_info extends inst_info {
 }
 
 class dispatch_out_info extends Bundle {

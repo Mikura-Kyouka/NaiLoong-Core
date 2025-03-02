@@ -31,7 +31,7 @@ class IssueTop extends Module {
   // 连接退役指令
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
   for(i <- 0 until ISSUE_WIDTH) {
-    val dest = io.from(i).bits.inst.dest
+    val dest = io.from(i).bits.dest
     when(io.from(i).valid && io.from(i).ready) {
       busyreg(dest) := true.B
     }
@@ -47,10 +47,10 @@ class IssueTop extends Module {
   order_issue_queue1.io.busyreg := busyreg
 
   // 连接输出
-  io.to(0).bits.inst <> unorder_issue_queue0.io.out
-  io.to(1).bits.inst <> unorder_issue_queue1.io.out
-  io.to(2).bits.inst <> order_issue_queue0.io.out
-  io.to(3).bits.inst <> order_issue_queue1.io.out
+  io.to(0).bits <> unorder_issue_queue0.io.out
+  io.to(1).bits <> unorder_issue_queue1.io.out
+  io.to(2).bits <> order_issue_queue0.io.out
+  io.to(3).bits <> order_issue_queue1.io.out
 
   // 连接握手信号
   io.to(0).valid := unorder_issue_queue0.io.to_valid

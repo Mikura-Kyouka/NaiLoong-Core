@@ -15,18 +15,18 @@ class Dispatch extends Module {
     }
 
   for(i <- 0 until ISSUE_WIDTH) {
-    val inst = io.in(i).inst
+    val inst = io.in(i)
 
     val alu_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).inst.op === 0.U, 1.U(2.W), 0.U(2.W))
+      Mux(io.in(j).op === 0.U, 1.U(2.W), 0.U(2.W))
     }.reduceOption(_ + _).getOrElse(0.U(2.W))
     
     val muldiv_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).inst.op === 1.U, 1.U(2.W), 0.U(2.W))
+      Mux(io.in(j).op === 1.U, 1.U(2.W), 0.U(2.W))
     }.reduceOption(_ + _).getOrElse(0.U(2.W))
     
     val loadstore_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).inst.op === 2.U, 1.U(2.W), 0.U(2.W))
+      Mux(io.in(j).op === 2.U, 1.U(2.W), 0.U(2.W))
     }.reduceOption(_ + _).getOrElse(0.U(2.W))
 
     // 根据指令类型分发
