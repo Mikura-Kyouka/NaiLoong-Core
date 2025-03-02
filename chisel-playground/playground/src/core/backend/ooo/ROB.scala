@@ -96,14 +96,20 @@ class ROB extends Module {
 
   val wrapIndex = (idx: UInt) => idx % ROB_SIZE.U
 
-  val allocated = RegInit(0.U(2.W))
-  allocated := 0.U
-
   when(io.rob_alloc_ready && numDispatch =/= 0.U) {
+    val allocated = PopCount(io.disp_valid)
+    
+    val (indices, _) = io.disp_valid.zipWithIndex.foldLeft((Seq.empty[UInt], 0.U)) {
+    case ((accIndices, cnt), (valid, i)) =>
+      val newCnt = cnt + valid.asUInt
+      val newIndices = if (i == 0) Seq.empty else accIndices
+      val index = Mux(valid, wrapIndex(tail + cnt), 0.U)
+      (newIndices :+ index, newCnt)
+    }
+
     for (i <- 0 until 4) {
       when(io.disp_valid(i)) {
-        val allocIdx = wrapIndex(tail + allocated)
-        robEntries(allocIdx) := {
+        robEntries(indices(i)) := {
           val entry = Wire(new RobEntry)
           entry.valid := true.B
           entry.complete := false.B
@@ -119,12 +125,12 @@ class ROB extends Module {
           entry.checkpoint := io.disp_info(i).checkpoint
           entry
         }
-        allocated := allocated + 1.U
       }
     }
-    tail := wrapIndex(tail + numDispatch)
-    count := count + numDispatch
+    tail := wrapIndex(tail + allocated)
+    count := count + allocated
   }
+
 
   for (i <- 0 until 4) {
     when(io.wb_valid(i)) {

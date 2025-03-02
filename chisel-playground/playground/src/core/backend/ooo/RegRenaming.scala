@@ -47,8 +47,9 @@ class RegRenaming extends Module {
   val checkpointMem = SyncReadMem(1 << RegConfig.CHECKPOINT_DEPTH, new Bundle {
     val rat = Vec(RegConfig.ARCH_REG_NUM, UInt(RegConfig.PHYS_REG_BITS.W))
     val freeList = Vec(RegConfig.PHYS_REG_NUM - RegConfig.ARCH_REG_NUM, UInt(RegConfig.PHYS_REG_BITS.W))
-    val freeHead = UInt((RegConfig.PHYS_REG_BITS + 1).W) // 8位
-    val freeTail = UInt((RegConfig.PHYS_REG_BITS + 1).W) // 同步改为8位
+    val freeHead = UInt((RegConfig.PHYS_REG_BITS + 1).W)
+    val freeTail = UInt((RegConfig.PHYS_REG_BITS + 1).W)
+    val freeCount = UInt((RegConfig.PHYS_REG_BITS + 1).W)
   })
 
   // 空闲列表管理
@@ -87,6 +88,7 @@ class RegRenaming extends Module {
 
     when(needsAlloc) {
       RAT(rd) := new_preg
+      freeValid(allocPtrs(i)) := false.B
     }
   }
 
@@ -137,6 +139,7 @@ class RegRenaming extends Module {
       data.freeHead := freeHead
       data.freeList := freeList
       data.freeTail := freeTail
+      data.freeCount := freeCount
       data
     })
   }
@@ -148,9 +151,9 @@ class RegRenaming extends Module {
     freeList := saved.freeList
     freeHead := saved.freeHead
     freeTail := saved.freeTail
+    freeCount := saved.freeCount
   }
 
-  val recoverDone = RegInit(false.B)
-  recoverDone := io.recover && !recoverDone
-  io.recover_done := recoverDone
+  val recoverDone = RegNext(io.recover, false.B)
+  io.recover_done := io.recover && !recoverDone
 }
