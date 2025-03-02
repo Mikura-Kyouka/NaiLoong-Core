@@ -3,6 +3,8 @@ import chisel3.util._
 import IssueConfig._
 
 class inst_info extends Bundle {
+  val areg1 = UInt(5.W)
+  val areg2 = UInt(5.W)
   val preg0 = UInt(PHYS_REG_BITS.W)
   val preg1 = UInt(PHYS_REG_BITS.W)
   val dest = UInt(PHYS_REG_BITS.W)
@@ -11,6 +13,10 @@ class inst_info extends Bundle {
   // use imm
   val imm = UInt(32.W)
   val src2_is_imm = Bool()
+
+  // is retire
+  val src1_is_areg = Bool()
+  val src2_is_areg = Bool()
 }
 
 // 相当于给inst_info改名
@@ -34,7 +40,13 @@ class can_issue_bundle extends Bundle {
   val preg1_vec = Output(Vec(QUEUE_SIZE, UInt(PHYS_REG_BITS.W)))
 }
 
-class retire_inst_info extends Bundle {
+class commit_inst_info extends Bundle {
   val inst = new inst_info
+  val valid = Bool()
+}
+
+class retire_inst_info extends Bundle {
+  val preg = UInt(PHYS_REG_BITS.W)
+  val areg = UInt(5.W)
   val valid = Bool()
 }

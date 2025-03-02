@@ -9,6 +9,7 @@ class IssueTop extends Module {
     val from = Vec(ISSUE_WIDTH, Flipped(Decoupled(new renaming_to_issue)))
     val to = Vec(ISSUE_WIDTH, Decoupled(new issue_to_execute))
 
+    val commit_inst = Flipped(Valid(new commit_inst_info))
     val retire_inst = Flipped(Valid(new retire_inst_info))
   })
 
@@ -36,8 +37,8 @@ class IssueTop extends Module {
       busyreg(dest) := true.B
     }
   }
-  when(io.retire_inst.valid) {
-    busyreg(io.retire_inst.bits.inst.dest) := false.B
+  when(io.commit_inst.valid) {
+    busyreg(io.commit_inst.bits.inst.dest) := false.B
   }
 
   // 连接忙信号
@@ -70,6 +71,12 @@ class IssueTop extends Module {
   io.from(1).ready := unorder_issue_queue1.io.from_ready
   io.from(2).ready := order_issue_queue0.io.from_ready
   io.from(3).ready := order_issue_queue1.io.from_ready
+
+  // 退役指令
+  unorder_issue_queue0.io.retire_inst := io.retire_inst
+  unorder_issue_queue1.io.retire_inst := io.retire_inst
+  order_issue_queue0.io.retire_inst := io.retire_inst
+  order_issue_queue1.io.retire_inst := io.retire_inst
 }
 
 object GenIssueTop extends App {

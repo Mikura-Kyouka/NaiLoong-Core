@@ -12,6 +12,7 @@ class OrderIssueQueue extends Module {
     val to_ready = Input(Bool())
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
+    val retire_inst = Input(Valid(new retire_inst_info))
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new inst_info))
@@ -73,6 +74,18 @@ class OrderIssueQueue extends Module {
   when(io.to_valid && io.to_ready) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B
     read_ptr := read_ptr + 1.U
+  }
+
+  // retire
+  when(io.retire_inst.valid) {
+    for(i <- 0 until QUEUE_SIZE.toInt) {
+      when(mem(i).preg0 === io.retire_inst.bits.preg) {
+        mem(i).src1_is_areg := true.B
+      }
+      when(mem(i).preg1 === io.retire_inst.bits.preg) {
+        mem(i).src2_is_areg := true.B
+      }
+    }
   }
 }
 
