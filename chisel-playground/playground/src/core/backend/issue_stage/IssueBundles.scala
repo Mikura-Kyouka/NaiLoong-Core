@@ -46,3 +46,21 @@ class retire_inst_info extends Bundle {
   val areg = UInt(5.W)
   val valid = Bool()
 }
+
+class payloadram_info extends Bundle {
+  val data = UInt(32.W)
+  val busy = Bool()
+}
+
+class payloadram_read_info extends Bundle {
+  val src1 = Input(UInt(PHYS_REG_BITS.W))
+  val src2 = Input(UInt(PHYS_REG_BITS.W))
+  val pram_data1 = Output(new payloadram_info)
+  val pram_data2 = Output(new payloadram_info)
+}
+
+class payloadram_write_info extends Bundle {
+  val dest = Input(UInt(PHYS_REG_BITS.W))
+  val pram_data = Input(new payloadram_info)
+  val valid = Input(Bool())
+}
