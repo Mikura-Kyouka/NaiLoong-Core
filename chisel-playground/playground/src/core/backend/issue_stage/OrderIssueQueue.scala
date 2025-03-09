@@ -12,7 +12,7 @@ class OrderIssueQueue extends Module {
     val to_ready = Input(Bool())
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
-    val retire_inst = Input(Valid(new retire_inst_info))
+    val pram_read = Flipped(new payloadram_read_info)
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new inst_info))
@@ -69,7 +69,13 @@ class OrderIssueQueue extends Module {
 
   // read
   val can_issue = !io.busyreg(mem(read_ptr).preg1) && !io.busyreg(mem(read_ptr).preg2) && valid_vec(read_ptr)
-  io.out := mem(read_ptr)
+  //io.out := mem(read_ptr)
+  io.pram_read.src1 := mem(read_ptr).preg1
+  io.pram_read.src2 := mem(read_ptr).preg2
+  val out = mem(read_ptr)
+  out.data1 := io.pram_read.pram_data1
+  out.data2 := io.pram_read.pram_data2
+  io.out := out
   io.to_valid := can_issue
   when(io.to_valid && io.to_ready) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B

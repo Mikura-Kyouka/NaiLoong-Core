@@ -47,6 +47,15 @@ class IssueTop extends Module {
   order_issue_queue0.io.busyreg := busyreg
   order_issue_queue1.io.busyreg := busyreg
 
+  val payloadram = Module(new PayloadRAM)
+  unorder_issue_queue0.io.pram_read <> payloadram.io.read(0)
+  unorder_issue_queue1.io.pram_read <> payloadram.io.read(1)
+  order_issue_queue0.io.pram_read <> payloadram.io.read(2)
+  order_issue_queue1.io.pram_read <> payloadram.io.read(3)
+  payloadram.io.write.dest := io.retire_inst.bits.preg
+  payloadram.io.write.pram_data := io.retire_inst.bits.data
+  payloadram.io.write.valid := io.retire_inst.valid
+
   // 连接输出
   io.to(0).bits <> unorder_issue_queue0.io.out
   io.to(1).bits <> unorder_issue_queue1.io.out
@@ -71,12 +80,6 @@ class IssueTop extends Module {
   io.from(1).ready := unorder_issue_queue1.io.from_ready
   io.from(2).ready := order_issue_queue0.io.from_ready
   io.from(3).ready := order_issue_queue1.io.from_ready
-
-  // 退役指令
-  unorder_issue_queue0.io.retire_inst := io.retire_inst
-  unorder_issue_queue1.io.retire_inst := io.retire_inst
-  order_issue_queue0.io.retire_inst := io.retire_inst
-  order_issue_queue1.io.retire_inst := io.retire_inst
 }
 
 object GenIssueTop extends App {

@@ -7,6 +7,8 @@ class inst_info extends Bundle {
   val areg2 = UInt(5.W)
   val preg1 = UInt(PHYS_REG_BITS.W)
   val preg2 = UInt(PHYS_REG_BITS.W)
+  val data1 = UInt(32.W)
+  val data2 = UInt(32.W)
   val dest = UInt(PHYS_REG_BITS.W)
   val op = UInt(3.W)
 
@@ -44,23 +46,19 @@ class commit_inst_info extends Bundle {
 class retire_inst_info extends Bundle {
   val preg = UInt(PHYS_REG_BITS.W)
   val areg = UInt(5.W)
-  val valid = Bool()
-}
-
-class payloadram_info extends Bundle {
   val data = UInt(32.W)
-  val busy = Bool()
+  val valid = Bool()
 }
 
 class payloadram_read_info extends Bundle {
   val src1 = Input(UInt(PHYS_REG_BITS.W))
   val src2 = Input(UInt(PHYS_REG_BITS.W))
-  val pram_data1 = Output(new payloadram_info)
-  val pram_data2 = Output(new payloadram_info)
+  val pram_data1 = Output(UInt(32.W))
+  val pram_data2 = Output(UInt(32.W))
 }
 
 class payloadram_write_info extends Bundle {
   val dest = Input(UInt(PHYS_REG_BITS.W))
-  val pram_data = Input(new payloadram_info)
+  val pram_data = Input(UInt(32.W))
   val valid = Input(Bool())
 }

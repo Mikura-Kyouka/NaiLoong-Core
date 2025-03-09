@@ -12,7 +12,7 @@ class UnorderIssueQueue extends Module {
     val to_ready = Input(Bool())
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))  // 物理寄存器是否被占用
-    val retire_inst = Input(Valid(new retire_inst_info))
+    val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new inst_info))
@@ -51,7 +51,13 @@ class UnorderIssueQueue extends Module {
 
   // 发射并压缩队列
   val first_can_issue_index = PriorityEncoder(can_issue_vec)
-  io.out := mem(first_can_issue_index)
+  //io.out := mem(first_can_issue_index)
+  io.pram_read.src1 := mem(first_can_issue_index).preg1
+  io.pram_read.src2 := mem(first_can_issue_index).preg2
+  val out = mem(first_can_issue_index)
+  out.data1 := io.pram_read.pram_data1
+  out.data2 := io.pram_read.pram_data2
+  io.out := out
   when(io.to_valid && io.to_ready) {
     for(i <- 0 until (QUEUE_SIZE - 1)) {
       when(i.U >= first_can_issue_index) {
