@@ -68,24 +68,12 @@ class OrderIssueQueue extends Module {
   }
 
   // read
-  val can_issue = !io.busyreg(mem(read_ptr).preg0) && !io.busyreg(mem(read_ptr).preg1) && valid_vec(read_ptr)
+  val can_issue = !io.busyreg(mem(read_ptr).preg1) && !io.busyreg(mem(read_ptr).preg2) && valid_vec(read_ptr)
   io.out := mem(read_ptr)
   io.to_valid := can_issue
   when(io.to_valid && io.to_ready) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B
     read_ptr := read_ptr + 1.U
-  }
-
-  // retire
-  when(io.retire_inst.valid) {
-    for(i <- 0 until QUEUE_SIZE.toInt) {
-      when(mem(i).preg0 === io.retire_inst.bits.preg) {
-        mem(i).src1_is_areg := true.B
-      }
-      when(mem(i).preg1 === io.retire_inst.bits.preg) {
-        mem(i).src2_is_areg := true.B
-      }
-    }
   }
 }
 

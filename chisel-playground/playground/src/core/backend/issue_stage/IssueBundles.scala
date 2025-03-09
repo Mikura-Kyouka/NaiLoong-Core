@@ -5,18 +5,14 @@ import IssueConfig._
 class inst_info extends Bundle {
   val areg1 = UInt(5.W)
   val areg2 = UInt(5.W)
-  val preg0 = UInt(PHYS_REG_BITS.W)
   val preg1 = UInt(PHYS_REG_BITS.W)
+  val preg2 = UInt(PHYS_REG_BITS.W)
   val dest = UInt(PHYS_REG_BITS.W)
   val op = UInt(3.W)
 
   // use imm
   val imm = UInt(32.W)
   val src2_is_imm = Bool()
-
-  // is retire
-  val src1_is_areg = Bool()
-  val src2_is_areg = Bool()
 }
 
 // 相当于给inst_info改名

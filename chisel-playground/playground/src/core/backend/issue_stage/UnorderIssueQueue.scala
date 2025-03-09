@@ -44,7 +44,7 @@ class UnorderIssueQueue extends Module {
   // 判断指令是否可以发射
   val can_issue_vec = Wire(Vec(QUEUE_SIZE, Bool()))
   for(i <- 0 until QUEUE_SIZE) {
-    can_issue_vec(i) := !io.busyreg(mem(i).preg0) && !io.busyreg(mem(i).preg1) && valid_vec(i)
+    can_issue_vec(i) := !io.busyreg(mem(i).preg1) && !io.busyreg(mem(i).preg2) && valid_vec(i)
   }
   val can_issue = can_issue_vec.reduce(_ || _)
   io.to_valid := can_issue
@@ -61,18 +61,6 @@ class UnorderIssueQueue extends Module {
     }
     valid_vec(QUEUE_SIZE - 1) := false.B
     valid_count := valid_count - 1.U
-  }
-
-  // retire
-  when(io.retire_inst.valid) {
-    for(i <- 0 until QUEUE_SIZE.toInt) {
-      when(mem(i).preg0 === io.retire_inst.bits.preg) {
-        mem(i).src1_is_areg := true.B
-      }
-      when(mem(i).preg1 === io.retire_inst.bits.preg) {
-        mem(i).src2_is_areg := true.B
-      }
-    }
   }
 }
 
