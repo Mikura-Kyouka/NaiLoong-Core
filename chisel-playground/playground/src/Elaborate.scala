@@ -26,7 +26,7 @@ object Elaborate extends App {
     ), 
     firtoolOptions
   )
-    circt.stage.ChiselStage.emitSystemVerilogFile(
+  circt.stage.ChiselStage.emitSystemVerilogFile(
     new core.RegRenaming(), 
     args = Array(
       "--throw-on-first-error",
@@ -35,7 +35,7 @@ object Elaborate extends App {
     ), 
     firtoolOptions
   )
-    circt.stage.ChiselStage.emitSystemVerilogFile(
+  circt.stage.ChiselStage.emitSystemVerilogFile(
     new core.ROB(), 
     args = Array(
       "--throw-on-first-error",
@@ -43,5 +43,15 @@ object Elaborate extends App {
       "--target-dir=./build"
     ), 
     firtoolOptions
+  )
+  circt.stage.ChiselStage.emitSystemVerilogFile(
+    new core.BypassNetwork(), 
+    args = Array(
+      "--throw-on-first-error",
+      "--split-verilog",
+      "--target-dir=./build"
+    ), 
+    firtoolOptions
+
   )
 }
