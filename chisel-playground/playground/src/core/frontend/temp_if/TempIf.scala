@@ -65,6 +65,11 @@ class TempIf extends Module {
     val debug1_wb_rf_wen  =Output(UInt(4.W))
     val debug1_wb_rf_wnum =Output(UInt(5.W))
     val debug1_wb_rf_wdata=Output(UInt(32.W))
+
+    val flush = Input(Bool())
+    val new_pc = Input(UInt(32.W))
+    val valid = Output(Bool())
+    val ready = Input(Bool())
   })
 
   val pc = RegInit("h1c000000".U(32.W))
@@ -129,6 +134,17 @@ class TempIf extends Module {
   temp_cache.io.waddr := cache_waddr
   temp_cache.io.wdata := cache_wdata
   temp_cache.io.wen := cache_wen
+  temp_cache.io.new_pc := io.new_pc
+  temp_cache.io.flush := io.flush
+  temp_cache.io.ready := io.ready
+  io.valid := temp_cache.io.valid
+
+  when(io.flush) {
+    pc := Cat(io.new_pc(31, 7), 0.U(7.W))
+    state := idle
+    arvalid := false.B
+    rready := false.B
+  }
 
   switch(state) {
     is(idle) {

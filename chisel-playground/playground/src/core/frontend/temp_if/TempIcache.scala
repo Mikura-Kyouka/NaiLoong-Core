@@ -27,6 +27,16 @@ class TempIcache extends Module {
     val waddr = Input(UInt(32.W))
     val wdata = Input(UInt(32.W))
     val wen = Input(Bool())
+
+    val valid = Output(Bool())
+    val ready = Input(Bool())
+    val inst0 = Output(new inst_info_)
+    val inst1 = Output(new inst_info_)
+    val inst2 = Output(new inst_info_)
+    val inst3 = Output(new inst_info_)
+
+    val new_pc = Input(UInt(32.W))
+    val flush = Input(Bool())
   })
 
   val cache = Reg(Vec(CacheConfig.LINE_NUM, new CacheLine))
@@ -38,5 +48,50 @@ class TempIcache extends Module {
     cache(index).valid := true.B
     cache(index).tag := tag
     cache(index).data(offset) := io.wdata
+  }
+
+  // read
+  val read_pc = RegInit("h1c000000".U(32.W))
+  val raddr0 = Cat(read_pc(31, 4), 0.U(4.W))
+  val raddr1 = Cat(read_pc(31, 4), 4.U(4.W))
+  val raddr2 = Cat(read_pc(31, 4), 8.U(4.W))
+  val raddr3 = Cat(read_pc(31, 4), 12.U(4.W))
+
+  val index = read_pc(INDEX_BIT_NUM + LINE_BIT_NUM - 1, LINE_BIT_NUM)
+
+  val tag0 = raddr0(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+  val tag1 = raddr1(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+  val tag2 = raddr2(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+  val tag3 = raddr3(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+
+  val hit0 = cache(index).valid && cache(index).tag === tag0
+  val hit1 = cache(index).valid && cache(index).tag === tag1
+  val hit2 = cache(index).valid && cache(index).tag === tag2
+  val hit3 = cache(index).valid && cache(index).tag === tag3
+
+  io.valid := (hit0 || raddr0 < read_pc) && 
+              (hit1 || raddr1 < read_pc) && 
+              (hit2 || raddr2 < read_pc) && 
+              (hit3 || raddr3 < read_pc)
+
+  io.inst0.pc := raddr0
+  io.inst0.inst := cache(index).data(0)
+  io.inst0.valid := hit0
+  io.inst1.pc := raddr1
+  io.inst1.inst := cache(index).data(1)
+  io.inst1.valid := hit1
+  io.inst2.pc := raddr2
+  io.inst2.inst := cache(index).data(2)
+  io.inst2.valid := hit2
+  io.inst3.pc := raddr3
+  io.inst3.inst := cache(index).data(3)
+  io.inst3.valid := hit3
+
+  when(io.flush) {
+    read_pc := io.new_pc
+  }
+
+  when(io.valid && io.ready) {
+    read_pc := raddr0 + 16.U
   }
 }
