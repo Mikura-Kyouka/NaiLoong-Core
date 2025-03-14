@@ -121,7 +121,14 @@ class TempIf extends Module {
   io.debug1_wb_rf_wnum := 0.U
   io.debug1_wb_rf_wdata := 0.U
 
+  val cache_wen = RegInit(false.B)
+  val cache_waddr = RegInit(0.U(32.W))
+  val cache_wdata = RegInit(0.U(32.W))
 
+  val temp_cache = Module(new TempIcache)
+  temp_cache.io.waddr := cache_waddr
+  temp_cache.io.wdata := cache_wdata
+  temp_cache.io.wen := cache_wen
 
   switch(state) {
     is(idle) {
@@ -132,6 +139,7 @@ class TempIf extends Module {
       }.otherwise {
         arvalid := true.B
       }
+      cache_wen := false.B
     }
     is(nop) {
       state := read
@@ -143,6 +151,10 @@ class TempIf extends Module {
         arvalid := true.B
         inst := io.rdata
         pc := pc + 4.U
+
+        cache_wen := true.B
+        cache_waddr := pc
+        cache_wdata := io.rdata
       }.otherwise {
         rready := true.B
       }
