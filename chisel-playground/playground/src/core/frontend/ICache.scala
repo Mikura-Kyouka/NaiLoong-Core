@@ -189,16 +189,17 @@ class Stage1Out(implicit val cacheConfig: CacheConfig) extends CacheBundle {
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
+  val metaArrayTagVec= Output(Vec(Ways, UInt(TagBits.W)))
 }
 
 // Srage2: Tag Access
 class Stage2Out(implicit val cacheConfig: CacheConfig) extends CacheBundle {
   val addr = Output(UInt(32.W))
-  val hitVec = Output(UInt(Ways.W))
-  val hit = Output(Bool())
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
+  val hit = Output(Bool())
+  val hitVec = Output(UInt(Ways.W))
 }
 
 // Stage3: Data Access
@@ -241,16 +242,18 @@ class Stage2(implicit val cacheConfig: CacheConfig) extends CacheModule {
     val in = Flipped(Decoupled(new Stage1Out))
     val out = Decoupled(new Stage2Out)
     val metaArrayWrite = Flipped(new metaArrayWriteBundle)
+    val metaArrayTag = Output(UInt(TagBits.W))
     val flush = Input(Bool())
   })
 
   val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
   val index = io.in.bits.index
   val tag = io.in.bits.tag
-  val hitVec = VecInit(
-    metaArray(index).map(m => m.tag === tag && m.valid === 1.U)
-  ).asUInt
+  // val hitVec = VecInit(
+  //   metaArray(index).map(m => m.tag === tag && m.valid === 1.U)
+  // ).asUInt
   
+  io.metaArrayTag := metaArray(index)(0).tag
   when(io.metaArrayWrite.valid) {
     metaArray(io.metaArrayWrite.index)(0).tag := io.metaArrayWrite.tag
     metaArray(io.metaArrayWrite.index)(0).valid := true.B
@@ -260,12 +263,6 @@ class Stage2(implicit val cacheConfig: CacheConfig) extends CacheModule {
   //   when(hitVec(i)) {
   //     hitWay :=  i.U 
   //   }
-
-  io.out.bits.hitVec := hitVec
-  val hit = hitVec.orR
-  io.out.bits.hit := hit
-  dontTouch(io.out.bits.hit)
-  dontTouch(hit)
 
   io.out.bits.wordIndex := io.in.bits.wordIndex
   io.out.bits.addr := io.in.bits.addr
@@ -279,19 +276,13 @@ class Stage2(implicit val cacheConfig: CacheConfig) extends CacheModule {
 class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage2Out))
-    val hit = Input(Bool())
-    val hitVec = Input(UInt(Ways.W))
+    val metaArrayTag = Input(UInt(TagBits.W))
     val out = Decoupled(new Stage3Out)
     val axi = new AXI
     val metaArrayWrite = new metaArrayWriteBundle
     val flush = Input(Bool())
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
   })
-  // val refetchLatch = RegInit(false.B)
-  // when(io.flush && state =/= s_idle) {refetchLatch := true.B} // TODO 
-  // when(io.axi.rlast) {refetchLatch := false.B}
-  // val refetch = io.flush || refetchLatch
-  
   io.axi := DontCare
   val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
@@ -299,26 +290,12 @@ class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
   val wordIndex = io.in.bits.wordIndex
   val index = io.in.bits.index 
   val tag = io.in.bits.tag
-  // direct input from metaArray
-  val hitVec = io.hitVec 
-  val hit = io.hit && io.in.valid // TODO
 
-  // need a reg to store hit state in case it goes to fetching state
-  val hitReg = RegInit(false.B)
-  when(hit) { hitReg := true.B }
-  when(io.out.fire) { hitReg := false.B }
-  val HIT = hit // || hitReg // FIXME
-  // 可以运行到pc = a0001144， 然后会因为流水线中的指令没能冲刷干净而执行 pc = 0xa000ee4 的指令
-  // val HIT = hit || hitReg // FIXME 
-  // pc = 0xf000000 会因为取出来的指令2不对 挂掉
-  dontTouch(HIT)
+  val hit = io.metaArrayTag === io.in.bits.tag && io.in.valid
+  dontTouch(hit)
 
-  // io.out.bits.hit := hit // TODO
-  io.out.bits.hit := HIT // TODO
-  // io.out.bits.hit := io.in.bits.hit
+  io.out.bits.hit := hit
   io.out.bits.wordIndex := wordIndex
-  dontTouch(io.out.bits.hit)
-  dontTouch(io.in.bits.hit)
 
   val cacheData = Wire(UInt(32.W))
   cacheData := dataArray(index)(0)(wordIndex)
@@ -336,15 +313,14 @@ class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
   val s_idle :: s_fetching :: s_wait_data :: s_valid :: Nil = Enum(4)
   val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
-  when(io.flush && (state =/= s_idle || !hit)) {refetchLatch := true.B} // TODO hit = io.hit &&io.in.valid 
+  when(io.flush && (state =/= s_idle || !hit)) { refetchLatch := true.B }
   when(io.axi.rlast) {refetchLatch := false.B}
   val refetch = io.flush || refetchLatch
 
   state := MuxLookup(state, s_idle)(Seq(
-    // s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle), 
-    s_idle -> Mux(!HIT && io.in.valid, s_fetching, s_idle),
+    s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
-    s_wait_data -> Mux(io.axi.rlast, Mux(refetch, Mux(HIT, s_idle, s_fetching), s_idle), s_wait_data)
+    s_wait_data -> Mux(io.axi.rlast, Mux(refetch, Mux(hit, s_idle, s_fetching), s_idle), s_wait_data)
   ))
   // axi read signals
   io.axi.arvalid := state === s_fetching
@@ -399,13 +375,7 @@ class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
   }
 
   io.out.bits.addr := io.in.bits.addr
-  // io.out.valid := ((HIT && state === s_idle) || (io.axi.rlast && state === s_wait_data && !refetch)) // TODO
-  // 1. 去掉后 会在 pc = 0x3000005c 跳转时 多执行 pc=0x30000068 的指令, 理想情况是0x0f000000
-  // io.out.valid := ((HIT && state === s_idle && !io.flush ) || (io.axi.rlast && state === s_wait_data && !refetch)) // TODO
-  // 2. 此处添加 !io.flush 会在pc = 0x30000054的时候无法跳转到正确的地址 :-(
-  io.out.valid := ((HIT && state === s_idle && (!io.flush && io.in.valid)) || (io.axi.rlast && state === s_wait_data && !refetch)) // TODO
-  // 
-  io.out.valid := ((HIT && state === s_idle && !io.flush && io.in.valid) || (io.axi.rlast && state === s_wait_data && !refetch)) // TODO
+  io.out.valid := ((hit && state === s_idle && (!io.flush && io.in.valid)) || (io.axi.rlast && state === s_wait_data && !refetch))
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || io.axi.rlast && state === s_wait_data)
 }
 
@@ -433,9 +403,7 @@ class Stage4(implicit val cacheConfig: CacheConfig) extends CacheModule {
   io.out.bits.addr := io.in.bits.addr
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush 
-  when(io.out.fire){
-    printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata)
-  }
+  // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 
 class PipelinedICache(implicit val cacheConfig: CacheConfig) extends CacheModule {
@@ -452,10 +420,9 @@ class PipelinedICache(implicit val cacheConfig: CacheConfig) extends CacheModule
   val s4 = Module(new Stage4)
   s1.io.flush := io.flush
   s2.io.flush := io.flush
-  s3.io.flush := io.flush // refetch signal
+  s3.io.flush := io.flush 
   s4.io.flush := io.flush
-  s3.io.hit := s2.io.out.bits.hit
-  s3.io.hitVec := s2.io.out.bits.hitVec
+  s3.io.metaArrayTag := s2.io.metaArrayTag
 
   s4.io.inFire := s3.io.out.fire 
   for (i <- 0 until LineBeats) {
