@@ -1,0 +1,10 @@
+最简单的IFU，包含取值和简单的icache
+IFU通过AXI总线与片外相连，只用到了ar和r中必须要使用的信号，没有实现突发传输，一次取一条指令
+cache采用最简单的直接映射方式，一次读取连续的四条指令。指令的定义如下：
+class inst_info_ extends Bundle {
+  val inst = UInt(32.W)
+  val pc = UInt(32.W)
+  val valid = Bool()
+}
+其中valid标志着该指令是否有效。读取完四条指令以后，cache内部的pc + 16
+TempIf模块中的pc只是为了把指令取到cache内，对于整个cpu来说没有实际意义。实际的pc是cache模块中的read_pc

@@ -143,11 +143,10 @@ class TempIf extends Module {
   io.to.bits.inst2 <> temp_cache.io.inst2
   io.to.bits.inst3 <> temp_cache.io.inst3
 
-  when(io.flush) {
-    pc := Cat(io.new_pc(31, 7), 0.U(7.W))
-    state := idle
-    arvalid := false.B
-    rready := false.B
+  val flushed = RegInit(false.B)
+  when(io.flush || temp_cache.io.read_pc(31, 4) =/= pc(31, 4)) {
+    pc := Cat(temp_cache.io.read_pc(31, 4), 0.U(4.W))
+    flushed := true.B
   }
 
   switch(state) {
@@ -160,6 +159,7 @@ class TempIf extends Module {
         arvalid := true.B
       }
       cache_wen := false.B
+      when(flushed) { flushed := false.B }
     }
     is(nop) {
       state := read
@@ -172,7 +172,7 @@ class TempIf extends Module {
         inst := io.rdata
         pc := pc + 4.U
 
-        cache_wen := true.B
+        cache_wen := ~flushed
         cache_waddr := pc
         cache_wdata := io.rdata
       }.otherwise {

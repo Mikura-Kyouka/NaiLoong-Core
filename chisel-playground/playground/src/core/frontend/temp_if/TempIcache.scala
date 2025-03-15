@@ -38,6 +38,8 @@ class TempIcache extends Module {
 
     val new_pc = Input(UInt(32.W))
     val flush = Input(Bool())
+
+    val read_pc = Output(UInt(32.W))
   })
 
   val cache = Reg(Vec(CacheConfig.LINE_NUM, new CacheLine))
@@ -91,6 +93,7 @@ class TempIcache extends Module {
   io.inst3.pc := raddr3
   io.inst3.inst := cache(index).data(3)
   io.inst3.valid := raddr3 < read_pc
+  io.read_pc := read_pc
 
   when(io.flush) {
     read_pc := io.new_pc
