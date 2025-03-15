@@ -8,3 +8,11 @@ class inst_info_ extends Bundle {
 }
 其中valid标志着该指令是否有效。读取完四条指令以后，cache内部的pc + 16
 TempIf模块中的pc只是为了把指令取到cache内，对于整个cpu来说没有实际意义。实际的pc是cache模块中的read_pc
+
+工作方式为：
+TempIf模块会不断地向AXI总线发出访存请求，每次访存结束后pc会加4，并把取得的指令写入cache。
+当一个cacheline中存在期望的指令时，即可将这个cacheline中的指令传递给下游（传到下游的指令不一定全部都有效，每条指令都有valid标识）。发生握手即为传递成功。
+当发生握手时，cache中的read_pc将会变为read_pc + 16.U
+如果TempIf中的pc(31, 4)与read_pc的(31, 4)不相等，则pc会被赋值为Cat(read_pc(31, 4), 0.UInt(4.W))
+
+ps：从工作方式来看，cache其实更像是一个FIFO
