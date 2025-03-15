@@ -6,18 +6,19 @@ object CacheConfig {
   def LINE_WIDTH = 128
   def LINE_WORD_NUM = (LINE_WIDTH / 32)
   def LINE_BIT_NUM = log2Ceil(LINE_WIDTH)
+  def OFFSET_BIT_NUM = log2Ceil(LINE_WIDTH / 8)
 
   def LINE_NUM = 16
   def INDEX_BIT_NUM = log2Ceil(LINE_NUM)
 
-  def TAG_BIT_NUM = 32 - INDEX_BIT_NUM - LINE_BIT_NUM
+  def TAG_BIT_NUM = 32 - INDEX_BIT_NUM - OFFSET_BIT_NUM
 }
 
 class CacheLine extends Bundle {
   import CacheConfig._
   val tag = UInt(TAG_BIT_NUM.W)      // 21-bit tag
   val data = Vec(CacheConfig.LINE_WORD_NUM, UInt(32.W)) // 128-bit data
-  val valid = Bool()        // 1-bit valid flag
+  val valid = Vec(CacheConfig.LINE_WORD_NUM, Bool())
 }
 
 class TempIcache extends Module {
@@ -42,10 +43,10 @@ class TempIcache extends Module {
   val cache = Reg(Vec(CacheConfig.LINE_NUM, new CacheLine))
   dontTouch(cache)
   when(io.wen) {
-    val index = io.waddr(INDEX_BIT_NUM + LINE_BIT_NUM - 1, LINE_BIT_NUM)
-    val tag = io.waddr(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+    val index = io.waddr(INDEX_BIT_NUM + OFFSET_BIT_NUM - 1, OFFSET_BIT_NUM)
+    val tag = io.waddr(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
     val offset = io.waddr(3, 2)
-    cache(index).valid := true.B
+    cache(index).valid(offset) := true.B
     cache(index).tag := tag
     cache(index).data(offset) := io.wdata
   }
@@ -57,17 +58,21 @@ class TempIcache extends Module {
   val raddr2 = Cat(read_pc(31, 4), 8.U(4.W))
   val raddr3 = Cat(read_pc(31, 4), 12.U(4.W))
 
-  val index = read_pc(INDEX_BIT_NUM + LINE_BIT_NUM - 1, LINE_BIT_NUM)
+  val index = read_pc(INDEX_BIT_NUM + OFFSET_BIT_NUM - 1, OFFSET_BIT_NUM)
 
-  val tag0 = raddr0(31, INDEX_BIT_NUM + LINE_BIT_NUM)
-  val tag1 = raddr1(31, INDEX_BIT_NUM + LINE_BIT_NUM)
-  val tag2 = raddr2(31, INDEX_BIT_NUM + LINE_BIT_NUM)
-  val tag3 = raddr3(31, INDEX_BIT_NUM + LINE_BIT_NUM)
+  val tag0 = raddr0(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
+  val tag1 = raddr1(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
+  val tag2 = raddr2(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
+  val tag3 = raddr3(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
 
-  val hit0 = cache(index).valid && cache(index).tag === tag0
-  val hit1 = cache(index).valid && cache(index).tag === tag1
-  val hit2 = cache(index).valid && cache(index).tag === tag2
-  val hit3 = cache(index).valid && cache(index).tag === tag3
+  val hit0 = cache(index).valid(0) && cache(index).tag === tag0
+  val hit1 = cache(index).valid(1) && cache(index).tag === tag1
+  val hit2 = cache(index).valid(2) && cache(index).tag === tag2
+  val hit3 = cache(index).valid(3) && cache(index).tag === tag3
+  dontTouch(hit0)
+  dontTouch(hit1)
+  dontTouch(hit2)
+  dontTouch(hit3)
 
   io.valid := (hit0 || raddr0 < read_pc) && 
               (hit1 || raddr1 < read_pc) && 
@@ -76,16 +81,16 @@ class TempIcache extends Module {
 
   io.inst0.pc := raddr0
   io.inst0.inst := cache(index).data(0)
-  io.inst0.valid := hit0
+  io.inst0.valid := raddr0 < read_pc
   io.inst1.pc := raddr1
   io.inst1.inst := cache(index).data(1)
-  io.inst1.valid := hit1
+  io.inst1.valid := raddr1 < read_pc
   io.inst2.pc := raddr2
   io.inst2.inst := cache(index).data(2)
-  io.inst2.valid := hit2
+  io.inst2.valid := raddr2 < read_pc
   io.inst3.pc := raddr3
   io.inst3.inst := cache(index).data(3)
-  io.inst3.valid := hit3
+  io.inst3.valid := raddr3 < read_pc
 
   when(io.flush) {
     read_pc := io.new_pc

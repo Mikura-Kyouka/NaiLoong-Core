@@ -68,8 +68,7 @@ class TempIf extends Module {
 
     val flush = Input(Bool())
     val new_pc = Input(UInt(32.W))
-    val valid = Output(Bool())
-    val ready = Input(Bool())
+    val to = Decoupled(new if_to_id_info)
   })
 
   val pc = RegInit("h1c000000".U(32.W))
@@ -136,8 +135,13 @@ class TempIf extends Module {
   temp_cache.io.wen := cache_wen
   temp_cache.io.new_pc := io.new_pc
   temp_cache.io.flush := io.flush
-  temp_cache.io.ready := io.ready
-  io.valid := temp_cache.io.valid
+  temp_cache.io.ready := io.to.ready
+  io.to.valid := temp_cache.io.valid
+
+  io.to.bits.inst0 <> temp_cache.io.inst0
+  io.to.bits.inst1 <> temp_cache.io.inst1
+  io.to.bits.inst2 <> temp_cache.io.inst2
+  io.to.bits.inst3 <> temp_cache.io.inst3
 
   when(io.flush) {
     pc := Cat(io.new_pc(31, 7), 0.U(7.W))
