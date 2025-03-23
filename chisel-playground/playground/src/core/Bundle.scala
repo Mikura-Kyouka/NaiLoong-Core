@@ -58,3 +58,53 @@ class FunctionUnitIO extends Bundle {
   }))
   val out = Decoupled(Output(UInt(32.W)))
 } 
+
+class RenamedDecodeIO extends Bundle {
+  val decode = new DecodeIO
+  val prfDest = Output(UInt(7.W)) // TODO:prfAddrWidth
+  val prfSrc1 = Output(UInt(7.W)) // TODO:prfAddrWidth
+  val prfSrc2 = Output(UInt(7.W)) // TODO:prfAddrWidth
+  val src1Rdy = Output(Bool())
+  val src2Rdy = Output(Bool())
+}
+
+class AXI extends Bundle {
+  /* AR */
+  val arvalid = Output(Bool())
+  val arready = Input(Bool())
+  val araddr = Output(UInt(32.W))
+  val arid = Output(UInt(4.W))  
+  val arlen = Output(UInt(8.W))  
+  val arsize = Output(UInt(3.W)) 
+  val arburst = Output(UInt(2.W))  
+
+  /* R */
+  val rvalid = Input(Bool())
+  val rready = Output(Bool())
+  val rdata = Input(UInt(32.W))
+  val rresp = Input(UInt(2.W))  
+  val rlast = Input(Bool())  
+  val rid = Input(UInt(4.W)) 
+
+  /* AW */
+  val awvalid = Output(Bool())
+  val awready = Input(Bool())
+  val awaddr = Output(UInt(32.W))
+  val awid = Output(UInt(4.W)) // Write Address ID
+  val awlen = Output(UInt(8.W)) // Burst length
+  val awsize = Output(UInt(3.W)) // Burst size
+  val awburst = Output(UInt(2.W)) // Burst type
+
+  /* W */
+  val wvalid = Output(Bool())
+  val wready = Input(Bool())
+  val wdata = Output(UInt(32.W))
+  val wstrb = Output(UInt(4.W))
+  val wlast = Output(Bool())  
+
+  /* B */
+  val bvalid = Input(Bool())
+  val bready = Output(Bool())
+  val bresp = Input(UInt(2.W))
+  val bid = Input(UInt(4.W))  
+}
