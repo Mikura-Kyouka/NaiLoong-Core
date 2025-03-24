@@ -81,20 +81,62 @@ class Frontend extends Module {
   // }
 
   val If = Module(new TempIf)
-  val Id = Module(new Decoder)
-  Id.io.in.bits.pc := If.io.to.bits.inst0.pc
-  Id.io.in.bits.instr := If.io.to.bits.inst0.inst
-  Id.io.in.valid := If.io.to.bits.inst0.valid
-  Id.io.in.bits.pnpc := DontCare
-  Id.io.in.bits.redirect := DontCare
-  Id.io.in.bits.exceptionVec := DontCare
-  Id.io.in.bits.intrVec := DontCare
-  Id.io.in.bits.brIdx := DontCare
-  Id.io.in.bits.crossPageIPFFix := DontCare
-  Id.io.in.bits.runahead_checkpoint_id := DontCare
-  Id.io.in.bits.isBranch := DontCare
-  Id.io.out.ready := true.B
-  dontTouch(Id.io.out.bits)
+  val Id0 = Module(new Decoder)
+  Id0.io.in.bits.pc := If.io.to.bits.inst0.pc
+  Id0.io.in.bits.instr := If.io.to.bits.inst0.inst
+  Id0.io.in.valid := If.io.to.bits.inst0.valid
+  Id0.io.in.bits.pnpc := DontCare
+  Id0.io.in.bits.redirect := DontCare
+  Id0.io.in.bits.exceptionVec := DontCare
+  Id0.io.in.bits.intrVec := DontCare
+  Id0.io.in.bits.brIdx := DontCare
+  Id0.io.in.bits.crossPageIPFFix := DontCare
+  Id0.io.in.bits.runahead_checkpoint_id := DontCare
+  Id0.io.in.bits.isBranch := DontCare
+  Id0.io.out.ready := true.B
+  dontTouch(Id0.io.out.bits)
+  val Id1 = Module(new Decoder)
+  Id1.io.in.bits.pc := If.io.to.bits.inst1.pc
+  Id1.io.in.bits.instr := If.io.to.bits.inst1.inst
+  Id1.io.in.valid := If.io.to.bits.inst1.valid
+  Id1.io.in.bits.pnpc := DontCare
+  Id1.io.in.bits.redirect := DontCare
+  Id1.io.in.bits.exceptionVec := DontCare
+  Id1.io.in.bits.intrVec := DontCare
+  Id1.io.in.bits.brIdx := DontCare
+  Id1.io.in.bits.crossPageIPFFix := DontCare
+  Id1.io.in.bits.runahead_checkpoint_id := DontCare
+  Id1.io.in.bits.isBranch := DontCare
+  Id1.io.out.ready := true.B
+  dontTouch(Id1.io.out.bits)
+  val Id2 = Module(new Decoder)
+  Id2.io.in.bits.pc := If.io.to.bits.inst2.pc
+  Id2.io.in.bits.instr := If.io.to.bits.inst2.inst
+  Id2.io.in.valid := If.io.to.bits.inst2.valid
+  Id2.io.in.bits.pnpc := DontCare
+  Id2.io.in.bits.redirect := DontCare
+  Id2.io.in.bits.exceptionVec := DontCare
+  Id2.io.in.bits.intrVec := DontCare
+  Id2.io.in.bits.brIdx := DontCare
+  Id2.io.in.bits.crossPageIPFFix := DontCare
+  Id2.io.in.bits.runahead_checkpoint_id := DontCare
+  Id2.io.in.bits.isBranch := DontCare
+  Id2.io.out.ready := true.B
+  dontTouch(Id2.io.out.bits)
+  val Id3 = Module(new Decoder)
+  Id3.io.in.bits.pc := If.io.to.bits.inst3.pc
+  Id3.io.in.bits.instr := If.io.to.bits.inst3.inst
+  Id3.io.in.valid := If.io.to.bits.inst3.valid
+  Id3.io.in.bits.pnpc := DontCare
+  Id3.io.in.bits.redirect := DontCare
+  Id3.io.in.bits.exceptionVec := DontCare
+  Id3.io.in.bits.intrVec := DontCare
+  Id3.io.in.bits.brIdx := DontCare
+  Id3.io.in.bits.crossPageIPFFix := DontCare
+  Id3.io.in.bits.runahead_checkpoint_id := DontCare
+  Id3.io.in.bits.isBranch := DontCare
+  Id3.io.out.ready := true.B
+  dontTouch(Id3.io.out.bits)
 
   If.io.intrpt := io.intrpt
 
