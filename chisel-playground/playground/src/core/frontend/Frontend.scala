@@ -1,6 +1,7 @@
-
+import core._
 import chisel3._
 class Frontend extends Module {
+  import chisel3.util._
   val io = IO(new Bundle {
     val intrpt   = Input(UInt(8.W))
     // AXI read address channel signals
@@ -66,7 +67,35 @@ class Frontend extends Module {
     val debug1_wb_rf_wdata=Output(UInt(32.W))
   })
 
+  // class CtrlFlowIO extends Bundle {
+  //   val instr = Output(UInt(32.W))
+  //   val pc = Output(UInt(32.W)) // TODO:VAddrBits
+  //   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+  //   val redirect = new RedirectIO
+  //   val exceptionVec = Output(Vec(16, Bool()))
+  //   val intrVec = Output(Vec(12, Bool()))
+  //   val brIdx = Output(UInt(4.W))
+  //   val crossPageIPFFix = Output(Bool())
+  //   val runahead_checkpoint_id = Output(UInt(64.W))
+  //   val isBranch = Output(Bool())
+  // }
+
   val If = Module(new TempIf)
+  val Id = Module(new Decoder)
+  Id.io.in.bits.pc := If.io.to.bits.inst0.pc
+  Id.io.in.bits.instr := If.io.to.bits.inst0.inst
+  Id.io.in.valid := If.io.to.bits.inst0.valid
+  Id.io.in.bits.pnpc := DontCare
+  Id.io.in.bits.redirect := DontCare
+  Id.io.in.bits.exceptionVec := DontCare
+  Id.io.in.bits.intrVec := DontCare
+  Id.io.in.bits.brIdx := DontCare
+  Id.io.in.bits.crossPageIPFFix := DontCare
+  Id.io.in.bits.runahead_checkpoint_id := DontCare
+  Id.io.in.bits.isBranch := DontCare
+  Id.io.out.ready := true.B
+  dontTouch(Id.io.out.bits)
+
   If.io.intrpt := io.intrpt
 
   io.arid := If.io.arid

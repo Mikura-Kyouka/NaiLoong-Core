@@ -64,7 +64,7 @@ module core_top
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn; 
 //NOTE:在此处实例化生成的chisel顶层接口达到转接效果
-TempIf If(
+Frontend fr(
     .clock            (aclk),           
     .reset            (reset),         
     .io_intrpt        (intrpt),            
