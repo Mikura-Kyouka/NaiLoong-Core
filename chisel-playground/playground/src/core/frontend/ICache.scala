@@ -1,7 +1,7 @@
 package core
-
 import chisel3._
 import chisel3.util._
+import utils._
 
 case class CacheConfig(
     totalSize: Int = 4 * 16, // Bytes

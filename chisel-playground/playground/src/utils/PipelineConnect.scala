@@ -1,6 +1,6 @@
 package utils
 
-package core
+
 
 import chisel3._
 import chisel3.util._
@@ -25,15 +25,15 @@ object PipelineConnect {
       right.bits := reg
     }.otherwise{
       right.bits := reg
-      right.bits match {
-        case b: IDU2EXU => b.regW := false.B
-        case b: EXU2LSU => b.regW := false.B
-        case _ => // 如果不是 IDU2EXU 或 EXU2LSU，不做任何操作
-      }
-      right.bits match {
-        case b: EXU2LSU => b.needMem := false.B
-        case _ => 
-      }
+      // right.bits match {
+      //   case b: IDU2EXU => b.regW := false.B
+      //   case b: EXU2LSU => b.regW := false.B
+      //   case _ => // 如果不是 IDU2EXU 或 EXU2LSU，不做任何操作
+      // }
+      // right.bits match {
+      //   case b: EXU2LSU => b.needMem := false.B
+      //   case _ => 
+      // }
     }
 
     val valid = RegInit(false.B)
