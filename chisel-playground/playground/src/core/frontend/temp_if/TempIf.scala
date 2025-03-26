@@ -1,4 +1,4 @@
-
+package core
 import chisel3._
 
 class TempIf extends Module {

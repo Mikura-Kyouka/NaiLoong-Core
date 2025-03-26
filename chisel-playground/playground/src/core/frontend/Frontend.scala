@@ -1,4 +1,4 @@
-import core._
+package core
 import chisel3._
 class Frontend extends Module {
   import chisel3.util._

@@ -45,13 +45,12 @@ object Elaborate extends App {
     firtoolOptions
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.BypassNetwork(), 
+    new core.Frontend(), 
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",
       "--target-dir=./build"
     ), 
     firtoolOptions
-
   )
 }
