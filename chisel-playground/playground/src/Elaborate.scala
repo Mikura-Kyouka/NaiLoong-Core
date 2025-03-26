@@ -9,42 +9,6 @@ object Elaborate extends App {
     ).reduce(_ + "," + _)
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.ALU(), 
-    args = Array(
-      "--throw-on-first-error",
-      "--split-verilog",
-      "--target-dir=./build"
-    ), 
-    firtoolOptions
-  )
-  circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.IDU(), 
-    args = Array(
-      "--throw-on-first-error",
-      "--split-verilog",
-      "--target-dir=./build"
-    ), 
-    firtoolOptions
-  )
-  circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.RegRenaming(), 
-    args = Array(
-      "--throw-on-first-error",
-      "--split-verilog",
-      "--target-dir=./build"
-    ), 
-    firtoolOptions
-  )
-  circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.ROB(), 
-    args = Array(
-      "--throw-on-first-error",
-      "--split-verilog",
-      "--target-dir=./build"
-    ), 
-    firtoolOptions
-  )
-  circt.stage.ChiselStage.emitSystemVerilogFile(
     new core.Frontend(), 
     args = Array(
       "--throw-on-first-error",
