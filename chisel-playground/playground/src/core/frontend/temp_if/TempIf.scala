@@ -1,8 +1,8 @@
-
+package core
 import chisel3._
+import chisel3.util._
 
 class TempIf extends Module {
-  import chisel3.util._
   val io = IO(new Bundle {
     val intrpt   = Input(UInt(8.W))
     // AXI read address channel signals
@@ -181,18 +181,4 @@ class TempIf extends Module {
       }
     }
   }
-}
-
-object GenIF extends App {
-    val firtoolOptions = Array(
-      "--lowering-options=" + List(
-        // make yosys happy
-        // see https://github.com/llvm/circt/blob/main/docs/VerilogGeneration.md
-        "disallowLocalVariables",
-        "disallowPackedArrays",
-        "locationInfoStyle=wrapInAtSquareBracket",
-        "mitigateVivadoArrayIndexConstPropBug"
-      ).reduce(_ + "," + _)
-    )
-    circt.stage.ChiselStage.emitSystemVerilogFile(new TempIf(), args, firtoolOptions)
 }

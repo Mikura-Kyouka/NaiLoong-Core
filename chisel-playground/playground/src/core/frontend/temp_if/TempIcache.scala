@@ -1,9 +1,11 @@
-
+package core
 import chisel3._
+import chisel3.util._
+
+import CacheConfig._
 
 // 直接映射cache
 object CacheConfig {
-  import chisel3.util._
   def LINE_WIDTH = 128
   def LINE_WORD_NUM = (LINE_WIDTH / 32)
   def LINE_BIT_NUM = log2Ceil(LINE_WIDTH)
@@ -16,15 +18,12 @@ object CacheConfig {
 }
 
 class CacheLine extends Bundle {
-  import CacheConfig._
   val tag = UInt(TAG_BIT_NUM.W)      // 21-bit tag
   val data = Vec(CacheConfig.LINE_WORD_NUM, UInt(32.W)) // 128-bit data
   val valid = Vec(CacheConfig.LINE_WORD_NUM, Bool())
 }
 
 class TempIcache extends Module {
-  import chisel3.util._
-  import CacheConfig._
   val io = IO(new Bundle {
     val waddr = Input(UInt(32.W))
     val wdata = Input(UInt(32.W))

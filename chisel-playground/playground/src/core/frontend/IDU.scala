@@ -20,6 +20,7 @@ class Decoder extends Module {
     io.out.bits.ctrl.fuType := fuType
     io.out.bits.ctrl.fuOpType := fuOpType
 
+    //  rs2 rs1 
     val (rk, rj, rd) = (instr(14, 10), instr(9, 5), instr(4, 0))
     // rj is equivalent to rs1 in rv ISA, always SLL(R[rj], ui5)
     val rfSrc1 = rj // note: rf is Architectural Register File 
@@ -30,10 +31,21 @@ class Decoder extends Module {
         Dest.rd -> rd
     ))
 
-    io.out.bits.ctrl.rfSrc1 := Mux(src1Type === SrcType.pc, 0.U, rfSrc1)
-    io.out.bits.ctrl.rfSrc2 := Mux(src2Type === SrcType.reg, rfSrc2, 0.U)
+    // io.out.bits.ctrl.rfSrc1 := Mux(src1Type === SrcType.pc, 0.U, rfSrc1)
+    // io.out.bits.ctrl.rfSrc2 := Mux(src2Type === SrcType.reg, rfSrc2, 0.U)
+    /*
+    object SrcType {
+        def reg = "b0".U
+        def pc  = "b1".U
+        def imm = "b1".U
+        def apply() = UInt(1.W)
+    }
+    */
+    io.out.bits.ctrl.rfSrc1 := rfSrc1
+    io.out.bits.ctrl.rfSrc2 := rfSrc2
+
     io.out.bits.ctrl.rfWen := rfWen 
-    io.out.bits.ctrl.rfDest := Mux(rfWen.asBool, rfDest, 0.U)
+    io.out.bits.ctrl.rfDest := rfDest
 
 
     io.out.bits.data := DontCare
