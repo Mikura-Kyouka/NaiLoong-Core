@@ -1,4 +1,5 @@
 package core
+import utils._
 import chisel3._
 class Frontend extends Module {
   import chisel3.util._
@@ -67,76 +68,13 @@ class Frontend extends Module {
     val debug1_wb_rf_wdata=Output(UInt(32.W))
   })
 
-  // class CtrlFlowIO extends Bundle {
-  //   val instr = Output(UInt(32.W))
-  //   val pc = Output(UInt(32.W)) // TODO:VAddrBits
-  //   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
-  //   val redirect = new RedirectIO
-  //   val exceptionVec = Output(Vec(16, Bool()))
-  //   val intrVec = Output(Vec(12, Bool()))
-  //   val brIdx = Output(UInt(4.W))
-  //   val crossPageIPFFix = Output(Bool())
-  //   val runahead_checkpoint_id = Output(UInt(64.W))
-  //   val isBranch = Output(Bool())
-  // }
-
   val If = Module(new TempIf)
-  val Id0 = Module(new Decoder)
-  Id0.io.in.bits.pc := If.io.to.bits.inst0.pc
-  Id0.io.in.bits.instr := If.io.to.bits.inst0.inst
-  Id0.io.in.valid := If.io.to.bits.inst0.valid
-  Id0.io.in.bits.pnpc := DontCare
-  Id0.io.in.bits.redirect := DontCare
-  Id0.io.in.bits.exceptionVec := DontCare
-  Id0.io.in.bits.intrVec := DontCare
-  Id0.io.in.bits.brIdx := DontCare
-  Id0.io.in.bits.crossPageIPFFix := DontCare
-  Id0.io.in.bits.runahead_checkpoint_id := DontCare
-  Id0.io.in.bits.isBranch := DontCare
-  Id0.io.out.ready := true.B
-  dontTouch(Id0.io.out.bits)
-  val Id1 = Module(new Decoder)
-  Id1.io.in.bits.pc := If.io.to.bits.inst1.pc
-  Id1.io.in.bits.instr := If.io.to.bits.inst1.inst
-  Id1.io.in.valid := If.io.to.bits.inst1.valid
-  Id1.io.in.bits.pnpc := DontCare
-  Id1.io.in.bits.redirect := DontCare
-  Id1.io.in.bits.exceptionVec := DontCare
-  Id1.io.in.bits.intrVec := DontCare
-  Id1.io.in.bits.brIdx := DontCare
-  Id1.io.in.bits.crossPageIPFFix := DontCare
-  Id1.io.in.bits.runahead_checkpoint_id := DontCare
-  Id1.io.in.bits.isBranch := DontCare
-  Id1.io.out.ready := true.B
-  dontTouch(Id1.io.out.bits)
-  val Id2 = Module(new Decoder)
-  Id2.io.in.bits.pc := If.io.to.bits.inst2.pc
-  Id2.io.in.bits.instr := If.io.to.bits.inst2.inst
-  Id2.io.in.valid := If.io.to.bits.inst2.valid
-  Id2.io.in.bits.pnpc := DontCare
-  Id2.io.in.bits.redirect := DontCare
-  Id2.io.in.bits.exceptionVec := DontCare
-  Id2.io.in.bits.intrVec := DontCare
-  Id2.io.in.bits.brIdx := DontCare
-  Id2.io.in.bits.crossPageIPFFix := DontCare
-  Id2.io.in.bits.runahead_checkpoint_id := DontCare
-  Id2.io.in.bits.isBranch := DontCare
-  Id2.io.out.ready := true.B
-  dontTouch(Id2.io.out.bits)
-  val Id3 = Module(new Decoder)
-  Id3.io.in.bits.pc := If.io.to.bits.inst3.pc
-  Id3.io.in.bits.instr := If.io.to.bits.inst3.inst
-  Id3.io.in.valid := If.io.to.bits.inst3.valid
-  Id3.io.in.bits.pnpc := DontCare
-  Id3.io.in.bits.redirect := DontCare
-  Id3.io.in.bits.exceptionVec := DontCare
-  Id3.io.in.bits.intrVec := DontCare
-  Id3.io.in.bits.brIdx := DontCare
-  Id3.io.in.bits.crossPageIPFFix := DontCare
-  Id3.io.in.bits.runahead_checkpoint_id := DontCare
-  Id3.io.in.bits.isBranch := DontCare
-  Id3.io.out.ready := true.B
-  dontTouch(Id3.io.out.bits)
+  val Id = Module(new IDU)
+
+  PipelineConnect(If.io.to(0), Id.io.in(0), false.B, false.B)
+  PipelineConnect(If.io.to(1), Id.io.in(0), false.B, false.B)
+  PipelineConnect(If.io.to(2), Id.io.in(0), false.B, false.B)
+  PipelineConnect(If.io.to(3), Id.io.in(0), false.B, false.B)
 
   If.io.intrpt := io.intrpt
 
@@ -199,7 +137,10 @@ class Frontend extends Module {
 
   If.io.flush := false.B
   If.io.new_pc := 0.U
-  If.io.to.ready := true.B
+  If.io.to(0).ready := true.B
+  If.io.to(1).ready := true.B
+  If.io.to(2).ready := true.B
+  If.io.to(3).ready := true.B
 }
 
 object GenFr extends App {

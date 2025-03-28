@@ -80,7 +80,7 @@ class Decoder extends Module {
 
 class IDU extends Module {
     val io = IO(new Bundle {
-        val in = Vec(4, Flipped(Decoupled(new CtrlFlowIO))) //TODO: Temporarily 4-way
+        val in = Vec(4, Flipped(Decoupled(new PipelineConnectIO))) //TODO: Temporarily 4-way
         val out = Vec(4, Decoupled(new DecodeIO))
     })
     val decoder1 = Module(new Decoder)
