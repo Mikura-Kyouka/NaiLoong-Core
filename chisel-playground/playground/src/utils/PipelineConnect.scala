@@ -40,6 +40,7 @@ object PipelineConnect {
     when(rightOutFire) { valid := false.B } // already excepted, right.valid := false
     when(left.valid && right.ready) { valid := true.B } // in.fire
     when(isFlush) { valid := false.B }
+    when(~left.valid) { valid := false.B }
 
     left.ready := right.ready
     // right.bits := RegEnable(left.bits, left.valid && right.ready)

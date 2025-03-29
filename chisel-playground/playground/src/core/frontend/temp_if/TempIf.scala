@@ -69,7 +69,7 @@ class TempIf extends Module {
 
     val flush = Input(Bool())
     val new_pc = Input(UInt(32.W))
-    val to = Vec(4, Decoupled(new PipelineConnectIO))
+    val to = Decoupled(Vec(4, new PipelineConnectIO))
   })
 
   val pc = RegInit("h1c000000".U(32.W))
@@ -136,24 +136,21 @@ class TempIf extends Module {
   temp_cache.io.wen := cache_wen
   temp_cache.io.new_pc := io.new_pc
   temp_cache.io.flush := io.flush
-  temp_cache.io.ready := io.to(0).ready && io.to(1).ready && io.to(2).ready && io.to(3).ready
-  io.to(0).valid := temp_cache.io.valid
-  io.to(1).valid := temp_cache.io.valid
-  io.to(2).valid := temp_cache.io.valid
-  io.to(3).valid := temp_cache.io.valid
+  temp_cache.io.ready := io.to.ready
+  io.to.valid := temp_cache.io.valid
 
-  io.to(0).bits.instr := temp_cache.io.inst0.inst
-  io.to(0).bits.pc := temp_cache.io.inst0.pc
-  io.to(0).bits.valid := temp_cache.io.inst0.valid
-  io.to(1).bits.instr := temp_cache.io.inst1.inst
-  io.to(1).bits.pc := temp_cache.io.inst1.pc
-  io.to(1).bits.valid := temp_cache.io.inst1.valid
-  io.to(2).bits.instr := temp_cache.io.inst2.inst
-  io.to(2).bits.pc := temp_cache.io.inst2.pc
-  io.to(2).bits.valid := temp_cache.io.inst2.valid
-  io.to(3).bits.instr := temp_cache.io.inst3.inst
-  io.to(3).bits.pc := temp_cache.io.inst3.pc
-  io.to(3).bits.valid := temp_cache.io.inst3.valid
+  io.to.bits(0).instr := temp_cache.io.inst0.inst
+  io.to.bits(0).pc := temp_cache.io.inst0.pc
+  io.to.bits(0).valid := temp_cache.io.inst0.valid
+  io.to.bits(1).instr := temp_cache.io.inst1.inst
+  io.to.bits(1).pc := temp_cache.io.inst1.pc
+  io.to.bits(1).valid := temp_cache.io.inst1.valid
+  io.to.bits(2).instr := temp_cache.io.inst2.inst
+  io.to.bits(2).pc := temp_cache.io.inst2.pc
+  io.to.bits(2).valid := temp_cache.io.inst2.valid
+  io.to.bits(3).instr := temp_cache.io.inst3.inst
+  io.to.bits(3).pc := temp_cache.io.inst3.pc
+  io.to.bits(3).valid := temp_cache.io.inst3.valid
 
   val flushed = RegInit(false.B)
   when(io.flush || temp_cache.io.read_pc(31, 4) =/= pc(31, 4)) {
@@ -195,13 +192,18 @@ class TempIf extends Module {
 
   // dontcare
   for(i <- 0 until 4) {
-    io.to(i).bits.pnpc := DontCare
-    io.to(i).bits.redirect := DontCare
-    io.to(i).bits.exceptionVec := DontCare
-    io.to(i).bits.intrVec := DontCare
-    io.to(i).bits.brIdx := DontCare
-    io.to(i).bits.crossPageIPFFix := DontCare
-    io.to(i).bits.runahead_checkpoint_id := DontCare
-    io.to(i).bits.isBranch := DontCare
+    io.to.bits(i).pnpc := DontCare
+    io.to.bits(i).redirect := DontCare
+    io.to.bits(i).exceptionVec := DontCare
+    io.to.bits(i).intrVec := DontCare
+    io.to.bits(i).brIdx := DontCare
+    io.to.bits(i).crossPageIPFFix := DontCare
+    io.to.bits(i).runahead_checkpoint_id := DontCare
+    io.to.bits(i).isBranch := DontCare
+    io.to.bits(i).ctrl := DontCare
+    io.to.bits(i).src1 := DontCare
+    io.to.bits(i).src2 := DontCare
+    io.to.bits(i).imm := DontCare
   }
+  dontTouch(io.to)
 }

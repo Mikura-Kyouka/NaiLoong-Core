@@ -71,10 +71,7 @@ class Frontend extends Module {
   val If = Module(new TempIf)
   val Id = Module(new IDU)
 
-  PipelineConnect(If.io.to(0), Id.io.in(0), false.B, false.B)
-  PipelineConnect(If.io.to(1), Id.io.in(0), false.B, false.B)
-  PipelineConnect(If.io.to(2), Id.io.in(0), false.B, false.B)
-  PipelineConnect(If.io.to(3), Id.io.in(0), false.B, false.B)
+  PipelineConnect(If.io.to, Id.io.in, false.B, false.B)
 
   If.io.intrpt := io.intrpt
 
@@ -137,10 +134,9 @@ class Frontend extends Module {
 
   If.io.flush := false.B
   If.io.new_pc := 0.U
-  If.io.to(0).ready := true.B
-  If.io.to(1).ready := true.B
-  If.io.to(2).ready := true.B
-  If.io.to(3).ready := true.B
+
+  Id.io.out.ready := true.B
+  dontTouch(Id.io.out)
 }
 
 object GenFr extends App {

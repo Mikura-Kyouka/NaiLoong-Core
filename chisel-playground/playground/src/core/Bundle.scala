@@ -110,11 +110,11 @@ class AXI extends Bundle {
 }
 
 class PipelineConnectIO extends Bundle {
-  // IF -> ID
+  // common
   val instr = Output(UInt(32.W))
   val pc = Output(UInt(32.W))
   val valid = Output(Bool())
-
+  // IF -> ID
   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
   val redirect = new RedirectIO
   val exceptionVec = Output(Vec(16, Bool()))
@@ -123,4 +123,9 @@ class PipelineConnectIO extends Bundle {
   val crossPageIPFFix = Output(Bool())
   val runahead_checkpoint_id = Output(UInt(64.W))
   val isBranch = Output(Bool())
+  // ID -> Renaming
+  val src1 = Output(UInt(32.W))
+  val src2 = Output(UInt(32.W))
+  val imm  = Output(UInt(32.W))
+  val ctrl = new CtrlSignalIO
 }

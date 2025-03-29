@@ -80,20 +80,157 @@ class Decoder extends Module {
 
 class IDU extends Module {
     val io = IO(new Bundle {
-        val in = Vec(4, Flipped(Decoupled(new PipelineConnectIO))) //TODO: Temporarily 4-way
-        val out = Vec(4, Decoupled(new DecodeIO))
+        val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO))) //TODO: Temporarily 4-way
+        val out = Decoupled(Vec(4, new PipelineConnectIO))
     })
     val decoder1 = Module(new Decoder)
     val decoder2 = Module(new Decoder)
     val decoder3 = Module(new Decoder)
     val decoder4 = Module(new Decoder)
-    io.in(0) <> decoder1.io.in
-    io.in(1) <> decoder2.io.in
-    io.in(2) <> decoder3.io.in
-    io.in(3) <> decoder4.io.in
+
+//   val instr = Output(UInt(32.W))
+//   val pc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val redirect = new RedirectIO
+//   val exceptionVec = Output(Vec(16, Bool()))
+//   val intrVec = Output(Vec(12, Bool()))
+//   val brIdx = Output(UInt(4.W))
+//   val crossPageIPFFix = Output(Bool())
+//   val runahead_checkpoint_id = Output(UInt(64.W))
+//   val isBranch = Output(Bool())
+
+    decoder1.io.in.valid := io.in.valid
+    decoder2.io.in.valid := io.in.valid
+    decoder3.io.in.valid := io.in.valid
+    decoder4.io.in.valid := io.in.valid
+    io.in.ready := decoder1.io.in.ready && decoder2.io.in.ready && decoder3.io.in.ready && decoder4.io.in.ready
+
+    decoder1.io.in.bits.instr := io.in.bits(0).instr
+    decoder1.io.in.bits.pc := io.in.bits(0).pc
+    decoder1.io.in.bits.pnpc := io.in.bits(0).pnpc
+    decoder1.io.in.bits.redirect := io.in.bits(0).redirect
+    decoder1.io.in.bits.exceptionVec := io.in.bits(0).exceptionVec
+    decoder1.io.in.bits.intrVec := io.in.bits(0).intrVec
+    decoder1.io.in.bits.brIdx := io.in.bits(0).brIdx
+    decoder1.io.in.bits.crossPageIPFFix := io.in.bits(0).crossPageIPFFix
+    decoder1.io.in.bits.runahead_checkpoint_id := io.in.bits(0).runahead_checkpoint_id
+    decoder1.io.in.bits.isBranch := io.in.bits(0).isBranch
+    decoder2.io.in.bits.instr := io.in.bits(1).instr
+    decoder2.io.in.bits.pc := io.in.bits(1).pc
+    decoder2.io.in.bits.pnpc := io.in.bits(1).pnpc
+    decoder2.io.in.bits.redirect := io.in.bits(1).redirect
+    decoder2.io.in.bits.exceptionVec := io.in.bits(1).exceptionVec
+    decoder2.io.in.bits.intrVec := io.in.bits(1).intrVec
+    decoder2.io.in.bits.brIdx := io.in.bits(1).brIdx
+    decoder2.io.in.bits.crossPageIPFFix := io.in.bits(1).crossPageIPFFix
+    decoder2.io.in.bits.runahead_checkpoint_id := io.in.bits(1).runahead_checkpoint_id
+    decoder2.io.in.bits.isBranch := io.in.bits(1).isBranch
+    decoder3.io.in.bits.instr := io.in.bits(2).instr
+    decoder3.io.in.bits.pc := io.in.bits(2).pc
+    decoder3.io.in.bits.pnpc := io.in.bits(2).pnpc
+    decoder3.io.in.bits.redirect := io.in.bits(2).redirect
+    decoder3.io.in.bits.exceptionVec := io.in.bits(2).exceptionVec
+    decoder3.io.in.bits.intrVec := io.in.bits(2).intrVec
+    decoder3.io.in.bits.brIdx := io.in.bits(2).brIdx
+    decoder3.io.in.bits.crossPageIPFFix := io.in.bits(2).crossPageIPFFix
+    decoder3.io.in.bits.runahead_checkpoint_id := io.in.bits(2).runahead_checkpoint_id
+    decoder3.io.in.bits.isBranch := io.in.bits(2).isBranch
+    decoder4.io.in.bits.instr := io.in.bits(3).instr
+    decoder4.io.in.bits.pc := io.in.bits(3).pc
+    decoder4.io.in.bits.pnpc := io.in.bits(3).pnpc
+    decoder4.io.in.bits.redirect := io.in.bits(3).redirect
+    decoder4.io.in.bits.exceptionVec := io.in.bits(3).exceptionVec
+    decoder4.io.in.bits.intrVec := io.in.bits(3).intrVec
+    decoder4.io.in.bits.brIdx := io.in.bits(3).brIdx
+    decoder4.io.in.bits.crossPageIPFFix := io.in.bits(3).crossPageIPFFix
+    decoder4.io.in.bits.runahead_checkpoint_id := io.in.bits(3).runahead_checkpoint_id
+    decoder4.io.in.bits.isBranch := io.in.bits(3).isBranch
     
-    io.out(0) <> decoder1.io.out
-    io.out(1) <> decoder2.io.out
-    io.out(2) <> decoder3.io.out
-    io.out(3) <> decoder4.io.out
+    io.out.valid := decoder1.io.out.valid && decoder2.io.out.valid && decoder3.io.out.valid && decoder4.io.out.valid
+    decoder1.io.out.ready := io.out.ready
+    decoder2.io.out.ready := io.out.ready
+    decoder3.io.out.ready := io.out.ready
+    decoder4.io.out.ready := io.out.ready
+    
+    io.out.bits(0).instr := decoder1.io.out.bits.cf.instr
+    io.out.bits(0).pc := decoder1.io.out.bits.cf.pc
+    io.out.bits(0).valid := io.in.bits(0).valid
+    io.out.bits(0).pnpc := decoder1.io.out.bits.cf.pnpc
+    io.out.bits(0).redirect := decoder1.io.out.bits.cf.redirect
+    io.out.bits(0).exceptionVec := decoder1.io.out.bits.cf.exceptionVec
+    io.out.bits(0).intrVec := decoder1.io.out.bits.cf.intrVec
+    io.out.bits(0).brIdx := decoder1.io.out.bits.cf.brIdx
+    io.out.bits(0).crossPageIPFFix := decoder1.io.out.bits.cf.crossPageIPFFix
+    io.out.bits(0).runahead_checkpoint_id := decoder1.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(0).isBranch := decoder1.io.out.bits.cf.isBranch
+    io.out.bits(0).ctrl <> decoder1.io.out.bits.ctrl
+    io.out.bits(0).src1 := decoder1.io.out.bits.data.src1
+    io.out.bits(0).src2 := decoder1.io.out.bits.data.src2
+    io.out.bits(0).imm := decoder1.io.out.bits.data.imm
+    io.out.bits(1).instr := decoder2.io.out.bits.cf.instr
+    io.out.bits(1).pc := decoder2.io.out.bits.cf.pc
+    io.out.bits(1).valid := io.in.bits(1).valid
+    io.out.bits(1).pnpc := decoder2.io.out.bits.cf.pnpc
+    io.out.bits(1).redirect := decoder2.io.out.bits.cf.redirect
+    io.out.bits(1).exceptionVec := decoder2.io.out.bits.cf.exceptionVec
+    io.out.bits(1).intrVec := decoder2.io.out.bits.cf.intrVec
+    io.out.bits(1).brIdx := decoder2.io.out.bits.cf.brIdx
+    io.out.bits(1).crossPageIPFFix := decoder2.io.out.bits.cf.crossPageIPFFix
+    io.out.bits(1).runahead_checkpoint_id := decoder2.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(1).isBranch := decoder2.io.out.bits.cf.isBranch
+    io.out.bits(1).ctrl <> decoder2.io.out.bits.ctrl
+    io.out.bits(1).src1 := decoder2.io.out.bits.data.src1
+    io.out.bits(1).src2 := decoder2.io.out.bits.data.src2
+    io.out.bits(1).imm := decoder2.io.out.bits.data.imm
+    io.out.bits(2).instr := decoder3.io.out.bits.cf.instr
+    io.out.bits(2).pc := decoder3.io.out.bits.cf.pc
+    io.out.bits(2).valid := io.in.bits(2).valid
+    io.out.bits(2).pnpc := decoder3.io.out.bits.cf.pnpc
+    io.out.bits(2).redirect := decoder3.io.out.bits.cf.redirect
+    io.out.bits(2).exceptionVec := decoder3.io.out.bits.cf.exceptionVec
+    io.out.bits(2).intrVec := decoder3.io.out.bits.cf.intrVec
+    io.out.bits(2).brIdx := decoder3.io.out.bits.cf.brIdx
+    io.out.bits(2).crossPageIPFFix := decoder3.io.out.bits.cf.crossPageIPFFix
+    io.out.bits(2).runahead_checkpoint_id := decoder3.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(2).isBranch := decoder3.io.out.bits.cf.isBranch
+    io.out.bits(2).ctrl <> decoder3.io.out.bits.ctrl
+    io.out.bits(2).src1 := decoder3.io.out.bits.data.src1
+    io.out.bits(2).src2 := decoder3.io.out.bits.data.src2
+    io.out.bits(2).imm := decoder3.io.out.bits.data.imm
+    io.out.bits(3).instr := decoder4.io.out.bits.cf.instr
+    io.out.bits(3).pc := decoder4.io.out.bits.cf.pc
+    io.out.bits(3).valid := io.in.bits(3).valid
+    io.out.bits(3).pnpc := decoder4.io.out.bits.cf.pnpc
+    io.out.bits(3).redirect := decoder4.io.out.bits.cf.redirect
+    io.out.bits(3).exceptionVec := decoder4.io.out.bits.cf.exceptionVec
+    io.out.bits(3).intrVec := decoder4.io.out.bits.cf.intrVec
+    io.out.bits(3).brIdx := decoder4.io.out.bits.cf.brIdx
+    io.out.bits(3).crossPageIPFFix := decoder4.io.out.bits.cf.crossPageIPFFix
+    io.out.bits(3).runahead_checkpoint_id := decoder4.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(3).isBranch := decoder4.io.out.bits.cf.isBranch
+    io.out.bits(3).ctrl <> decoder4.io.out.bits.ctrl
+    io.out.bits(3).src1 := decoder4.io.out.bits.data.src1
+    io.out.bits(3).src2 := decoder4.io.out.bits.data.src2
+    io.out.bits(3).imm := decoder4.io.out.bits.data.imm
 }
+
+// class PipelineConnectIO extends Bundle {
+//   // common
+//   val instr = Output(UInt(32.W))
+//   val pc = Output(UInt(32.W))
+//   val valid = Output(Bool())
+//   // IF -> ID
+//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val redirect = new RedirectIO
+//   val exceptionVec = Output(Vec(16, Bool()))
+//   val intrVec = Output(Vec(12, Bool()))
+//   val brIdx = Output(UInt(4.W))
+//   val crossPageIPFFix = Output(Bool())
+//   val runahead_checkpoint_id = Output(UInt(64.W))
+//   val isBranch = Output(Bool())
+//   // ID -> Renaming
+//   val src1 = Output(UInt(32.W))
+//   val src2 = Output(UInt(32.W))
+//   val imm  = Output(UInt(32.W))
+//   val ctrl = new CtrlSignalIO
+// }
