@@ -201,17 +201,3 @@ class Frontend extends Module {
   If.io.new_pc := 0.U
   If.io.to.ready := true.B
 }
-
-object GenFr extends App {
-    val firtoolOptions = Array(
-      "--lowering-options=" + List(
-        // make yosys happy
-        // see https://github.com/llvm/circt/blob/main/docs/VerilogGeneration.md
-        "disallowLocalVariables",
-        "disallowPackedArrays",
-        "locationInfoStyle=wrapInAtSquareBracket",
-        "mitigateVivadoArrayIndexConstPropBug"
-      ).reduce(_ + "," + _)
-    )
-    circt.stage.ChiselStage.emitSystemVerilogFile(new Frontend(), args, firtoolOptions)
-}

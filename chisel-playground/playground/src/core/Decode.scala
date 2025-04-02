@@ -47,15 +47,12 @@ object IsLegal {
 }
 
 object FuType {
-  def num = 4 
+  def num = 5 
   def alu = "b000".U
   def lsu = "b001".U
   def mdu = "b010".U
   def csr = "b011".U
-  // def mou = "b100".U
-  // def bru = if(IndependentBru) "b101".U
-  //           else               alu
-  def bru = alu 
+  def bru = "b101".U
   def apply() = UInt(log2Up(num).W)
 }
 
