@@ -282,3 +282,21 @@ class LSExecUnit extends Module {
     printf("misaligned addr detected\n")
   }
 }
+
+class AligendUnpipelinedLSU extends Module{
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new inst_info)))
+    val out = Decoupled(new FuOut)
+  })
+  val lsu = Module(new UnpipelinedLSU)
+  lsu.io := DontCare
+  lsu.io.in.bits.src1 := io.in.bits.data1
+  lsu.io.in.bits.src2 := Mux(io.in.bits.src2_is_imm, io.in.bits.imm, io.in.bits.data2)
+  lsu.io.in.bits.func := io.in.bits.op
+  io.out.bits.data := lsu.io.out.bits
+
+  lsu.io.in.valid := io.in.valid
+  io.in.ready := lsu.io.in.ready
+  io.out.valid := lsu.io.out.valid
+  lsu.io.out.ready := io.out.ready
+} 

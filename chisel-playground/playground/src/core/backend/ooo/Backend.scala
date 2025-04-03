@@ -8,7 +8,7 @@ import utils.PipelineConnect
 class Backend extends Module {
     val io = IO(new Bundle {
         val from = Vec(4, Flipped(Decoupled(new renaming_to_issue)))
-        val out = Vec(ISSUE_WIDTH, Decoupled(UInt(32.W))) 
+        // val out = Vec(ISSUE_WIDTH, Decoupled(UInt(32.W))) 
         // commit inst
         val cmtInstr = Flipped(Valid(new commit_inst_info))
         // retire inst 
@@ -64,15 +64,22 @@ class Backend extends Module {
     //////////////////////
 
     // Instantiate functional module
-    // val alu1 = Module(new ALU)
-    // val alu2 = Module(new ALU)
-    // val mdu = Module(new MDU)
-    // val lsu = Module(new UnpipelinedLSU)
-    // val bru = Module(new ALU) // TODO
+    val alu1 = Module(new AligendALU)
+    val alu2 = Module(new AligendALU)
+    val mdu  = Module(new AlignedMDU)
+    val lsu  = Module(new AligendUnpipelinedLSU)
+    val bru  = Module(new AligendALU) // TODO
 
-    // PipelineConnect(alu1rs.io.out, alu1.io.in, alu1.io.out.fire, false.B)
-    // PipelineConnect(alu2rs.io.out, alu2.io.in, alu2.io.out.fire, false.B)
-    // PipelineConnect(mdurs.io.out,  mdu.io.in,  mdu.io.out.fire,  false.B)
-    // PipelineConnect(lsurs.io.out,  lsu.io.in,  lsu.io.out.fire,  false.B)
-    // PipelineConnect(brurs.io.out,  bru.io.in,  bru.io.out.fire,  false.B)
+    PipelineConnect(alu1rs.io.out, alu1.io.in, alu1.io.out.fire, false.B)
+    PipelineConnect(alu2rs.io.out, alu2.io.in, alu2.io.out.fire, false.B)
+    PipelineConnect(mdurs.io.out,  mdu.io.in,  mdu.io.out.fire,  false.B)
+    PipelineConnect(lsurs.io.out,  lsu.io.in,  lsu.io.out.fire,  false.B)
+    PipelineConnect(brurs.io.out,  bru.io.in,  bru.io.out.fire,  false.B)
+    
+    // FIXME
+    alu1.io.out.ready := true.B
+    alu2.io.out.ready := true.B
+    mdu.io.out.ready := true.B
+    lsu.io.out.ready := true.B
+    bru.io.out.ready := true.B
 }

@@ -13,7 +13,7 @@ class inst_info extends Bundle {
   val data1 = UInt(32.W)
   val data2 = UInt(32.W)
   val dest = UInt(PHYS_REG_BITS.W)
-  val op = UInt(3.W)
+  val op = FuOpType()
 
   // use imm
   val imm = UInt(32.W)
