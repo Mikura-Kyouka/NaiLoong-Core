@@ -7,7 +7,7 @@ import IssueConfig._
 
 class Dispatch extends Module {
   val io = IO(new Bundle {
-    val in = Flipped(Decoupled(Vec(4, Output(new dispatch_in_info)))) // TODO: FETCH_WIDTH
+    val in = Vec(4, Flipped(Decoupled(Output(new dispatch_in_info)))) // TODO: FETCH_WIDTH
     val out = Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info))
   })
 
@@ -17,29 +17,33 @@ class Dispatch extends Module {
       q.bits.inst_vec(i) := DontCare
     }
   }
-  // FIXME: ISSUE_WIDTH != FETCH_WIDTH
-  io.in.ready := !io.in.valid || (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready) // TODO
-  for (i <- 0 until ISSUE_WIDTH) { io.out(i).valid := io.in.valid }
+  // FIXME: paramiterize FETCH_WITDTH
+  for( i <- 0 until 4) { 
+    io.in(i).ready := !(io.in(1).valid || io.in(2).valid || io.in(3).valid) || (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready) 
+  }
+  for (i <- 0 until ISSUE_WIDTH) {
+     io.out(i).valid := io.in(0).valid && io.in(1).valid && io.in(2).valid && io.in(3).valid 
+  } 
 
   for(i <- 0 until 4) { // TODO: FETCH_WIDTH
-    val inst = io.in.bits(i)
+    val inst = io.in(i).bits
 
     val alu_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).op === FuType.alu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in(j).bits.op === FuType.alu, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
     // reduceOption: combine all elements with addition
     // getOrElse: provides a default value (0) if no elements exist
     
     val muldiv_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).op === FuType.mdu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in(j).bits.op === FuType.mdu, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
     
     val loadstore_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).op === FuType.lsu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in(j).bits.op === FuType.lsu, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
 
     val branch_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).op === FuType.bru, 1.U(3.W), 0.U(3.W))
+      Mux(io.in(j).bits.op === FuType.bru, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
 
     // 根据指令类型分发
@@ -59,8 +63,15 @@ class Dispatch extends Module {
       io.out(3).bits.inst_vec(loadstore_cnt_before) := inst
       io.out(3).bits.inst_cnt := loadstore_cnt_before + 1.U
     }.elsewhen(inst.op === FuType.bru) { // Branch 指令
-      io.out(4).bits.inst_vec(loadstore_cnt_before) := inst
+      io.out(4).bits.inst_vec(branch_cnt_before) := inst
       io.out(4).bits.inst_cnt := branch_cnt_before + 1.U
     }
   }
+  /* 
+   * 0 => ALU 
+   * 1 => ALU
+   * 2 => MUL/DIV
+   * 3 => LOAD/STORE
+   * 4 => BRANCH
+   */
 }

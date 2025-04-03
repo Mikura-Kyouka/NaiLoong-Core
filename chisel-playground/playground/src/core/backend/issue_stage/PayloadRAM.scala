@@ -20,6 +20,8 @@ class PayloadRAM extends Module {
   io.read(2).pram_data2 := pram(io.read(2).src2)
   io.read(3).pram_data1 := pram(io.read(3).src1)
   io.read(3).pram_data2 := pram(io.read(3).src2)
+  io.read(4).pram_data1 := pram(io.read(4).src1)
+  io.read(4).pram_data2 := pram(io.read(4).src2)
 
   // write
   when(io.write.valid) {
