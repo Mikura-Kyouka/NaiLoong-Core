@@ -113,7 +113,7 @@ class IDU extends Module {
     decoder1.io.in.bits.intrVec := io.in.bits(0).intrVec
     decoder1.io.in.bits.brIdx := io.in.bits(0).brIdx
     decoder1.io.in.bits.crossPageIPFFix := io.in.bits(0).crossPageIPFFix
-    decoder1.io.in.bits.runahead_checkpoint_id := io.in.bits(0).runahead_checkpoint_id
+    decoder1.io.in.bits.runahead_checkpoint_id := io.in.bits(0).checkpoint.id
     decoder1.io.in.bits.isBranch := io.in.bits(0).isBranch
     decoder2.io.in.bits.instr := io.in.bits(1).instr
     decoder2.io.in.bits.pc := io.in.bits(1).pc
@@ -123,7 +123,7 @@ class IDU extends Module {
     decoder2.io.in.bits.intrVec := io.in.bits(1).intrVec
     decoder2.io.in.bits.brIdx := io.in.bits(1).brIdx
     decoder2.io.in.bits.crossPageIPFFix := io.in.bits(1).crossPageIPFFix
-    decoder2.io.in.bits.runahead_checkpoint_id := io.in.bits(1).runahead_checkpoint_id
+    decoder2.io.in.bits.runahead_checkpoint_id := io.in.bits(1).checkpoint.id
     decoder2.io.in.bits.isBranch := io.in.bits(1).isBranch
     decoder3.io.in.bits.instr := io.in.bits(2).instr
     decoder3.io.in.bits.pc := io.in.bits(2).pc
@@ -133,7 +133,7 @@ class IDU extends Module {
     decoder3.io.in.bits.intrVec := io.in.bits(2).intrVec
     decoder3.io.in.bits.brIdx := io.in.bits(2).brIdx
     decoder3.io.in.bits.crossPageIPFFix := io.in.bits(2).crossPageIPFFix
-    decoder3.io.in.bits.runahead_checkpoint_id := io.in.bits(2).runahead_checkpoint_id
+    decoder3.io.in.bits.runahead_checkpoint_id := io.in.bits(2).checkpoint.id
     decoder3.io.in.bits.isBranch := io.in.bits(2).isBranch
     decoder4.io.in.bits.instr := io.in.bits(3).instr
     decoder4.io.in.bits.pc := io.in.bits(3).pc
@@ -143,7 +143,7 @@ class IDU extends Module {
     decoder4.io.in.bits.intrVec := io.in.bits(3).intrVec
     decoder4.io.in.bits.brIdx := io.in.bits(3).brIdx
     decoder4.io.in.bits.crossPageIPFFix := io.in.bits(3).crossPageIPFFix
-    decoder4.io.in.bits.runahead_checkpoint_id := io.in.bits(3).runahead_checkpoint_id
+    decoder4.io.in.bits.runahead_checkpoint_id := io.in.bits(3).checkpoint.id
     decoder4.io.in.bits.isBranch := io.in.bits(3).isBranch
     
     io.out.valid := decoder1.io.out.valid && decoder2.io.out.valid && decoder3.io.out.valid && decoder4.io.out.valid
@@ -161,7 +161,9 @@ class IDU extends Module {
     io.out.bits(0).intrVec := decoder1.io.out.bits.cf.intrVec
     io.out.bits(0).brIdx := decoder1.io.out.bits.cf.brIdx
     io.out.bits(0).crossPageIPFFix := decoder1.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(0).runahead_checkpoint_id := decoder1.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(0).checkpoint.id := decoder1.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(0).checkpoint.needSave := decoder1.io.out.bits.cf.isBranch && 
+                                       decoder1.io.out.bits.ctrl.fuType === FuType.bru
     io.out.bits(0).isBranch := decoder1.io.out.bits.cf.isBranch
     io.out.bits(0).ctrl <> decoder1.io.out.bits.ctrl
     io.out.bits(0).src1 := decoder1.io.out.bits.data.src1
@@ -176,7 +178,9 @@ class IDU extends Module {
     io.out.bits(1).intrVec := decoder2.io.out.bits.cf.intrVec
     io.out.bits(1).brIdx := decoder2.io.out.bits.cf.brIdx
     io.out.bits(1).crossPageIPFFix := decoder2.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(1).runahead_checkpoint_id := decoder2.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(1).checkpoint.id := decoder2.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(1).checkpoint.needSave := decoder2.io.out.bits.cf.isBranch && 
+                                       decoder2.io.out.bits.ctrl.fuType === FuType.bru
     io.out.bits(1).isBranch := decoder2.io.out.bits.cf.isBranch
     io.out.bits(1).ctrl <> decoder2.io.out.bits.ctrl
     io.out.bits(1).src1 := decoder2.io.out.bits.data.src1
@@ -191,7 +195,9 @@ class IDU extends Module {
     io.out.bits(2).intrVec := decoder3.io.out.bits.cf.intrVec
     io.out.bits(2).brIdx := decoder3.io.out.bits.cf.brIdx
     io.out.bits(2).crossPageIPFFix := decoder3.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(2).runahead_checkpoint_id := decoder3.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(2).checkpoint.id := decoder3.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(2).checkpoint.needSave := decoder3.io.out.bits.cf.isBranch && 
+                                       decoder3.io.out.bits.ctrl.fuType === FuType.bru
     io.out.bits(2).isBranch := decoder3.io.out.bits.cf.isBranch
     io.out.bits(2).ctrl <> decoder3.io.out.bits.ctrl
     io.out.bits(2).src1 := decoder3.io.out.bits.data.src1
@@ -206,12 +212,22 @@ class IDU extends Module {
     io.out.bits(3).intrVec := decoder4.io.out.bits.cf.intrVec
     io.out.bits(3).brIdx := decoder4.io.out.bits.cf.brIdx
     io.out.bits(3).crossPageIPFFix := decoder4.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(3).runahead_checkpoint_id := decoder4.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(3).checkpoint.id := decoder4.io.out.bits.cf.runahead_checkpoint_id
+    io.out.bits(3).checkpoint.needSave := decoder4.io.out.bits.cf.isBranch && 
+                                       decoder4.io.out.bits.ctrl.fuType === FuType.bru
     io.out.bits(3).isBranch := decoder4.io.out.bits.cf.isBranch
     io.out.bits(3).ctrl <> decoder4.io.out.bits.ctrl
     io.out.bits(3).src1 := decoder4.io.out.bits.data.src1
     io.out.bits(3).src2 := decoder4.io.out.bits.data.src2
     io.out.bits(3).imm := decoder4.io.out.bits.data.imm
+
+    for (i <- 0 until 4) {
+        io.out.bits(i).prj := DontCare
+        io.out.bits(i).prk := DontCare
+        io.out.bits(i).preg := DontCare
+        io.out.bits(i).old_preg := DontCare
+    }
+    
 }
 
 // class PipelineConnectIO extends Bundle {

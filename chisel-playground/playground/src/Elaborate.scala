@@ -9,7 +9,7 @@ object Elaborate extends App {
     ).reduce(_ + "," + _)
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.Frontend(), 
+    new core.Core(), 
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",

@@ -121,11 +121,22 @@ class PipelineConnectIO extends Bundle {
   val intrVec = Output(Vec(12, Bool()))
   val brIdx = Output(UInt(4.W))
   val crossPageIPFFix = Output(Bool())
-  val runahead_checkpoint_id = Output(UInt(64.W))
   val isBranch = Output(Bool())
-  // ID -> Renaming
+  // ID -> Rename
   val src1 = Output(UInt(32.W))
   val src2 = Output(UInt(32.W))
   val imm  = Output(UInt(32.W))
   val ctrl = new CtrlSignalIO
+  // Rename -> EX
+  val prj      = UInt(RegConfig.PHYS_REG_BITS.W)
+  val prk      = UInt(RegConfig.PHYS_REG_BITS.W)
+  val preg     = UInt(RegConfig.PHYS_REG_BITS.W)
+  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
+
+  // How to classify the checkpoint???
+  val checkpoint = new Bundle {
+    val needSave = Bool()
+    val id = UInt(64.W)
+  }
+  
 }
