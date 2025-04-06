@@ -10,6 +10,7 @@ object Elaborate extends App {
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
     new core.Core(), 
+    new core.Backend(), 
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",

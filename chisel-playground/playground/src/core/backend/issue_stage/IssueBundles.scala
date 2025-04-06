@@ -1,5 +1,8 @@
+package core
+
 import chisel3._
 import chisel3.util._
+
 import IssueConfig._
 
 class inst_info extends Bundle {
@@ -10,7 +13,7 @@ class inst_info extends Bundle {
   val data1 = UInt(32.W)
   val data2 = UInt(32.W)
   val dest = UInt(PHYS_REG_BITS.W)
-  val op = UInt(3.W)
+  val op = FuOpType()
 
   // use imm
   val imm = UInt(32.W)
@@ -28,8 +31,8 @@ class dispatch_in_info extends inst_info {
 }
 
 class dispatch_out_info extends Bundle {
-  val inst_vec = Vec(ISSUE_WIDTH, new inst_info)
-  val inst_cnt = UInt((log2Ceil(ISSUE_WIDTH) + 1).W)
+  val inst_vec = Vec(ISSUE_WIDTH, Output(new inst_info))
+  val inst_cnt = Output(UInt((log2Ceil(ISSUE_WIDTH) + 1).W))
 }
 
 class can_issue_bundle extends Bundle {

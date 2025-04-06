@@ -41,6 +41,26 @@ object ALUOpType {
   def isBranchInvert(func: UInt) = func(0)
 }
 
+// class FunctionUnitIO extends Bundle {
+//   val in = Flipped(Decoupled(new Bundle {
+//     val src1 = Output(UInt(32.W))
+//     val src2 = Output(UInt(32.W))
+//     val func = Output(FuOpType())
+//   }))
+//   val out = Decoupled(Output(UInt(32.W)))
+// } 
+// class CtrlFlowIO extends Bundle {
+//   val instr = Output(UInt(32.W))
+//   val pc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val redirect = new RedirectIO
+//   val exceptionVec = Output(Vec(16, Bool()))
+//   val intrVec = Output(Vec(12, Bool()))
+//   val brIdx = Output(UInt(4.W))
+//   val crossPageIPFFix = Output(Bool())
+//   val runahead_checkpoint_id = Output(UInt(64.W))
+//   val isBranch = Output(Bool())
+// }
 class ALUIO extends FunctionUnitIO {
   val cfIn = Flipped(new CtrlFlowIO)
   val redirect = new RedirectIO
@@ -108,3 +128,40 @@ class ALU extends Module {
   io.in.ready := io.out.ready
   io.out.valid := valid 
 }
+/*
+class inst_info extends Bundle {
+  val areg1 = UInt(5.W)
+  val areg2 = UInt(5.W)
+  val preg1 = UInt(PHYS_REG_BITS.W)
+  val preg2 = UInt(PHYS_REG_BITS.W)
+  val data1 = UInt(32.W)
+  val data2 = UInt(32.W)
+  val dest = UInt(PHYS_REG_BITS.W)
+  val op = UInt(3.W)
+
+  // use imm
+  val imm = UInt(32.W)
+  val src2_is_imm = Bool()
+}
+*/
+
+class FuOut extends Bundle {
+  val data = Output(UInt(32.W))
+}
+class AligendALU extends Module{
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new inst_info)))
+    val out = Decoupled(new FuOut)
+  })
+  val alu = Module(new ALU)
+  alu.io := DontCare
+  alu.io.in.bits.src1 := io.in.bits.data1
+  alu.io.in.bits.src2 := Mux(io.in.bits.src2_is_imm, io.in.bits.imm, io.in.bits.data2)
+  alu.io.in.bits.func := io.in.bits.op
+  io.out.bits.data := alu.io.out.bits
+
+  alu.io.in.valid := io.in.valid
+  io.in.ready := alu.io.in.ready
+  io.out.valid := alu.io.out.valid
+  alu.io.out.ready := io.out.ready
+} 

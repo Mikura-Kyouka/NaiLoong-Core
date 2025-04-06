@@ -39,7 +39,27 @@ class MDUIO extends FunctionUnitIO {
 class MDU extends Module {
   val io = IO(new MDUIO)
 
-  val mul = Module(new Multiplier(32 + 1)) // XLEN + 1
-  val div = Module(new Divider(32)) // XLEN
-  
+  // val mul = Module(new Multiplier(32 + 1)) // XLEN + 1
+  // val div = Module(new Divider(32)) // XLEN
+  io.out.bits := 0.U 
+  io.in.ready := !io.in.valid || io.out.fire
+  io.out.valid := io.in.valid
 }
+
+class AlignedMDU extends Module{
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new inst_info)))
+    val out = Decoupled(new FuOut)
+  })
+  val mdu = Module(new MDU)
+  mdu.io := DontCare
+  mdu.io.in.bits.src1 := io.in.bits.data1
+  mdu.io.in.bits.src2 := Mux(io.in.bits.src2_is_imm, io.in.bits.imm, io.in.bits.data2)
+  mdu.io.in.bits.func := io.in.bits.op
+  io.out.bits.data := mdu.io.out.bits
+
+  mdu.io.in.valid := io.in.valid
+  io.in.ready := mdu.io.in.ready
+  io.out.valid := mdu.io.out.valid
+  mdu.io.out.ready := io.out.ready
+} 
