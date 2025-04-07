@@ -48,14 +48,14 @@ class MDU extends Module {
 
 class AlignedMDU extends Module{
   val io = IO(new Bundle{
-    val in = Flipped(Decoupled(Output(new inst_info)))
+    val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
   })
   val mdu = Module(new MDU)
   mdu.io := DontCare
-  mdu.io.in.bits.src1 := io.in.bits.data1
-  mdu.io.in.bits.src2 := Mux(io.in.bits.src2_is_imm, io.in.bits.imm, io.in.bits.data2)
-  mdu.io.in.bits.func := io.in.bits.op
+  mdu.io.in.bits.src1 := io.in.bits.src1
+  mdu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  mdu.io.in.bits.func := io.in.bits.ctrl.fuOpType
   io.out.bits.data := mdu.io.out.bits
 
   mdu.io.in.valid := io.in.valid

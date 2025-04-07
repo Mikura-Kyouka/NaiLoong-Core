@@ -74,6 +74,7 @@ class Core extends Module {
   val Rn = Module(new Rename)
   val Dispatch = Module(new Dispatch)
   val Issue = Module(new IssueTop)
+  val Ex = Module(new Execute)
 
   for (i <- 0 until 4) {
     Rn.io.rob.commit(i).valid := false.B
@@ -88,6 +89,11 @@ class Core extends Module {
   PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.fire(2), false.B)
   PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.fire(3), false.B)
   PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.fire(4), false.B)
+  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), false.B)
+  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), false.B)
+  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), false.B)
+  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), false.B)
+  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), false.B)
 
   If.io.intrpt := io.intrpt
 
@@ -153,14 +159,20 @@ class Core extends Module {
 
   // Rn.io.out.ready := true.B
   // dontTouch(Rn.io.out)
-  dontTouch(Issue.io.out)
-  Issue.io.out(0).ready := true.B
-  Issue.io.out(1).ready := true.B
-  Issue.io.out(2).ready := true.B
-  Issue.io.out(3).ready := true.B
-  Issue.io.out(4).ready := true.B
+  // dontTouch(Issue.io.out)
+  // Issue.io.out(0).ready := true.B
+  // Issue.io.out(1).ready := true.B
+  // Issue.io.out(2).ready := true.B
+  // Issue.io.out(3).ready := true.B
+  // Issue.io.out(4).ready := true.B
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
+  dontTouch(Ex.io.out)
+  Ex.io.out(0).ready := true.B
+  Ex.io.out(1).ready := true.B
+  Ex.io.out(2).ready := true.B
+  Ex.io.out(3).ready := true.B
+  Ex.io.out(4).ready := true.B
 }
 
 object GenFr extends App {

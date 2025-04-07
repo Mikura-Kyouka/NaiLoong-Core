@@ -150,14 +150,14 @@ class FuOut extends Bundle {
 }
 class AligendALU extends Module{
   val io = IO(new Bundle{
-    val in = Flipped(Decoupled(Output(new inst_info)))
+    val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
   })
   val alu = Module(new ALU)
   alu.io := DontCare
-  alu.io.in.bits.src1 := io.in.bits.data1
-  alu.io.in.bits.src2 := Mux(io.in.bits.src2_is_imm, io.in.bits.imm, io.in.bits.data2)
-  alu.io.in.bits.func := io.in.bits.op
+  alu.io.in.bits.src1 := io.in.bits.src1
+  alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  alu.io.in.bits.func := io.in.bits.ctrl.fuOpType
   io.out.bits.data := alu.io.out.bits
 
   alu.io.in.valid := io.in.valid
