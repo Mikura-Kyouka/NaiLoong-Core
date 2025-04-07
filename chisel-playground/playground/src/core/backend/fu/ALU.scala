@@ -81,13 +81,14 @@ class ALU extends Module {
 
   val isAdderSub = !ALUOpType.isAdd(func) // sub 
   val adderRes = (src1 +& (src2 ^ Fill(32, isAdderSub))) + isAdderSub
+  dontTouch(adderRes)
   val xorRes = src1 ^ src2
   val sltu = !adderRes(32)
   val slt = xorRes(31) ^ sltu
 
   val shsrc1 = src1
   val shamt = src2(4, 0) //shift amount
-  val res = MuxLookup(func(3, 0), adderRes)(
+  val res = MuxLookup(func, adderRes)(
     List(
       ALUOpType.sll  -> ((shsrc1  << shamt)(31, 0)),
       ALUOpType.slt  -> ZeroExt(slt, 32),
@@ -123,6 +124,7 @@ class ALU extends Module {
   // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
   // actually for bl and jirl to write pc + 4 to rd 
+  dontTouch(aluRes)
   io.out.bits := Mux(isBru, io.cfIn.pc + 4.U, aluRes) // out only has a single 32-bit field
   
   io.in.ready := io.out.ready
@@ -153,6 +155,7 @@ class AligendALU extends Module{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
   })
+  dontTouch(io.in.bits)
   val alu = Module(new ALU)
   alu.io := DontCare
   alu.io.in.bits.src1 := io.in.bits.src1
