@@ -16,13 +16,16 @@ class IssueTop extends Module {
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
-  val alu2rs = Module(new UnorderIssueQueue)
+  val alu2rs = Module(new UnorderIssueQueue(check_dest = true))
   val mdurs  = Module(new UnorderIssueQueue)
   val lsurs  = Module(new OrderIssueQueue)
   val brurs  = Module(new OrderIssueQueue)
   alu1rs.io.in <> io.in(0)
+  alu1rs.io_raw := DontCare
   alu2rs.io.in <> io.in(1)
+  alu2rs.io_raw.dest := io.out(0).bits.preg
   mdurs.io.in  <> io.in(2)
+  mdurs.io_raw.dest := DontCare
   lsurs.io.in  <> io.in(3)
   brurs.io.in  <> io.in(4)
   io.fire(0) := alu1rs.io.out.fire

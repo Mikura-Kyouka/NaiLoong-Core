@@ -3,7 +3,7 @@ package core
 import chisel3._
 import IssueConfig._
 
-class UnorderIssueQueue extends Module {
+class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info)) // 从 Dispatch 模块传入的指令
@@ -15,6 +15,10 @@ class UnorderIssueQueue extends Module {
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
+  })
+
+  val io_raw = IO(new Bundle {
+    val dest = Input(UInt(PHYS_REG_BITS.W))
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
@@ -46,7 +50,13 @@ class UnorderIssueQueue extends Module {
   // 判断指令是否可以发射
   val can_issue_vec = Wire(Vec(QUEUE_SIZE, Bool()))
   for(i <- 0 until QUEUE_SIZE) {
-    can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i)
+    if(check_dest){
+      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i) &&
+                          mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
+    }
+    else {
+      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i)
+    }
   }
   val can_issue = can_issue_vec.reduce(_ || _)
   io.out.valid := can_issue
