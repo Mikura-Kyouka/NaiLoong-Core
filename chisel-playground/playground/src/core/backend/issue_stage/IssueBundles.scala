@@ -31,7 +31,7 @@ class dispatch_in_info extends inst_info {
 }
 
 class dispatch_out_info extends Bundle {
-  val inst_vec = Vec(ISSUE_WIDTH, Output(new inst_info))
+  val inst_vec = Vec(ISSUE_WIDTH, Output(new PipelineConnectIO))
   val inst_cnt = Output(UInt((log2Ceil(ISSUE_WIDTH) + 1).W))
 }
 

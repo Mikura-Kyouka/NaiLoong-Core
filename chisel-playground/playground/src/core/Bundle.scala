@@ -127,7 +127,7 @@ class PipelineConnectIO extends Bundle {
   val src2 = Output(UInt(32.W))
   val imm  = Output(UInt(32.W))
   val ctrl = new CtrlSignalIO
-  // Rename -> EX
+  // Rename -> Dispatch
   val prj      = UInt(RegConfig.PHYS_REG_BITS.W)
   val prk      = UInt(RegConfig.PHYS_REG_BITS.W)
   val preg     = UInt(RegConfig.PHYS_REG_BITS.W)

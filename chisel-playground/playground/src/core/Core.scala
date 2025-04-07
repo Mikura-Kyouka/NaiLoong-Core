@@ -72,6 +72,7 @@ class Core extends Module {
   val If = Module(new TempIf)
   val Id = Module(new IDU)
   val Rn = Module(new Rename)
+  val Dispatch = Module(new Dispatch)
 
   for (i <- 0 until 4) {
     Rn.io.rob.commit(i).valid := false.B
@@ -80,6 +81,7 @@ class Core extends Module {
 
   PipelineConnect(If.io.to, Id.io.in, false.B, false.B)
   PipelineConnect(Id.io.out, Rn.io.in, false.B, false.B)
+  PipelineConnect(Rn.io.out, Dispatch.io.in, false.B, false.B)
 
   If.io.intrpt := io.intrpt
 
@@ -143,8 +145,14 @@ class Core extends Module {
   If.io.flush := false.B
   If.io.new_pc := 0.U
 
-  Rn.io.out.ready := true.B
-  dontTouch(Rn.io.out)
+  // Rn.io.out.ready := true.B
+  // dontTouch(Rn.io.out)
+  dontTouch(Dispatch.io.out)
+  Dispatch.io.out(0).ready := true.B
+  Dispatch.io.out(1).ready := true.B
+  Dispatch.io.out(2).ready := true.B
+  Dispatch.io.out(3).ready := true.B
+  Dispatch.io.out(4).ready := true.B
 }
 
 object GenFr extends App {
