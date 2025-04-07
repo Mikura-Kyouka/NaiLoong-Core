@@ -6,7 +6,7 @@ class OrderIssueQueue extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info))
-    val out = Decoupled(Output(new inst_info))
+    val out = Decoupled(Output(new PipelineConnectIO))
     // val from_ready = Output(Bool()) io.in.ready
     // val from_valid = Input(Bool()) io.in.valid
     // val to_valid = Output(Bool()) io.out.valid
@@ -16,7 +16,7 @@ class OrderIssueQueue extends Module {
     val pram_read = Flipped(new payloadram_read_info)
   })
 
-  val mem = Reg(Vec(QUEUE_SIZE.toInt, new inst_info))
+  val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
   val valid_vec = RegInit(VecInit(Seq.fill(QUEUE_SIZE.toInt)(false.B)))
   val write_ptr = RegInit(0.U(log2Ceil(QUEUE_SIZE).W))
   val read_ptr = RegInit(0.U(log2Ceil(QUEUE_SIZE).W))
@@ -69,13 +69,13 @@ class OrderIssueQueue extends Module {
   }
 
   // read
-  val can_issue = !io.busyreg(mem(read_ptr).preg1) && !io.busyreg(mem(read_ptr).preg2) && valid_vec(read_ptr)
+  val can_issue = !io.busyreg(mem(read_ptr).prj) && !io.busyreg(mem(read_ptr).prk) && valid_vec(read_ptr)
   //io.out := mem(read_ptr)
-  io.pram_read.src1 := mem(read_ptr).preg1
-  io.pram_read.src2 := mem(read_ptr).preg2
+  io.pram_read.src1 := mem(read_ptr).prj
+  io.pram_read.src2 := mem(read_ptr).prk
   val out = mem(read_ptr)
-  out.data1 := io.pram_read.pram_data1
-  out.data2 := io.pram_read.pram_data2
+  out.src1 := io.pram_read.pram_data1
+  out.src2 := io.pram_read.pram_data2
   io.out.bits := out
   io.out.valid := can_issue
   when(io.out.fire) {  // 发生握手才读出
