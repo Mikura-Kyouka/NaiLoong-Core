@@ -1,3 +1,4 @@
+import core.DCacheConfig
 object Elaborate extends App {
   val firtoolOptions = Array(
     "--lowering-options=" + List(
@@ -9,7 +10,7 @@ object Elaborate extends App {
     ).reduce(_ + "," + _)
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.Frontend(), 
+    new core.DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)),
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",
