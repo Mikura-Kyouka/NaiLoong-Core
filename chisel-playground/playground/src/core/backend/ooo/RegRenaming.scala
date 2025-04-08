@@ -96,36 +96,51 @@ class RegRenaming extends Module {
   // 物理寄存器空闲队列
   class FreeList extends Module {
     val io = IO(new Bundle {
-      val alloc  = Vec(4, DecoupledIO(UInt(RegConfig.PHYS_REG_BITS.W)))
-      val free   = Flipped(Vec(4, ValidIO(UInt(RegConfig.PHYS_REG_BITS.W))))
-      val count  = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
+      val allocReq  = Vec(4, Flipped(Valid(UInt(RegConfig.PHYS_REG_BITS.W))))
+      val allocResp = Vec(4, DecoupledIO(UInt(RegConfig.PHYS_REG_BITS.W)))
+      val free      = Flipped(Vec(4, ValidIO(UInt(RegConfig.PHYS_REG_BITS.W))))
+      val count     = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
     })
-    
+    // 寄存器初始化
     val entries = RegInit(VecInit((RegConfig.ARCH_REG_NUM until RegConfig.PHYS_REG_NUM).map(_.U)))
-    val head    = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
-    val tail    = RegInit((RegConfig.PHYS_REG_NUM - RegConfig.ARCH_REG_NUM).U((RegConfig.PHYS_REG_BITS + 1).W))
-    
-    // 四路并行分配
+    val head = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
+    val tail = RegInit((RegConfig.PHYS_REG_NUM - RegConfig.ARCH_REG_NUM).U)
+
+    // 分配有效性校验
+    val reqValid = Wire(Vec(4, Bool()))
+    val reqReady = Wire(Vec(4, Bool()))
+    val allocIndexes = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
     for (i <- 0 until 4) {
-      val canAlloc = (tail - head) > i.U
-      val index = (head + i.U) % entries.size.U
-      io.alloc(i).bits  := Mux(canAlloc, entries(index), 0.U)
-      io.alloc(i).valid := canAlloc
+      reqValid(i) := io.allocReq(i).valid
+      reqReady(i) := io.count >= (i + 1).U
+      allocIndexes(i) := (head +& i.U) % entries.size.U
     }
 
-    // 分配成功后更新head
-    val allocFireCnt = PopCount(io.alloc.map(_.fire))
-    when(io.alloc(0).fire) {
-      head := Mux(head +& allocFireCnt >= entries.size.U, 
-                head + allocFireCnt - entries.size.U, 
-                head + allocFireCnt)
+    val fireCnt = PopCount(io.allocResp.map(_.fire))
+    when(fireCnt > 0.U) {
+      head := (head + fireCnt) % entries.size.U
     }
+
+    // 并行分配逻辑
+    val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
     
-    // 四路并行回收
+    // 响应生成
+    for (i <- 0 until 4) {
+      io.allocResp(i).valid := reqValid(i) && reqReady(i)
+      io.allocResp(i).bits := entries(allocIndexes(i))
+    }
+
+    // Head指针更新
+    when(io.allocResp.map(_.valid).reduce(_||_)) {
+      head := Mux(head + allocCnt >= entries.size.U,
+                head + allocCnt - entries.size.U,
+                head + allocCnt)
+    }
+
+    // 回收逻辑
     for (i <- 0 until 4) {
       when(io.free(i).valid) {
-        val index = tail % entries.size.U
-        entries(index) := io.free(i).bits
+        entries(tail % entries.size.U) := io.free(i).bits
         tail := tail +% 1.U
       }
     }
@@ -134,13 +149,11 @@ class RegRenaming extends Module {
   }
 
   val freeList = Module(new FreeList)
-  for (i <- 0 until 4) {
-    freeList.io.alloc(i).ready := true.B
-  }
 
   // 握手信号控制
-  io.in.ready := freeList.io.count >= 4.U
-  io.out.valid := io.in.valid
+  val canAlloc = freeList.io.count >= 4.U
+  io.in.ready := canAlloc && io.out.ready
+  io.out.valid := io.in.valid && canAlloc
 
   // 重命名逻辑
   for (i <- 0 until 4) {
@@ -148,7 +161,7 @@ class RegRenaming extends Module {
     val rj = input.ctrl.rfSrc1
     val rk = input.ctrl.rfSrc2
     val rd = input.ctrl.rfDest
-    val rfWen = input.ctrl.rfWen
+    val rfWen = input.ctrl.rfWen // 0有效
     val isZeroReg = (rd === 0.U)
 
     // 源寄存器映射
@@ -158,14 +171,17 @@ class RegRenaming extends Module {
                             0.U)
     
     // 目标寄存器分配
-    val needAlloc = rfWen && !isZeroReg && freeList.io.alloc(i).valid
-    io.out.bits(i).preg := Mux(needAlloc, 
-                              freeList.io.alloc(i).bits, 
-                              0.U)
+    val needAlloc = !rfWen && !isZeroReg
+    freeList.io.allocReq(i).valid := needAlloc && io.in.valid
+    freeList.io.allocReq(i).bits := DontCare
+    freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.ready
+    io.out.bits(i).preg := Mux(needAlloc && freeList.io.allocResp(i).valid,
+                               freeList.io.allocResp(i).bits,
+                               0.U)
 
     // 更新RAT
-    when(io.in.fire && needAlloc) {
-      rat(rd) := freeList.io.alloc(i).bits
+    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
+      rat(rd) := freeList.io.allocResp(i).bits
     }
 
     // 立即数不需要物理寄存器
@@ -174,7 +190,7 @@ class RegRenaming extends Module {
     }
 
     // 检查点处理
-    when(input.checkpoint.needSave && io.in.fire) {
+    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
       checkpointRAT.write(input.checkpoint.id, rat)
     }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
