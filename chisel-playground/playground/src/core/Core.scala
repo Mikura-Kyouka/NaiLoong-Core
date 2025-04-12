@@ -157,6 +157,8 @@ class Core extends Module {
   If.io.flush := false.B
   If.io.new_pc := 0.U
 
+  dontTouch(Rn.io.robAllocate)
+
   // Rn.io.out.ready := true.B
   // dontTouch(Rn.io.out)
   // dontTouch(Issue.io.out)

@@ -210,6 +210,7 @@ class TempIf extends Module {
     io.to.bits(i).preg := DontCare
     io.to.bits(i).old_preg := DontCare
     io.to.bits(i).checkpoint := DontCare
+    io.to.bits(i).robIdx := DontCare
   }
   dontTouch(io.to)
 }

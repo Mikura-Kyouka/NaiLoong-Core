@@ -16,11 +16,13 @@ class Rename extends Module {
     val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
     val out = Decoupled(Vec(4, new PipelineConnectIO))
     val rob = Input(new RobCommit)
+    val robAllocate = new RobAllocateIO
   })
   
   val regRenaming = Module(new RegRenaming)
 
   regRenaming.io.rob := io.rob
+  regRenaming.io.robAllocate <> io.robAllocate
 
   regRenaming.io.in.valid := io.in.valid 
   io.in.ready := regRenaming.io.in.ready
@@ -31,6 +33,8 @@ class Rename extends Module {
     regRenaming.io.in.bits(i).ctrl := io.in.bits(i).ctrl
     regRenaming.io.in.bits(i).isBranch := io.in.bits(i).isBranch
     regRenaming.io.in.bits(i).checkpoint <> io.in.bits(i).checkpoint
+    regRenaming.io.in.bits(i).pc := io.in.bits(i).pc         // 添加PC
+    regRenaming.io.in.bits(i).instr := io.in.bits(i).instr   // 添加指令
 
     io.out.bits(i).prj := regRenaming.io.out.bits(i).prj
     io.out.bits(i).prk := regRenaming.io.out.bits(i).prk
@@ -38,6 +42,7 @@ class Rename extends Module {
     io.out.bits(i).old_preg := regRenaming.io.out.bits(i).old_preg
     io.out.bits(i).checkpoint.needSave := regRenaming.io.out.bits(i).checkpoint.valid
     io.out.bits(i).checkpoint.id := regRenaming.io.out.bits(i).checkpoint.id
+    io.out.bits(i).robIdx := regRenaming.io.out.bits(i).robIdx // 添加ROB索引
 
     io.out.bits(i).instr := io.in.bits(i).instr
     io.out.bits(i).pc := io.in.bits(i).pc
@@ -63,6 +68,8 @@ class RenameInput extends Bundle {
     val needSave = Bool()
     val id = UInt(64.W)
   }
+  val pc = UInt(64.W)       // 添加PC
+  val instr = UInt(32.W)    // 添加指令
 }
 
 class RenameOutput extends Bundle {
@@ -74,17 +81,15 @@ class RenameOutput extends Bundle {
     val valid = Bool()
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
-}
-
-class RobCommit extends Bundle {
-  val commit = Vec(4, Valid(UInt(RegConfig.PHYS_REG_BITS.W)))
+  val robIdx   = UInt(RobConfig.ROB_INDEX_WIDTH.W) // ROB索引
 }
 
 class RegRenaming extends Module {
   val io = IO(new Bundle {
-    val in      = Flipped(Decoupled(Vec(4, new RenameInput)))
-    val out     = Decoupled(Vec(4, new RenameOutput))
-    val rob     = Input(new RobCommit)
+    val in        = Flipped(Decoupled(Vec(4, new RenameInput)))
+    val out       = Decoupled(Vec(4, new RenameOutput))
+    val rob       = Input(new RobCommit)
+    val robAllocate = new RobAllocateIO
   })
 
   // 寄存器别名表
@@ -150,8 +155,37 @@ class RegRenaming extends Module {
 
   val freeList = Module(new FreeList)
 
+  // 准备发送到ROB的分配信息
+  for (i <- 0 until 4) {
+    val entry = io.robAllocate.allocEntries(i)
+    val input = io.in.bits(i)
+    val rd = input.ctrl.rfDest
+    val rfWen = input.ctrl.rfWen
+    
+    entry.pc := input.pc
+    entry.instr := input.instr
+    entry.rd := rd
+    entry.rfWen := rfWen
+    entry.isBranch := input.isBranch
+    entry.checkpoint.valid := input.checkpoint.needSave
+    entry.checkpoint.id := input.checkpoint.id
+    entry.fuType := input.ctrl.fuType
+    
+    // 这些字段在后面的指令执行阶段设置
+    entry.finished := DontCare
+    entry.exception := DontCare
+    entry.exceptionVec := DontCare
+    entry.intrVec := DontCare
+    entry.brMispredict := DontCare
+    entry.brTarget := DontCare
+  }
+
+  // 连接到ROB分配接口
+  io.robAllocate.allocReq := io.in.valid
+  io.robAllocate.allocCount := PopCount(io.in.bits.map(_ => io.in.valid))
+  
   // 握手信号控制
-  val canAlloc = freeList.io.count >= 4.U
+  val canAlloc = freeList.io.count >= 4.U && io.robAllocate.canAllocate
   io.in.ready := canAlloc && io.out.ready
   io.out.valid := io.in.valid && canAlloc
 
@@ -175,9 +209,15 @@ class RegRenaming extends Module {
     freeList.io.allocReq(i).valid := needAlloc && io.in.valid
     freeList.io.allocReq(i).bits := DontCare
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.ready
-    io.out.bits(i).preg := Mux(needAlloc && freeList.io.allocResp(i).valid,
-                               freeList.io.allocResp(i).bits,
-                               0.U)
+    
+    val allocated_preg = Mux(needAlloc && freeList.io.allocResp(i).valid,
+                           freeList.io.allocResp(i).bits,
+                           0.U)
+    io.out.bits(i).preg := allocated_preg
+    
+    // 更新ROB条目中的物理寄存器信息
+    io.robAllocate.allocEntries(i).preg := allocated_preg
+    io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd), 0.U)
 
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
@@ -197,6 +237,9 @@ class RegRenaming extends Module {
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
     io.out.bits(i).old_preg := Mux(rd.orR, rat(rd), 0.U)
+    
+    // 分配ROB索引
+    io.out.bits(i).robIdx := io.robAllocate.allocResp(i)
   }
   
   // 零寄存器不保留旧值
@@ -205,11 +248,16 @@ class RegRenaming extends Module {
       out.old_preg := 0.U
     }
   }
+  
+  io.robAllocate.allocEntries.foreach { entry =>
+    when(entry.preg === 0.U) {
+      entry.old_preg := 0.U
+    }
+  }
 
   // 连接ROB回收接口
   freeList.io.free.zip(io.rob.commit).foreach { case (free, commit) =>
     free.valid := commit.valid
     free.bits  := commit.bits
   }
-
 }

@@ -226,6 +226,7 @@ class IDU extends Module {
         io.out.bits(i).prk := DontCare
         io.out.bits(i).preg := DontCare
         io.out.bits(i).old_preg := DontCare
+        io.out.bits(i).robIdx := DontCare
     }
     
 }
