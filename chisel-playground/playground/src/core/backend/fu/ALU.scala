@@ -41,6 +41,26 @@ object ALUOpType {
   def isBranchInvert(func: UInt) = func(0)
 }
 
+// class FunctionUnitIO extends Bundle {
+//   val in = Flipped(Decoupled(new Bundle {
+//     val src1 = Output(UInt(32.W))
+//     val src2 = Output(UInt(32.W))
+//     val func = Output(FuOpType())
+//   }))
+//   val out = Decoupled(Output(UInt(32.W)))
+// } 
+// class CtrlFlowIO extends Bundle {
+//   val instr = Output(UInt(32.W))
+//   val pc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+//   val redirect = new RedirectIO
+//   val exceptionVec = Output(Vec(16, Bool()))
+//   val intrVec = Output(Vec(12, Bool()))
+//   val brIdx = Output(UInt(4.W))
+//   val crossPageIPFFix = Output(Bool())
+//   val runahead_checkpoint_id = Output(UInt(64.W))
+//   val isBranch = Output(Bool())
+// }
 class ALUIO extends FunctionUnitIO {
   val cfIn = Flipped(new CtrlFlowIO)
   val redirect = new RedirectIO
@@ -61,13 +81,14 @@ class ALU extends Module {
 
   val isAdderSub = !ALUOpType.isAdd(func) // sub 
   val adderRes = (src1 +& (src2 ^ Fill(32, isAdderSub))) + isAdderSub
+  dontTouch(adderRes)
   val xorRes = src1 ^ src2
   val sltu = !adderRes(32)
   val slt = xorRes(31) ^ sltu
 
   val shsrc1 = src1
   val shamt = src2(4, 0) //shift amount
-  val res = MuxLookup(func(3, 0), adderRes)(
+  val res = MuxLookup(func, adderRes)(
     List(
       ALUOpType.sll  -> ((shsrc1  << shamt)(31, 0)),
       ALUOpType.slt  -> ZeroExt(slt, 32),
@@ -103,8 +124,47 @@ class ALU extends Module {
   // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
   // actually for bl and jirl to write pc + 4 to rd 
+  dontTouch(aluRes)
   io.out.bits := Mux(isBru, io.cfIn.pc + 4.U, aluRes) // out only has a single 32-bit field
   
   io.in.ready := io.out.ready
   io.out.valid := valid 
 }
+/*
+class inst_info extends Bundle {
+  val areg1 = UInt(5.W)
+  val areg2 = UInt(5.W)
+  val preg1 = UInt(PHYS_REG_BITS.W)
+  val preg2 = UInt(PHYS_REG_BITS.W)
+  val data1 = UInt(32.W)
+  val data2 = UInt(32.W)
+  val dest = UInt(PHYS_REG_BITS.W)
+  val op = UInt(3.W)
+
+  // use imm
+  val imm = UInt(32.W)
+  val src2_is_imm = Bool()
+}
+*/
+
+class FuOut extends Bundle {
+  val data = Output(UInt(32.W))
+}
+class AligendALU extends Module{
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
+    val out = Decoupled(new FuOut)
+  })
+  dontTouch(io.in.bits)
+  val alu = Module(new ALU)
+  alu.io := DontCare
+  alu.io.in.bits.src1 := io.in.bits.src1
+  alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  alu.io.in.bits.func := io.in.bits.ctrl.fuOpType
+  io.out.bits.data := alu.io.out.bits
+
+  alu.io.in.valid := io.in.valid
+  io.in.ready := alu.io.in.ready
+  io.out.valid := alu.io.out.valid
+  alu.io.out.ready := io.out.ready
+} 

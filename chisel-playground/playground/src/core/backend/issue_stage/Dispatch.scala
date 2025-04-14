@@ -1,63 +1,76 @@
+package core
+
 import chisel3._
+import chisel3.util._
+
 import IssueConfig._
+import java.nio.channels.Pipe
 
 class Dispatch extends Module {
   val io = IO(new Bundle {
-    val in = Input(Vec(ISSUE_WIDTH, new dispatch_in_info))
-    val out = Output(Vec(ISSUE_WIDTH, new dispatch_out_info))
+    val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
+    val out = Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info))
   })
 
-   for (q <- io.out) {
-      q.inst_cnt := 0.U
-      for(i <- 0 until ISSUE_WIDTH) {
-        q.inst_vec(i) := DontCare
-      }
-    }
-
-  for(i <- 0 until ISSUE_WIDTH) {
-    val inst = io.in(i)
-
-    val alu_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).op === 0.U, 1.U(2.W), 0.U(2.W))
-    }.reduceOption(_ + _).getOrElse(0.U(2.W))
-    
-    val muldiv_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).op === 1.U, 1.U(2.W), 0.U(2.W))
-    }.reduceOption(_ + _).getOrElse(0.U(2.W))
-    
-    val loadstore_cnt_before = (0 until i).map { j =>
-      Mux(io.in(j).op === 2.U, 1.U(2.W), 0.U(2.W))
-    }.reduceOption(_ + _).getOrElse(0.U(2.W))
-
-    // 根据指令类型分发
-    when(inst.op === 0.U) { // ALU 指令
-      when((alu_cnt_before % 2.U) === 0.U) {
-        io.out(0).inst_vec(alu_cnt_before >> 1) := inst
-        io.out(0).inst_cnt := (alu_cnt_before >> 1) + 1.U
-      } .otherwise {
-        io.out(1).inst_vec(alu_cnt_before >> 1) := inst
-        io.out(1).inst_cnt := (alu_cnt_before >> 1) + 1.U
-      }
-    } .elsewhen(inst.op === 1.U) { // MUL/DIV 指令
-      io.out(2).inst_vec(muldiv_cnt_before) := inst
-      io.out(2).inst_cnt := muldiv_cnt_before + 1.U
-    } .elsewhen(inst.op === 2.U) { // Load/Store 指令
-      io.out(3).inst_vec(loadstore_cnt_before) := inst
-      io.out(3).inst_cnt := loadstore_cnt_before + 1.U
+  for (q <- io.out) {
+    q.bits.inst_cnt := 0.U
+    for(i <- 0 until ISSUE_WIDTH) {
+      q.bits.inst_vec(i) := DontCare
     }
   }
-}
+  // FIXME: paramiterize FETCH_WITDTH
+    io.in.ready := !io.in.valid || (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready) 
+  for (i <- 0 until ISSUE_WIDTH) {
+     io.out(i).valid := io.in.valid 
+  } 
 
-object GenDispatch extends App {
-    val firtoolOptions = Array(
-      "--lowering-options=" + List(
-        // make yosys happy
-        // see https://github.com/llvm/circt/blob/main/docs/VerilogGeneration.md
-        "disallowLocalVariables",
-        "disallowPackedArrays",
-        "locationInfoStyle=wrapInAtSquareBracket",
-        "mitigateVivadoArrayIndexConstPropBug"
-      ).reduce(_ + "," + _)
-    )
-    circt.stage.ChiselStage.emitSystemVerilogFile(new Dispatch(), args, firtoolOptions)
+  for(i <- 0 until 4) { // TODO: FETCH_WIDTH
+    val inst = io.in.bits(i)
+
+    val alu_cnt_before = (0 until i).map { j =>
+      Mux(io.in.bits(j).ctrl.fuType === FuType.alu, 1.U(3.W), 0.U(3.W))
+    }.reduceOption(_ + _).getOrElse(0.U(3.W))
+    // reduceOption: combine all elements with addition
+    // getOrElse: provides a default value (0) if no elements exist
+    
+    val muldiv_cnt_before = (0 until i).map { j =>
+      Mux(io.in.bits(j).ctrl.fuType === FuType.mdu, 1.U(3.W), 0.U(3.W))
+    }.reduceOption(_ + _).getOrElse(0.U(3.W))
+    
+    val loadstore_cnt_before = (0 until i).map { j =>
+      Mux(io.in.bits(j).ctrl.fuType === FuType.lsu, 1.U(3.W), 0.U(3.W))
+    }.reduceOption(_ + _).getOrElse(0.U(3.W))
+
+    val branch_cnt_before = (0 until i).map { j =>
+      Mux(io.in.bits(j).ctrl.fuType === FuType.bru, 1.U(3.W), 0.U(3.W))
+    }.reduceOption(_ + _).getOrElse(0.U(3.W))
+
+    // 根据指令类型分发
+    when(inst.ctrl.fuType === FuType.alu) { // ALU 指令
+      val cnt = Cat(0.U(1.W), alu_cnt_before >> 1)
+      when((alu_cnt_before % 2.U) === 0.U) {
+        io.out(0).bits.inst_vec(cnt) := inst
+        io.out(0).bits.inst_cnt := cnt + 1.U
+      } .otherwise {
+        io.out(1).bits.inst_vec(cnt) := inst
+        io.out(1).bits.inst_cnt := cnt + 1.U
+      }
+    } .elsewhen(inst.ctrl.fuType === FuType.mdu) { // MUL/DIV 指令
+      io.out(2).bits.inst_vec(muldiv_cnt_before) := inst
+      io.out(2).bits.inst_cnt := muldiv_cnt_before + 1.U
+    } .elsewhen(inst.ctrl.fuType === FuType.lsu) { // Load/Store 指令
+      io.out(3).bits.inst_vec(loadstore_cnt_before) := inst
+      io.out(3).bits.inst_cnt := loadstore_cnt_before + 1.U
+    }.elsewhen(inst.ctrl.fuType === FuType.bru) { // Branch 指令
+      io.out(4).bits.inst_vec(branch_cnt_before) := inst
+      io.out(4).bits.inst_cnt := branch_cnt_before + 1.U
+    }
+  }
+  /* 
+   * 0 => ALU 
+   * 1 => ALU
+   * 2 => MUL/DIV
+   * 3 => LOAD/STORE
+   * 4 => BRANCH
+   */
 }

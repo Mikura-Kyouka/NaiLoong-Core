@@ -198,12 +198,19 @@ class TempIf extends Module {
     io.to.bits(i).intrVec := DontCare
     io.to.bits(i).brIdx := DontCare
     io.to.bits(i).crossPageIPFFix := DontCare
-    io.to.bits(i).runahead_checkpoint_id := DontCare
+    io.to.bits(i).checkpoint.id := DontCare
     io.to.bits(i).isBranch := DontCare
     io.to.bits(i).ctrl := DontCare
     io.to.bits(i).src1 := DontCare
     io.to.bits(i).src2 := DontCare
     io.to.bits(i).imm := DontCare
+    io.to.bits(i).ctrl := DontCare
+    io.to.bits(i).prj := DontCare
+    io.to.bits(i).prk := DontCare
+    io.to.bits(i).preg := DontCare
+    io.to.bits(i).old_preg := DontCare
+    io.to.bits(i).checkpoint := DontCare
+    io.to.bits(i).robIdx := DontCare
   }
   dontTouch(io.to)
 }
