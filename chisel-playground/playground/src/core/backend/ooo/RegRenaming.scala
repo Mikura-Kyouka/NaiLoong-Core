@@ -37,7 +37,11 @@ class Rename extends Module {
     regRenaming.io.in.bits(i).instr := io.in.bits(i).instr   // 添加指令
 
     io.out.bits(i).prj := regRenaming.io.out.bits(i).prj
+    io.out.bits(i).jIsArf := regRenaming.io.out.bits(i).jIsArf
+    io.out.bits(i).dataj := regRenaming.io.out.bits(i).dataj
     io.out.bits(i).prk := regRenaming.io.out.bits(i).prk
+    io.out.bits(i).kIsArf := regRenaming.io.out.bits(i).kIsArf
+    io.out.bits(i).datak := regRenaming.io.out.bits(i).datak
     io.out.bits(i).preg := regRenaming.io.out.bits(i).preg
     io.out.bits(i).old_preg := regRenaming.io.out.bits(i).old_preg
     io.out.bits(i).checkpoint.needSave := regRenaming.io.out.bits(i).checkpoint.valid
@@ -74,7 +78,11 @@ class RenameInput extends Bundle {
 
 class RenameOutput extends Bundle {
   val prj      = UInt(RegConfig.PHYS_REG_BITS.W)
+  val jIsArf   = Bool()
+  val dataj    = UInt(32.W)
   val prk      = UInt(RegConfig.PHYS_REG_BITS.W)
+  val kIsArf   = Bool()
+  val datak    = UInt(32.W)
   val preg     = UInt(RegConfig.PHYS_REG_BITS.W)
   val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val checkpoint = new Bundle {
@@ -82,6 +90,11 @@ class RenameOutput extends Bundle {
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
   val robIdx   = UInt(RobConfig.ROB_INDEX_WIDTH.W) // ROB索引
+}
+
+class aliasTableEntry extends Bundle {
+  val inARF      = Bool() // if true, read arf; else read rob(robPointer)
+  val robPointer = UInt(RobConfig.ROB_INDEX_WIDTH.W)
 }
 
 class RegRenaming extends Module {
@@ -92,9 +105,17 @@ class RegRenaming extends Module {
     val robAllocate = new RobAllocateIO
   })
 
+  val arf = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
   // 寄存器别名表
-  val rat = RegInit(VecInit.tabulate(RegConfig.ARCH_REG_NUM)(i => 
-    (i + RegConfig.ARCH_REG_NUM).U(RegConfig.PHYS_REG_BITS.W)))
+  // val rat = RegInit(VecInit.tabulate(RegConfig.ARCH_REG_NUM)(i => 
+  //   (i + RegConfig.ARCH_REG_NUM).U(RegConfig.PHYS_REG_BITS.W)))
+  val rat = RegInit(VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
+    val entry = Wire(new aliasTableEntry)
+    entry.inARF := true.B
+    entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
+    entry
+  }))
+
   val checkpointRAT = SyncReadMem(1 << RegConfig.CHECKPOINT_DEPTH, 
     Vec(RegConfig.ARCH_REG_NUM, UInt(RegConfig.PHYS_REG_BITS.W)))
 
@@ -178,6 +199,7 @@ class RegRenaming extends Module {
     entry.intrVec := DontCare
     entry.brMispredict := DontCare
     entry.brTarget := DontCare
+    entry.result := DontCare
   }
 
   // 连接到ROB分配接口
@@ -199,10 +221,15 @@ class RegRenaming extends Module {
     val isZeroReg = (rd === 0.U)
 
     // 源寄存器映射
-    io.out.bits(i).prj := Mux(rj.orR, rat(rj), 0.U)
+    io.out.bits(i).prj := Mux(rj.orR, rat(rj).robPointer, 0.U)
+    io.out.bits(i).jIsArf := rat(rj).inARF
+    io.out.bits(i).dataj := arf(rj)
+
     io.out.bits(i).prk := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR, 
-                            rat(rk), 
+                            rat(rk).robPointer, 
                             0.U)
+    io.out.bits(i).kIsArf := rat(rk).inARF
+    io.out.bits(i).datak := arf(rk)
     
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg
@@ -217,13 +244,14 @@ class RegRenaming extends Module {
     
     // 更新ROB条目中的物理寄存器信息
     io.robAllocate.allocEntries(i).preg := allocated_preg
-    io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd), 0.U)
+    io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
     // FIXME:
     io.robAllocate.allocEntries(i).valid := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
-      rat(rd) := freeList.io.allocResp(i).bits
+      rat(rd).inARF := false.B
+      rat(rd).robPointer := freeList.io.allocResp(i).bits
     }
 
     // 立即数不需要物理寄存器
@@ -233,12 +261,12 @@ class RegRenaming extends Module {
 
     // 检查点处理
     when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
-      checkpointRAT.write(input.checkpoint.id, rat)
+      checkpointRAT.write(input.checkpoint.id, VecInit(rat.map(_.robPointer)))
     }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
-    io.out.bits(i).old_preg := Mux(rd.orR, rat(rd), 0.U)
+    io.out.bits(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
     
     // 分配ROB索引
     io.out.bits(i).robIdx := io.robAllocate.allocResp(i)
@@ -260,6 +288,16 @@ class RegRenaming extends Module {
   // 连接ROB回收接口
   freeList.io.free.zip(io.rob.commit).foreach { case (free, commit) =>
     free.valid := commit.valid
-    free.bits  := commit.bits
+    free.bits  := commit.bits.preg
+  }
+
+  // retire 
+  for(i <- 0 until 4) {
+    when(io.rob.commit(i).valid) {
+      // write arf 
+      arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
+      // rat update
+      rat(io.rob.commit(i).bits.dest).inARF := true.B 
+    }
   }
 }

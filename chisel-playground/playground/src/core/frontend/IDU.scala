@@ -223,7 +223,11 @@ class IDU extends Module {
 
     for (i <- 0 until 4) {
         io.out.bits(i).prj := DontCare
+        io.out.bits(i).jIsArf := DontCare
+        io.out.bits(i).dataj := DontCare
         io.out.bits(i).prk := DontCare
+        io.out.bits(i).kIsArf := DontCare
+        io.out.bits(i).datak := DontCare
         io.out.bits(i).preg := DontCare
         io.out.bits(i).old_preg := DontCare
         io.out.bits(i).robIdx := DontCare

@@ -24,6 +24,7 @@ class RobEntry extends Bundle {
   val brMispredict = Bool()
   val brTarget   = UInt(64.W)
   val fuType     = UInt(3.W)
+  val result     = UInt(32.W) //FIXME
   val checkpoint = new Bundle {
     val valid = Bool()
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
@@ -41,17 +42,23 @@ class RobAllocateIO extends Bundle {
 
 // 写回接口
 class RobWritebackInfo extends Bundle {
-  val robIdx     = UInt(RobConfig.ROB_INDEX_WIDTH.W)
-  val exception  = Bool()
+  val pc           = UInt(32.W)
+  val robIdx       = UInt(RobConfig.ROB_INDEX_WIDTH.W)
+  val exception    = Bool()
   val exceptionVec = UInt(16.W)
   val brMispredict = Bool()
-  val brTarget   = UInt(64.W)
-  val writeData = UInt(32.W)
+  val brTarget     = UInt(64.W)
+  val writeData    = UInt(32.W)
 }
 
+class  rtrBundle extends Bundle {
+  val dest = UInt(5.W)
+  val preg = UInt(RegConfig.PHYS_REG_BITS.W)
+  val data = UInt(32.W)
+}
 // 提交接口
 class RobCommit extends Bundle {
-  val commit = Vec(4, Valid(UInt(RegConfig.PHYS_REG_BITS.W)))
+  val commit = Vec(4, Valid(new rtrBundle))
 }
 
 class RobIO extends Bundle {
@@ -65,7 +72,8 @@ class RobIO extends Bundle {
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
   val commitPC = Output(Vec(4, Valid(UInt(64.W))))         // 提交的PC
   val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
-  
+  // val commitData = Output(Vec(4, Valid(UInt(32.W))))       // 提交的数据
+
   // 分支预测错误接口
   val brMisPred = Output(Valid(UInt(64.W)))                // 分支预测错误信号
   val brMisPredTarget = Output(UInt(64.W))                 // 分支预测错误目标地址
@@ -133,11 +141,12 @@ class Rob extends Module {
   for (i <- 0 until 4) {
     when (io.writeback(i).valid) {
       val idx = io.writeback(i).bits.robIdx
-      robEntries(idx).finished := true.B
-      robEntries(idx).exception := io.writeback(i).bits.exception
+      robEntries(idx).finished     := true.B
+      robEntries(idx).exception    := io.writeback(i).bits.exception
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
       robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
-      robEntries(idx).brTarget := io.writeback(i).bits.brTarget
+      robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
+      robEntries(idx).result       := io.writeback(i).bits.writeData
     }
   }
   
@@ -174,12 +183,22 @@ class Rob extends Module {
   
   // 生成提交信息
   for (i <- 0 until 4) {
+    /* 
+    +& 运算符与普通的 + 运算符不同。
+    它执行加法运算时会扩展结果的位宽，以便包含加法中产生的进位。
+    例如，当对两个 UInt 进行加法时，+& 会保证结果拥有足够的位数来表示整个和，即使会有溢出（carry）产生。
+    这在硬件设计中非常重要，因为它可以防止因位宽不足而丢失溢出信息。
+     */
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
     val entry = robEntries(commitIdx)
     
     // 物理寄存器回收信息
     io.commit.commit(i).valid := canCommit(i) && !entry.rfWen && entry.rd =/= 0.U
-    io.commit.commit(i).bits := entry.old_preg
+    // FIXME: Why old_preg?
+    // io.commit.commit(i).bits.dest := entry.old_preg
+    io.commit.commit(i).bits.dest := entry.rd
+    io.commit.commit(i).bits.preg := entry.preg
+    io.commit.commit(i).bits.data := entry.result
     
     // 提交PC信息
     io.commitPC(i).valid := canCommit(i)
@@ -189,6 +208,9 @@ class Rob extends Module {
     io.commitInstr(i).valid := canCommit(i)
     io.commitInstr(i).bits := entry.instr
     
+    // io.commitData(i).valid := canCommit(i)
+    // io.commitData(i).bits := entry.result
+
     // 清除已提交的条目
     when (canCommit(i)) {
       robEntries(commitIdx).valid := false.B

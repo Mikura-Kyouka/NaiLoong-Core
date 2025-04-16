@@ -206,7 +206,11 @@ class TempIf extends Module {
     io.to.bits(i).imm := DontCare
     io.to.bits(i).ctrl := DontCare
     io.to.bits(i).prj := DontCare
+    io.to.bits(i).jIsArf := DontCare
+    io.to.bits(i).dataj := DontCare
     io.to.bits(i).prk := DontCare
+    io.to.bits(i).kIsArf := DontCare
+    io.to.bits(i).datak := DontCare
     io.to.bits(i).preg := DontCare
     io.to.bits(i).old_preg := DontCare
     io.to.bits(i).checkpoint := DontCare

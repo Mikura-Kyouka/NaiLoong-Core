@@ -128,10 +128,14 @@ class PipelineConnectIO extends Bundle {
   val imm  = Output(UInt(32.W))
   val ctrl = new CtrlSignalIO
   // Rename -> Dispatch
-  val prj      = UInt(RegConfig.PHYS_REG_BITS.W)
-  val prk      = UInt(RegConfig.PHYS_REG_BITS.W)
-  val preg     = UInt(RegConfig.PHYS_REG_BITS.W)
-  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
+  val prj      = Output(UInt(RegConfig.PHYS_REG_BITS.W))
+  val jIsArf   = Output(Bool())
+  val dataj    = Output(UInt(32.W))
+  val prk      = Output(UInt(RegConfig.PHYS_REG_BITS.W))
+  val kIsArf   = Output(Bool())
+  val datak    = Output(UInt(32.W))
+  val preg     = Output(UInt(RegConfig.PHYS_REG_BITS.W))
+  val old_preg = Output(UInt(RegConfig.PHYS_REG_BITS.W))
 
   // How to classify the checkpoint???
   val checkpoint = new Bundle {
@@ -140,6 +144,6 @@ class PipelineConnectIO extends Bundle {
   }
   
   // ROB
-  val robIdx = UInt(RobConfig.ROB_INDEX_WIDTH.W)
+  val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
 
 }

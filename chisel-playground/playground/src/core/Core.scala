@@ -78,10 +78,10 @@ class Core extends Module {
 
   val rob = Module(new Rob)
 
-  for (i <- 0 until 4) {
-    Rn.io.rob.commit(i).valid := false.B
-    Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
-  }
+  // for (i <- 0 until 4) {
+  //   Rn.io.rob.commit(i).valid := false.B
+  //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
+  // }
 
   PipelineConnect(If.io.to, Id.io.in, false.B, false.B)
   PipelineConnect(Id.io.out, Rn.io.in, false.B, false.B)
@@ -185,6 +185,7 @@ class Core extends Module {
     rob.io.writeback(i).valid := Ex.io.out(i).valid
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
+    rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
     Issue.io.cmtInstr(i).bits := Ex.io.out(i).bits.robIdx
@@ -192,6 +193,9 @@ class Core extends Module {
 
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
+
+  // arf and rat update
+  Rn.io.rob <> rob.io.commit
 }
 
 object GenFr extends App {
