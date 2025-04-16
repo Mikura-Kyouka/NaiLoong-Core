@@ -1,85 +1,129 @@
-package core
+// package core
 
-import chisel3._
-import chisel3.util._
-import IssueConfig._
-import utils.PipelineConnect
+// import chisel3._
+// import chisel3.util._
+// import IssueConfig._
+// import utils.PipelineConnect
 
-class Backend extends Module {
-    val io = IO(new Bundle {
-        val from = Vec(4, Flipped(Decoupled(new renaming_to_issue)))
-        // val out = Vec(ISSUE_WIDTH, Decoupled(UInt(32.W))) 
-        // commit inst
-        val cmtInstr = Flipped(Valid(new commit_inst_info))
-        // retire inst 
-        val rtrInstr = Flipped(Valid(new retire_inst_info))
-    })
-    //////////////////////
-    ////Dispatch Stage////
-    //////////////////////
-    val dispatch = Module(new Dispatch)
-    dispatch.io.in <> io.from
-    val alu1rs = Module(new UnorderIssueQueue)
-    val alu2rs = Module(new UnorderIssueQueue)
-    val mdurs  = Module(new UnorderIssueQueue)
-    val lsurs  = Module(new OrderIssueQueue)
-    val brurs  = Module(new OrderIssueQueue)
-    PipelineConnect(dispatch.io.out(0), alu1rs.io.in, alu1rs.io.out.fire, false.B)
-    PipelineConnect(dispatch.io.out(1), alu2rs.io.in, alu2rs.io.out.fire, false.B)
-    PipelineConnect(dispatch.io.out(2), mdurs.io.in,  mdurs.io.out.fire,  false.B)
-    PipelineConnect(dispatch.io.out(3), lsurs.io.in,  lsurs.io.out.fire,  false.B)
-    PipelineConnect(dispatch.io.out(4), brurs.io.in,  brurs.io.out.fire,  false.B)
+// class OOCommitIO extends Bundle{
+//     val decode = new DecodeIO
+//     val isMMIO = Output(Bool())
+//     val intrNO = Output(UInt(32.W))
+//     val commits = Output(UInt(32.W))
+//     val prfidx = Output(UInt(PHYS_REG_BITS.W)) //also as robidx
+//     val exception = Output(Bool())
+//     val store = Output(Bool())
+//     val brMask = Output(UInt(CHECKPOINT_DEPTH.W))
+// }
+
+// class RegFile extends Module {
+//     val rf = Mem(PHYS_REG_NUM, UInt(32.W))
+//     def read(addr: UInt) : UInt = Mux(addr === 0.U, 0.U, rf(addr))
+//     def write(addr: UInt, data: UInt) = { rf(addr) := data(31, 0) }
+// }
+// trait HasBackendConst{
     
-    // Connect retire inst 
-    val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
-    for(i <- 0 until 4) { // TODO: parameterize FETCH_WIDTH
-        val dest = io.from(i).bits.dest
-        when(io.from(i).valid && io.from(i).ready) {
-            busyreg(dest) := true.B
-        }
-    }
-    when(io.cmtInstr.valid) {
-        busyreg(io.cmtInstr.bits.inst.dest) := false.B
-    }
-
-    // Connect busy signal
-    alu1rs.io.busyreg := busyreg
-    alu2rs.io.busyreg := busyreg
-    mdurs.io.busyreg := busyreg
-    lsurs.io.busyreg := busyreg
-    brurs.io.busyreg := busyreg
-
-    val payloadram = Module(new PayloadRAM)
-    alu1rs.io.pram_read <> payloadram.io.read(0)
-    alu2rs.io.pram_read <> payloadram.io.read(1)
-    mdurs.io.pram_read <> payloadram.io.read(2)
-    lsurs.io.pram_read <> payloadram.io.read(3)
-    brurs.io.pram_read <> payloadram.io.read(4)
-    payloadram.io.write.dest := io.rtrInstr.bits.preg
-    payloadram.io.write.pram_data := io.rtrInstr.bits.data
-    payloadram.io.write.valid := io.rtrInstr.valid
-
-    //////////////////////
-    //// Issue  Stage ////
-    //////////////////////
-
-    // Instantiate functional module
-    val alu1 = Module(new AligendALU)
-    val alu2 = Module(new AligendALU)
-    val mdu  = Module(new AlignedMDU)
-    val lsu  = Module(new AligendUnpipelinedLSU)
-    val bru  = Module(new AligendALU) // TODO
-
-    PipelineConnect(alu1rs.io.out, alu1.io.in, alu1.io.out.fire, false.B)
-    PipelineConnect(alu2rs.io.out, alu2.io.in, alu2.io.out.fire, false.B)
-    PipelineConnect(mdurs.io.out,  mdu.io.in,  mdu.io.out.fire,  false.B)
-    PipelineConnect(lsurs.io.out,  lsu.io.in,  lsu.io.out.fire,  false.B)
-    PipelineConnect(brurs.io.out,  bru.io.in,  bru.io.out.fire,  false.B)
+// }
+// class Backend extends Module {
+//     val io = IO(new Bundle {
+//         val from = Vec(4, Flipped(Decoupled(new renaming_to_issue)))
+//         // val out = Vec(ISSUE_WIDTH, Decoupled(UInt(32.W))) 
+//         // commit inst
+//         val cmtInstr = Flipped(Valid(new commit_inst_info))
+//         // retire inst 
+//         val rtrInstr = Flipped(Valid(new retire_inst_info))
+//     })
+//     //////////////////////
+//     ////Dispatch Stage////
+//     //////////////////////
+//     val dispatch = Module(new Dispatch)
+//     dispatch.io.in <> io.from
+//     val alu1rs = Module(new UnorderIssueQueue)
+//     val alu2rs = Module(new UnorderIssueQueue)
+//     val mdurs  = Module(new UnorderIssueQueue)
+//     val lsurs  = Module(new OrderIssueQueue)
+//     val brurs  = Module(new OrderIssueQueue)
+//     PipelineConnect(dispatch.io.out(0), alu1rs.io.in, alu1rs.io.out.fire, false.B)
+//     PipelineConnect(dispatch.io.out(1), alu2rs.io.in, alu2rs.io.out.fire, false.B)
+//     PipelineConnect(dispatch.io.out(2), mdurs.io.in,  mdurs.io.out.fire,  false.B)
+//     PipelineConnect(dispatch.io.out(3), lsurs.io.in,  lsurs.io.out.fire,  false.B)
+//     PipelineConnect(dispatch.io.out(4), brurs.io.in,  brurs.io.out.fire,  false.B)
     
-    // FIXME
-    alu1.io.out.ready := true.B
-    alu2.io.out.ready := true.B
-    mdu.io.out.ready := true.B
-    lsu.io.out.ready := true.B
-    bru.io.out.ready := true.B
-}
+//     // Connect retire inst 
+//     val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
+//     for(i <- 0 until 4) { // TODO: parameterize FETCH_WIDTH
+//         val dest = io.from(i).bits.dest
+//         when(io.from(i).valid && io.from(i).ready) {
+//             busyreg(dest) := true.B
+//         }
+//     }
+//     when(io.cmtInstr.valid) {
+//         busyreg(io.cmtInstr.bits.inst.dest) := false.B
+//     }
+
+//     // Connect busy signal
+//     alu1rs.io.busyreg := busyreg
+//     alu2rs.io.busyreg := busyreg
+//     mdurs.io.busyreg := busyreg
+//     lsurs.io.busyreg := busyreg
+//     brurs.io.busyreg := busyreg
+
+//     val payloadram = Module(new PayloadRAM)
+//     alu1rs.io.pram_read <> payloadram.io.read(0)
+//     alu2rs.io.pram_read <> payloadram.io.read(1)
+//     mdurs.io.pram_read <> payloadram.io.read(2)
+//     lsurs.io.pram_read <> payloadram.io.read(3)
+//     brurs.io.pram_read <> payloadram.io.read(4)
+//     payloadram.io.write.dest := io.rtrInstr.bits.preg
+//     payloadram.io.write.pram_data := io.rtrInstr.bits.data
+//     payloadram.io.write.valid := io.rtrInstr.valid
+
+//     //////////////////////
+//     //// Issue  Stage ////
+//     //////////////////////
+
+//     // Instantiate functional module
+//     val alu1 = Module(new AligendALU)
+//     val alu2 = Module(new AligendALU)
+//     val mdu  = Module(new AlignedMDU)
+//     val lsu  = Module(new AligendUnpipelinedLSU)
+//     val bru  = Module(new AligendALU) // TODO
+
+//     PipelineConnect(alu1rs.io.out, alu1.io.in, alu1.io.out.fire, false.B)
+//     PipelineConnect(alu2rs.io.out, alu2.io.in, alu2.io.out.fire, false.B)
+//     PipelineConnect(mdurs.io.out,  mdu.io.in,  mdu.io.out.fire,  false.B)
+//     PipelineConnect(lsurs.io.out,  lsu.io.in,  lsu.io.out.fire,  false.B)
+//     PipelineConnect(brurs.io.out,  bru.io.in,  bru.io.out.fire,  false.B)
+    
+//     // FIXME
+//     alu1.io.out.ready := true.B
+//     alu2.io.out.ready := true.B
+//     mdu.io.out.ready := true.B
+//     lsu.io.out.ready := true.B
+//     bru.io.out.ready := true.B
+
+//     val cdb = Wire(Vec(5, Valid(new OOCommitIO)))
+//     val rf = new RegFile
+//     val rob = Module(new Rob)
+
+//     // -----
+//     // Backend final stage
+//     // Commit to CDB 
+//     // --------
+//     val commit = List(bru.io.out.bits, alu1.io.out.bits, alu2.io.out.bits, lsu.io.out.bits, mdu.io.out.bits)
+//     val commitValid = List(bru.io.out.valid, alu1.io.out.valid, alu2.io.out.valid, lsu.io.out.valid, mdu.io.out.valid)
+//     // rob.io.cdb <> cdb // FIXME
+//     cdb(0).valid := commitValid(0)
+//     cdb(0).bits := commit(0)
+//     cdb(1).valid := commitValid(1)
+//     cdb(1).bits := commit(1)
+//     cdb(2).valid := commitValid(2)
+//     cdb(2).bits := commit(2)
+//     cdb(3).valid := commitValid(3)
+//     cdb(3).bits := commit(3)
+//     cdb(4).valid := commitValid(4)
+//     cdb(4).bits := commit(4)
+
+//     // 
+    
+// }

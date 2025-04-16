@@ -76,6 +76,8 @@ class Core extends Module {
   val Issue = Module(new IssueTop)
   val Ex = Module(new Execute)
 
+  val rob = Module(new Rob)
+
   for (i <- 0 until 4) {
     Rn.io.rob.commit(i).valid := false.B
     Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
@@ -175,6 +177,21 @@ class Core extends Module {
   Ex.io.out(2).ready := true.B
   Ex.io.out(3).ready := true.B
   Ex.io.out(4).ready := true.B
+  
+  // FIXME: ROB need 5 writeback channel
+  for(i <- 0 until 5) {
+    // rob entry <complete flag> update
+    rob.io.writeback(i) := DontCare
+    rob.io.writeback(i).valid := Ex.io.out(i).valid
+    rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
+    rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
+    // <busy reg> update
+    Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
+    Issue.io.cmtInstr(i).bits := Ex.io.out(i).bits.robIdx
+  }
+
+  // allocate rob entries in rename stage
+  Rn.io.robAllocate <> rob.io.allocate
 }
 
 object GenFr extends App {

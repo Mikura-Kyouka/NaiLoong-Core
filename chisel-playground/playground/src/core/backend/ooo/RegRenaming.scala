@@ -218,6 +218,8 @@ class RegRenaming extends Module {
     // 更新ROB条目中的物理寄存器信息
     io.robAllocate.allocEntries(i).preg := allocated_preg
     io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd), 0.U)
+    // FIXME:
+    io.robAllocate.allocEntries(i).valid := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {

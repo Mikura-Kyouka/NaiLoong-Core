@@ -149,6 +149,7 @@ class inst_info extends Bundle {
 
 class FuOut extends Bundle {
   val data = Output(UInt(32.W))
+  val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
 }
 class AligendALU extends Module{
   val io = IO(new Bundle{
@@ -162,7 +163,8 @@ class AligendALU extends Module{
   alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   alu.io.in.bits.func := io.in.bits.ctrl.fuOpType
   io.out.bits.data := alu.io.out.bits
-
+  io.out.bits.robIdx := io.in.bits.robIdx
+  
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready
   io.out.valid := alu.io.out.valid

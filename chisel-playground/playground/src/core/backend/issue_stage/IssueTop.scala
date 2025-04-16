@@ -11,7 +11,8 @@ class IssueTop extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new PipelineConnectIO))
 
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
-    val cmtInstr = Flipped(Valid(new commit_inst_info))
+    // val cmtInstr = Flipped(Valid(new commit_inst_info))
+    val cmtInstr = Input(Vec(5, Valid(UInt(PHYS_REG_BITS.W))))// FIXME: 5 -> ISSUE_WIDTH
     val rtrInstr = Flipped(Valid(new retire_inst_info))
   })
 
@@ -41,13 +42,14 @@ class IssueTop extends Module {
 
   // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
-  for(i <- 0 until ISSUE_WIDTH) {
+  for(i <- 0 until ISSUE_WIDTH) { // busyreg update
     when(io.out(i).valid && io.out(i).ready) {
       busyreg(io.out(i).bits.preg) := true.B
     }
-  }
-  when(io.cmtInstr.valid) {
-    busyreg(io.cmtInstr.bits.inst.dest) := false.B
+    // fu output update
+    when(io.cmtInstr(i).valid) {
+      busyreg(io.cmtInstr(i).bits) := true.B
+    }
   }
 
   // Connect busy signal

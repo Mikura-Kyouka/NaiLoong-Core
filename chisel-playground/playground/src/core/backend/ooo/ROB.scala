@@ -32,11 +32,11 @@ class RobEntry extends Bundle {
 
 // ROB分配接口
 class RobAllocateIO extends Bundle {
-  val allocReq   = Bool()
-  val allocCount = UInt(3.W)
-  val allocEntries = Vec(4, new RobEntry)
-  val allocResp  = Vec(4, UInt(RobConfig.ROB_INDEX_WIDTH.W))
-  val canAllocate = Bool()
+  val allocReq     = Output(Bool())
+  val allocCount   = Output(UInt(3.W))
+  val allocEntries = Output(Vec(4, new RobEntry))
+  val allocResp    = Input(Vec(4, UInt(RobConfig.ROB_INDEX_WIDTH.W)))
+  val canAllocate  = Input(Bool())
 }
 
 // 写回接口
@@ -46,6 +46,7 @@ class RobWritebackInfo extends Bundle {
   val exceptionVec = UInt(16.W)
   val brMispredict = Bool()
   val brTarget   = UInt(64.W)
+  val writeData = UInt(32.W)
 }
 
 // 提交接口
@@ -58,7 +59,7 @@ class RobIO extends Bundle {
   val allocate = Flipped(new RobAllocateIO)
   
   // 指令完成接口
-  val writeback = Vec(4, Flipped(Valid(new RobWritebackInfo)))
+  val writeback = Vec(5, Flipped(Valid(new RobWritebackInfo)))
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
@@ -83,6 +84,8 @@ class RobIO extends Bundle {
   //   val full = Bool()
   //   val empty = Bool()
   // })
+  // FIXME
+  // val cdb = Vec(5, Flipped(Valid(new OOCommitIO)))
 }
 
 class Rob extends Module {
@@ -116,7 +119,8 @@ class Rob extends Module {
   when (io.allocate.allocReq && canAlloc) {
     for (i <- 0 until 4) {
       when (i.U < io.allocate.allocCount) {
-        val allocIdx = (tail +& i.U) % RobConfig.ROB_ENTRY_NUM.U
+        // FIXME: [W004] Dynamic index with width 7 is too wide for Vec of size 64 (expected index width 6).
+        val allocIdx = ((tail +& i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
         robEntries(allocIdx) := io.allocate.allocEntries(i)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
@@ -140,10 +144,16 @@ class Rob extends Module {
   // 判断是否可以提交
   val canCommit = Wire(Vec(4, Bool()))
   for (i <- 0 until 4) {
-    val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
-    canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && 
-                    (i.U === 0.U || canCommit(i-1)) &&
-                    !io.brMisPred.valid && !io.exception
+    // FIXME: [W004] Dynamic index with width 7 is too wide for Vec of size 64 (expected index width 6).
+    val commitIdx = ((head +& i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
+    if (i == 0) {
+      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
+                      !io.brMisPred.valid && !io.exception
+    } else {
+      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
+                      canCommit(i-1) &&
+                      !io.brMisPred.valid && !io.exception
+    }
   }
   
   // 检查异常和分支预测错误
