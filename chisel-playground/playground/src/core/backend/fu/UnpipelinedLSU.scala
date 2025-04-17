@@ -287,9 +287,27 @@ class AligendUnpipelinedLSU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
+    val lsAXI = new AXI
+    val robCommit = Input(new RobCommit)
   })
   val lsu = Module(new UnpipelinedLSU)
-  lsu.io := DontCare
+
+  // load
+  io.out.valid := lsu.io.complete
+
+  // store
+  val commitIdx = io.robCommit.commit.map(_.valid)
+  val commitDatas = io.robCommit.commit.map(_.bits)
+  lsu.io.robRetire := commitIdx.reduce(_ || _)
+  lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
+
+  lsu.io.dmem <> io.lsAXI
+  lsu.io.dtlbPF := DontCare
+  lsu.io.isMMIO := DontCare
+
+  lsu.io.loadAddrMisaligned := DontCare
+  lsu.io.storeAddrMisaligned := DontCare
+
   lsu.io.in.bits.src1 := io.in.bits.src1
   lsu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   lsu.io.in.bits.func := io.in.bits.ctrl.fuOpType
