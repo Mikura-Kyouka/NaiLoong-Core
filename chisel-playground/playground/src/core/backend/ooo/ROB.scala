@@ -51,7 +51,7 @@ class RobWritebackInfo extends Bundle {
   val writeData    = UInt(32.W)
 }
 
-class  rtrBundle extends Bundle {
+class rtrBundle extends Bundle {
   val dest = UInt(5.W)
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)

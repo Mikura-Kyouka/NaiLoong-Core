@@ -10,6 +10,8 @@ class Execute extends Module {
     val in = Vec(ISSUE_WIDTH, Flipped(Decoupled(new PipelineConnectIO)))
     val out = Vec(ISSUE_WIDTH, Decoupled(new FuOut))
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
+    val lsAXI = new AXI
+    val robCommit = Input(new RobCommit)
   })
 
   val alu1 = Module(new AligendALU)
@@ -17,6 +19,9 @@ class Execute extends Module {
   val mdu  = Module(new AlignedMDU)
   val lsu  = Module(new AligendUnpipelinedLSU)
   val bru  = Module(new AligendALU) // TODO
+
+  lsu.io.lsAXI <> io.lsAXI
+  lsu.io.robCommit := io.robCommit
 
   alu1.io.in <> io.in(0)
   alu2.io.in <> io.in(1)
