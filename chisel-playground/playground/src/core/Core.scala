@@ -78,6 +78,7 @@ class Core extends Module {
 
   val rob = Module(new Rob)
 
+  // val arb = Modul(new Arbiter)
   // for (i <- 0 until 4) {
   //   Rn.io.rob.commit(i).valid := false.B
   //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
