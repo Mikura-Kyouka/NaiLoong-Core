@@ -196,6 +196,69 @@ class Core extends Module {
 
   // arf and rat update
   Rn.io.rob <> rob.io.commit
+
+  // difftest
+  if(GenCtrl.USE_DIFF) {
+    val DiffCommit = Module(new DiffCommit)
+
+    DiffCommit.io.instr(0).valid := rob.io.commitInstr(0).valid
+    DiffCommit.io.instr(0).pc := rob.io.commitPC(0).bits
+    DiffCommit.io.instr(0).instr := rob.io.commitInstr(0).bits
+    DiffCommit.io.instr(0).skip := DontCare
+    DiffCommit.io.instr(0).is_TLBFILL := DontCare
+    DiffCommit.io.instr(0).TLBFILL_index := DontCare
+    DiffCommit.io.instr(0).is_CNTinst := DontCare
+    DiffCommit.io.instr(0).timer_64_value := DontCare
+    DiffCommit.io.instr(0).wen := rob.io.commit.commit(0).bits.dest =/= 0.U
+    DiffCommit.io.instr(0).wdest := rob.io.commit.commit(0).bits.dest
+    DiffCommit.io.instr(0).wdata := rob.io.commit.commit(0).bits.data
+    DiffCommit.io.instr(0).csr_rstat := DontCare
+    DiffCommit.io.instr(0).csr_data := DontCare
+
+    DiffCommit.io.instr(1).valid := rob.io.commitInstr(1).valid
+    DiffCommit.io.instr(1).pc := rob.io.commitPC(1).bits
+    DiffCommit.io.instr(1).instr := rob.io.commitInstr(1).bits
+    DiffCommit.io.instr(1).skip := DontCare
+    DiffCommit.io.instr(1).is_TLBFILL := DontCare
+    DiffCommit.io.instr(1).TLBFILL_index := DontCare
+    DiffCommit.io.instr(1).is_CNTinst := DontCare
+    DiffCommit.io.instr(1).timer_64_value := DontCare
+    DiffCommit.io.instr(1).wen := rob.io.commit.commit(1).bits.dest =/= 0.U
+    DiffCommit.io.instr(1).wdest := rob.io.commit.commit(1).bits.dest
+    DiffCommit.io.instr(1).wdata := rob.io.commit.commit(1).bits.data
+    DiffCommit.io.instr(1).csr_rstat := DontCare
+    DiffCommit.io.instr(1).csr_data := DontCare
+
+    DiffCommit.io.instr(2).valid := rob.io.commitInstr(2).valid
+    DiffCommit.io.instr(2).pc := rob.io.commitPC(2).bits
+    DiffCommit.io.instr(2).instr := rob.io.commitInstr(2).bits
+    DiffCommit.io.instr(2).skip := DontCare
+    DiffCommit.io.instr(2).is_TLBFILL := DontCare
+    DiffCommit.io.instr(2).TLBFILL_index := DontCare
+    DiffCommit.io.instr(2).is_CNTinst := DontCare
+    DiffCommit.io.instr(2).timer_64_value := DontCare
+    DiffCommit.io.instr(2).wen := rob.io.commit.commit(2).bits.dest =/= 0.U
+    DiffCommit.io.instr(2).wdest := rob.io.commit.commit(2).bits.dest
+    DiffCommit.io.instr(2).wdata := rob.io.commit.commit(2).bits.data
+    DiffCommit.io.instr(2).csr_rstat := DontCare
+    DiffCommit.io.instr(2).csr_data := DontCare
+
+    DiffCommit.io.instr(3).valid := rob.io.commitInstr(3).valid
+    DiffCommit.io.instr(3).pc := rob.io.commitPC(3).bits
+    DiffCommit.io.instr(3).instr := rob.io.commitInstr(3).bits
+    DiffCommit.io.instr(3).skip := DontCare
+    DiffCommit.io.instr(3).is_TLBFILL := DontCare
+    DiffCommit.io.instr(3).TLBFILL_index := DontCare
+    DiffCommit.io.instr(3).is_CNTinst := DontCare
+    DiffCommit.io.instr(3).timer_64_value := DontCare
+    DiffCommit.io.instr(3).wen := rob.io.commit.commit(3).bits.dest =/= 0.U
+    DiffCommit.io.instr(3).wdest := rob.io.commit.commit(3).bits.dest
+    DiffCommit.io.instr(3).wdata := rob.io.commit.commit(3).bits.data
+    DiffCommit.io.instr(3).csr_rstat := DontCare
+    DiffCommit.io.instr(3).csr_data := DontCare
+
+    DiffCommit.io.reg := Rn.io.arf
+  }
 }
 
 object GenFr extends App {
