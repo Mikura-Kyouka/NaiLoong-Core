@@ -199,11 +199,8 @@ class Core extends Module {
   // io.ws_valid := If.io.ws_valid
   // io.rf_rdata := If.io.rf_rdata
 
-  val lsAXI = Wire(new AXI)
-  lsAXI <> Ex.io.lsAXI
-
   arb.io.ifu <> ifAXI
-  arb.io.lsu <> lsAXI
+  arb.io.lsu <> Ex.io.lsAXI
 
   io.arid := arb.io.out.arid
   io.araddr := arb.io.out.araddr
@@ -238,6 +235,28 @@ class Core extends Module {
   arb.io.out.bresp := io.bresp
   arb.io.out.bvalid := io.bvalid
   io.bready := arb.io.out.bready
+
+  val traceBridge = Module(new TraceBridge)
+  
+  traceBridge.io.in_items := VecInit(rob.io.commit.commit.map { item =>
+    WireInit({
+    val trace = Wire(new TraceItem)
+    trace.pc       := item.bits.pc
+    trace.rf_we    := item.bits.dest =/= 0.U
+    trace.rf_wnum  := item.bits.dest
+    trace.rf_wdata := item.bits.data
+    trace
+    })
+  })
+
+  traceBridge.io.in_valids := VecInit(rob.io.commit.commit.map(_.valid))
+  traceBridge.io.out_ready := true.B 
+
+  // 连接到 trace checker
+  io.debug0_wb_pc       := traceBridge.io.out_item.pc
+  io.debug0_wb_rf_wen    := traceBridge.io.out_item.rf_we
+  io.debug0_wb_rf_wnum  := traceBridge.io.out_item.rf_wnum
+  io.debug0_wb_rf_wdata := traceBridge.io.out_item.rf_wdata
 
   io.debug0_wb_pc := If.io.debug0_wb_pc
   io.debug0_wb_rf_wen := If.io.debug0_wb_rf_wen

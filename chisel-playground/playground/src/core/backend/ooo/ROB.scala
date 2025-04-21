@@ -52,6 +52,7 @@ class RobWritebackInfo extends Bundle {
 }
 
 class rtrBundle extends Bundle {
+  val pc   = UInt(32.W)
   val dest = UInt(5.W)
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)
@@ -201,6 +202,7 @@ class Rob extends Module {
     io.commit.commit(i).valid := canCommit(i) && !entry.rfWen && entry.rd =/= 0.U
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
+    io.commit.commit(i).bits.pc   := entry.pc
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
     io.commit.commit(i).bits.data := entry.result
