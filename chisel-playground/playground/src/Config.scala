@@ -2,5 +2,5 @@ package core
 import chisel3._
 
 object GenCtrl {
-  def USE_DIFF = true
+  var USE_DIFF = true
 }
