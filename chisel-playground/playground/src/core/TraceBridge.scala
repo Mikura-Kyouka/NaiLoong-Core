@@ -22,27 +22,30 @@ class TraceBridgeIO extends Bundle {
 
 class TraceBridge extends Module {
   val io = IO(new TraceBridgeIO)
-
+  
   // 每个写回一路 FIFO
   val perItemFifo = Seq.fill(4)(Module(new Queue(new TraceItem, 8)))
-
   for (i <- 0 until 4) {
     perItemFifo(i).io.enq.valid := io.in_valids(i)
-    perItemFifo(i).io.enq.bits  := io.in_items(i)
+    perItemFifo(i).io.enq.bits := io.in_items(i)
   }
-
-  // 把4路 FIFO 输出聚合为一路输出
-  val deq_valids = perItemFifo.map(_.io.deq.valid)
-  val deq_items  = perItemFifo.map(_.io.deq.bits)
-
-  val chosen_idx = PriorityEncoder(deq_valids)
-  val chosen_item = Mux1H(deq_valids.zip(deq_items).map { case (v, d) => (v, d) })
-
-  io.out_valid := deq_valids.reduce(_ || _)
-  io.out_item  := chosen_item
-
+  
+  val roundRobinCounter = RegInit(0.U(2.W))
+  
+  val validVec = VecInit(perItemFifo.map(_.io.deq.valid))
+  val itemVec = VecInit(perItemFifo.map(_.io.deq.bits))
+  
+  val current_valid = validVec(roundRobinCounter)
+  val current_item = itemVec(roundRobinCounter)
+  
+  io.out_valid := current_valid
+  io.out_item := current_item
+  
   for (i <- 0 until 4) {
-    perItemFifo(i).io.deq.ready := io.out_ready && (chosen_idx === i.U)
+    perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_valid
+  }
+  
+  when (io.out_ready && io.out_valid) {
+    roundRobinCounter := Mux(roundRobinCounter === 3.U, 0.U, roundRobinCounter + 1.U)
   }
 }
-

@@ -175,7 +175,6 @@ DifftestInstrCommit DifftestInstrCommit_3(
 DifftestGRegState DifftestGRegState_0(
   .clock              (clock          ),
   .coreid             (coreid         ),
-  .index              (0              ),
   .gpr_0              (REG_0          ),
   .gpr_1              (REG_1          ),
   .gpr_2              (REG_2          ),

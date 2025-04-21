@@ -260,11 +260,6 @@ class Core extends Module {
   io.debug0_wb_rf_wnum  := traceBridge.io.out_item.rf_wnum
   io.debug0_wb_rf_wdata := traceBridge.io.out_item.rf_wdata
 
-  io.debug0_wb_pc := If.io.debug0_wb_pc
-  io.debug0_wb_rf_wen := If.io.debug0_wb_rf_wen
-  io.debug0_wb_rf_wnum := If.io.debug0_wb_rf_wnum
-  io.debug0_wb_rf_wdata := If.io.debug0_wb_rf_wdata
-
   io.debug1_wb_pc := If.io.debug1_wb_pc
   io.debug1_wb_rf_wen := If.io.debug1_wb_rf_wen
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
