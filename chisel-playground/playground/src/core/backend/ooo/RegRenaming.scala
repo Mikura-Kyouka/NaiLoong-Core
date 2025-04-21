@@ -16,6 +16,7 @@ class Rename extends Module {
     val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
     val out = Decoupled(Vec(4, new PipelineConnectIO))
     val rob = Input(new RobCommit)
+    val brMispredict = Input(new BrMisPredInfo)
     val robAllocate = new RobAllocateIO
   })
   
@@ -28,6 +29,7 @@ class Rename extends Module {
   io.in.ready := regRenaming.io.in.ready
   regRenaming.io.out.ready := io.out.ready
   io.out.valid := regRenaming.io.out.valid
+  regRenaming.io.brMispredict := io.brMispredict
 
   for (i <- 0 until 4) {
     regRenaming.io.in.bits(i).ctrl := io.in.bits(i).ctrl
@@ -99,10 +101,11 @@ class aliasTableEntry extends Bundle {
 
 class RegRenaming extends Module {
   val io = IO(new Bundle {
-    val in        = Flipped(Decoupled(Vec(4, new RenameInput)))
-    val out       = Decoupled(Vec(4, new RenameOutput))
-    val rob       = Input(new RobCommit)
-    val robAllocate = new RobAllocateIO
+    val in           = Flipped(Decoupled(Vec(4, new RenameInput)))
+    val out          = Decoupled(Vec(4, new RenameOutput))
+    val rob          = Input(new RobCommit)
+    val brMispredict = Input(new BrMisPredInfo)
+    val robAllocate  = new RobAllocateIO
   })
 
   val arf = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
@@ -300,4 +303,15 @@ class RegRenaming extends Module {
       rat(io.rob.commit(i).bits.dest).inARF := true.B 
     }
   }
+
+  // 分支预测错误回滚
+  when(io.brMispredict.brMisPred.valid) {
+    val checkpoint_id = io.brMispredict.brMisPredChkpt
+    val snapshot = checkpointRAT.read(checkpoint_id)
+    for (i <- 0 until RegConfig.ARCH_REG_NUM) {
+      rat(i).inARF := false.B
+      rat(i).robPointer := snapshot(i)
+    }
+  }
+
 }

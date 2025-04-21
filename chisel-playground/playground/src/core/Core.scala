@@ -83,19 +83,19 @@ class Core extends Module {
   //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
   // }
 
-  PipelineConnect(If.io.to, Id.io.in, false.B, false.B)
-  PipelineConnect(Id.io.out, Rn.io.in, false.B, false.B)
-  PipelineConnect(Rn.io.out, Dispatch.io.in, false.B, false.B)
-  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.fire(0), false.B)
-  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.fire(1), false.B)
-  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.fire(2), false.B)
-  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.fire(3), false.B)
-  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.fire(4), false.B)
-  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), false.B)
-  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), false.B)
-  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), false.B)
-  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), false.B)
-  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), false.B)
+  PipelineConnect(If.io.to, Id.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Id.io.out, Rn.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Rn.io.out, Dispatch.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.fire(0), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.fire(1), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.fire(2), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.fire(3), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.fire(4), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), rob.io.brMisPredInfo.brMisPred.valid)
 
   If.io.intrpt := io.intrpt
 
@@ -171,7 +171,9 @@ class Core extends Module {
   // Issue.io.out(4).ready := true.B
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
-  dontTouch(Ex.io.out)
+  
+  //dontTouch(Ex.io.out)
+
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
   Ex.io.out(2).ready := true.B
@@ -196,6 +198,9 @@ class Core extends Module {
 
   // arf and rat update
   Rn.io.rob <> rob.io.commit
+
+  // branch handle logic
+  Rn.io.brMispredict := rob.io.brMisPredInfo
 }
 
 object GenFr extends App {
