@@ -18,9 +18,11 @@ class Rename extends Module {
     val rob = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
     val robAllocate = new RobAllocateIO
+    val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
   })
   
   val regRenaming = Module(new RegRenaming)
+  io.arf := regRenaming.io.arf
 
   regRenaming.io.rob := io.rob
   regRenaming.io.robAllocate <> io.robAllocate
@@ -106,9 +108,11 @@ class RegRenaming extends Module {
     val rob          = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
     val robAllocate  = new RobAllocateIO
+    val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
   })
 
   val arf = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
+  io.arf := arf
   // 寄存器别名表
   // val rat = RegInit(VecInit.tabulate(RegConfig.ARCH_REG_NUM)(i => 
   //   (i + RegConfig.ARCH_REG_NUM).U(RegConfig.PHYS_REG_BITS.W)))

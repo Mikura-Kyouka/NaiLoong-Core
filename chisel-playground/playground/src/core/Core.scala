@@ -78,6 +78,8 @@ class Core extends Module {
 
   val rob = Module(new Rob)
 
+  val arb = Module(new Arb)
+
   // for (i <- 0 until 4) {
   //   Rn.io.rob.commit(i).valid := false.B
   //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
@@ -97,54 +99,145 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), rob.io.brMisPredInfo.brMisPred.valid)
 
+  val ifAXI = Wire(new AXI)
+
   If.io.intrpt := io.intrpt
 
-  io.arid := If.io.arid
-  io.araddr := If.io.araddr
-  io.arlen := If.io.arlen
-  io.arsize := If.io.arsize
-  io.arburst := If.io.arburst
+  ifAXI.arid := If.io.arid
+  ifAXI.araddr := If.io.araddr
+  ifAXI.arlen := If.io.arlen
+  ifAXI.arsize := If.io.arsize
+  ifAXI.arburst := If.io.arburst
   io.arlock := If.io.arlock
   io.arcache := If.io.arcache
   io.arprot := If.io.arprot
-  io.arvalid := If.io.arvalid
-  If.io.arready := io.arready
+  ifAXI.arvalid := If.io.arvalid
+  If.io.arready := ifAXI.arready
 
-  If.io.rid := io.rid
-  If.io.rdata := io.rdata
-  If.io.rresp := io.rresp
-  If.io.rlast := io.rlast
-  If.io.rvalid := io.rvalid
-  io.rready := If.io.rready
+  If.io.rid := ifAXI.rid
+  If.io.rdata := ifAXI.rdata
+  If.io.rresp := ifAXI.rresp
+  If.io.rlast := ifAXI.rlast
+  If.io.rvalid := ifAXI.rvalid
+  ifAXI.rready := If.io.rready
 
-  io.awid := If.io.awid
-  io.awaddr := If.io.awaddr
-  io.awlen := If.io.awlen
-  io.awsize := If.io.awsize
-  io.awburst := If.io.awburst
+  ifAXI.awid := If.io.awid
+  ifAXI.awaddr := If.io.awaddr
+  ifAXI.awlen := If.io.awlen
+  ifAXI.awsize := If.io.awsize
+  ifAXI.awburst := If.io.awburst
   io.awlock := If.io.awlock
   io.awcache := If.io.awcache
   io.awprot := If.io.awprot
-  io.awvalid := If.io.awvalid
-  If.io.awready := io.awready
+  ifAXI.awvalid := If.io.awvalid
+  If.io.awready := ifAXI.awready
 
   io.wid := If.io.wid
-  io.wdata := If.io.wdata
-  io.wstrb := If.io.wstrb
-  io.wlast := If.io.wlast
-  io.wvalid := If.io.wvalid
-  If.io.wready := io.wready
+  ifAXI.wdata := If.io.wdata
+  ifAXI.wstrb := If.io.wstrb
+  ifAXI.wlast := If.io.wlast
+  ifAXI.wvalid := If.io.wvalid
+  If.io.wready := ifAXI.wready
 
-  If.io.bid := io.bid
-  If.io.bresp := io.bresp
-  If.io.bvalid := io.bvalid
-  io.bready := If.io.bready
+  If.io.bid := ifAXI.bid
+  If.io.bresp := ifAXI.bresp
+  If.io.bvalid := ifAXI.bvalid
+  ifAXI.bready := If.io.bready
 
   If.io.break_point := io.break_point
   If.io.infor_flag := io.infor_flag
   If.io.reg_num := io.reg_num
   io.ws_valid := If.io.ws_valid
   io.rf_rdata := If.io.rf_rdata
+
+  // If.io.intrpt := io.intrpt
+
+  // io.arid := If.io.arid
+  // io.araddr := If.io.araddr
+  // io.arlen := If.io.arlen
+  // io.arsize := If.io.arsize
+  // io.arburst := If.io.arburst
+  // io.arlock := If.io.arlock
+  // io.arcache := If.io.arcache
+  // io.arprot := If.io.arprot
+  // io.arvalid := If.io.arvalid
+  // If.io.arready := io.arready
+
+  // If.io.rid := io.rid
+  // If.io.rdata := io.rdata
+  // If.io.rresp := io.rresp
+  // If.io.rlast := io.rlast
+  // If.io.rvalid := io.rvalid
+  // io.rready := If.io.rready
+
+  // io.awid := If.io.awid
+  // io.awaddr := If.io.awaddr
+  // io.awlen := If.io.awlen
+  // io.awsize := If.io.awsize
+  // io.awburst := If.io.awburst
+  // io.awlock := If.io.awlock
+  // io.awcache := If.io.awcache
+  // io.awprot := If.io.awprot
+  // io.awvalid := If.io.awvalid
+  // If.io.awready := io.awready
+
+  // io.wid := If.io.wid
+  // io.wdata := If.io.wdata
+  // io.wstrb := If.io.wstrb
+  // io.wlast := If.io.wlast
+  // io.wvalid := If.io.wvalid
+  // If.io.wready := io.wready
+
+  // If.io.bid := io.bid
+  // If.io.bresp := io.bresp
+  // If.io.bvalid := io.bvalid
+  // io.bready := If.io.bready
+
+  // If.io.break_point := io.break_point
+  // If.io.infor_flag := io.infor_flag
+  // If.io.reg_num := io.reg_num
+  // io.ws_valid := If.io.ws_valid
+  // io.rf_rdata := If.io.rf_rdata
+
+  val lsAXI = Wire(new AXI)
+  lsAXI <> Ex.io.lsAXI
+
+  arb.io.ifu <> ifAXI
+  arb.io.lsu <> lsAXI
+
+  io.arid := arb.io.out.arid
+  io.araddr := arb.io.out.araddr
+  io.arlen := arb.io.out.arlen
+  io.arsize := arb.io.out.arsize
+  io.arburst := arb.io.out.arburst
+  io.arvalid := arb.io.out.arvalid
+  arb.io.out.arready := io.arready
+
+  arb.io.out.rid := io.rid
+  arb.io.out.rdata := io.rdata
+  arb.io.out.rresp := io.rresp
+  arb.io.out.rlast := io.rlast
+  arb.io.out.rvalid := io.rvalid
+  io.rready := arb.io.out.rready
+
+  io.awid := arb.io.out.awid
+  io.awaddr := arb.io.out.awaddr
+  io.awlen := arb.io.out.awlen
+  io.awsize := arb.io.out.awsize
+  io.awburst := arb.io.out.awburst
+  io.awvalid := arb.io.out.awvalid
+  arb.io.out.awready := io.awready
+
+  io.wdata := arb.io.out.wdata
+  io.wstrb := arb.io.out.wstrb
+  io.wlast := arb.io.out.wlast
+  io.wvalid := arb.io.out.wvalid
+  arb.io.out.wready := io.wready
+
+  arb.io.out.bid := io.bid
+  arb.io.out.bresp := io.bresp
+  arb.io.out.bvalid := io.bvalid
+  io.bready := arb.io.out.bready
 
   io.debug0_wb_pc := If.io.debug0_wb_pc
   io.debug0_wb_rf_wen := If.io.debug0_wb_rf_wen
@@ -188,6 +281,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
+
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
     Issue.io.cmtInstr(i).bits := Ex.io.out(i).bits.robIdx
@@ -196,11 +290,76 @@ class Core extends Module {
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
 
+  // lsu <=> rob
+  Ex.io.robCommit := rob.io.commit
   // arf and rat update
   Rn.io.rob <> rob.io.commit
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
+  
+  // difftest
+  if(GenCtrl.USE_DIFF) {
+    val DiffCommit = Module(new DiffCommit)
+
+    DiffCommit.io.instr(0).valid := rob.io.commitInstr(0).valid
+    DiffCommit.io.instr(0).pc := rob.io.commitPC(0).bits
+    DiffCommit.io.instr(0).instr := rob.io.commitInstr(0).bits
+    DiffCommit.io.instr(0).skip := DontCare
+    DiffCommit.io.instr(0).is_TLBFILL := DontCare
+    DiffCommit.io.instr(0).TLBFILL_index := DontCare
+    DiffCommit.io.instr(0).is_CNTinst := DontCare
+    DiffCommit.io.instr(0).timer_64_value := DontCare
+    DiffCommit.io.instr(0).wen := rob.io.commit.commit(0).bits.dest =/= 0.U
+    DiffCommit.io.instr(0).wdest := rob.io.commit.commit(0).bits.dest
+    DiffCommit.io.instr(0).wdata := rob.io.commit.commit(0).bits.data
+    DiffCommit.io.instr(0).csr_rstat := DontCare
+    DiffCommit.io.instr(0).csr_data := DontCare
+
+    DiffCommit.io.instr(1).valid := rob.io.commitInstr(1).valid
+    DiffCommit.io.instr(1).pc := rob.io.commitPC(1).bits
+    DiffCommit.io.instr(1).instr := rob.io.commitInstr(1).bits
+    DiffCommit.io.instr(1).skip := DontCare
+    DiffCommit.io.instr(1).is_TLBFILL := DontCare
+    DiffCommit.io.instr(1).TLBFILL_index := DontCare
+    DiffCommit.io.instr(1).is_CNTinst := DontCare
+    DiffCommit.io.instr(1).timer_64_value := DontCare
+    DiffCommit.io.instr(1).wen := rob.io.commit.commit(1).bits.dest =/= 0.U
+    DiffCommit.io.instr(1).wdest := rob.io.commit.commit(1).bits.dest
+    DiffCommit.io.instr(1).wdata := rob.io.commit.commit(1).bits.data
+    DiffCommit.io.instr(1).csr_rstat := DontCare
+    DiffCommit.io.instr(1).csr_data := DontCare
+
+    DiffCommit.io.instr(2).valid := rob.io.commitInstr(2).valid
+    DiffCommit.io.instr(2).pc := rob.io.commitPC(2).bits
+    DiffCommit.io.instr(2).instr := rob.io.commitInstr(2).bits
+    DiffCommit.io.instr(2).skip := DontCare
+    DiffCommit.io.instr(2).is_TLBFILL := DontCare
+    DiffCommit.io.instr(2).TLBFILL_index := DontCare
+    DiffCommit.io.instr(2).is_CNTinst := DontCare
+    DiffCommit.io.instr(2).timer_64_value := DontCare
+    DiffCommit.io.instr(2).wen := rob.io.commit.commit(2).bits.dest =/= 0.U
+    DiffCommit.io.instr(2).wdest := rob.io.commit.commit(2).bits.dest
+    DiffCommit.io.instr(2).wdata := rob.io.commit.commit(2).bits.data
+    DiffCommit.io.instr(2).csr_rstat := DontCare
+    DiffCommit.io.instr(2).csr_data := DontCare
+
+    DiffCommit.io.instr(3).valid := rob.io.commitInstr(3).valid
+    DiffCommit.io.instr(3).pc := rob.io.commitPC(3).bits
+    DiffCommit.io.instr(3).instr := rob.io.commitInstr(3).bits
+    DiffCommit.io.instr(3).skip := DontCare
+    DiffCommit.io.instr(3).is_TLBFILL := DontCare
+    DiffCommit.io.instr(3).TLBFILL_index := DontCare
+    DiffCommit.io.instr(3).is_CNTinst := DontCare
+    DiffCommit.io.instr(3).timer_64_value := DontCare
+    DiffCommit.io.instr(3).wen := rob.io.commit.commit(3).bits.dest =/= 0.U
+    DiffCommit.io.instr(3).wdest := rob.io.commit.commit(3).bits.dest
+    DiffCommit.io.instr(3).wdata := rob.io.commit.commit(3).bits.data
+    DiffCommit.io.instr(3).csr_rstat := DontCare
+    DiffCommit.io.instr(3).csr_data := DontCare
+
+    DiffCommit.io.reg := Rn.io.arf
+  }
 }
 
 object GenFr extends App {
