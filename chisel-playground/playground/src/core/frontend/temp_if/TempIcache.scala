@@ -42,7 +42,7 @@ class TempIcache extends Module {
     val read_pc = Output(UInt(32.W))
   })
 
-  val cache = Reg(Vec(CacheConfig.LINE_NUM, new CacheLine))
+  val cache = RegInit(VecInit(Seq.fill(CacheConfig.LINE_NUM)(0.U.asTypeOf(new CacheLine))))
   dontTouch(cache)
   when(io.wen) {
     val index = io.waddr(INDEX_BIT_NUM + OFFSET_BIT_NUM - 1, OFFSET_BIT_NUM)

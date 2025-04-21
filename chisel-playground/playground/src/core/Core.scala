@@ -85,14 +85,14 @@ class Core extends Module {
   //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
   // }
 
-  PipelineConnect(If.io.to, Id.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Id.io.out, Rn.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Rn.io.out, Dispatch.io.in, false.B, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.fire(0), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.fire(1), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.fire(2), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.fire(3), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.fire(4), rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(If.io.to, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.in(0).fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.in(1).fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.in(2).fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.in(3).fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.in(4).fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), rob.io.brMisPredInfo.brMisPred.valid)
@@ -149,6 +149,8 @@ class Core extends Module {
   If.io.reg_num := io.reg_num
   io.ws_valid := If.io.ws_valid
   io.rf_rdata := If.io.rf_rdata
+
+  If.io.to.ready := true.B
 
   // If.io.intrpt := io.intrpt
 
@@ -281,6 +283,7 @@ class Core extends Module {
   // Issue.io.out(2).ready := true.B
   // Issue.io.out(3).ready := true.B
   // Issue.io.out(4).ready := true.B
+
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
   
