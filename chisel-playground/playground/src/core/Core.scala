@@ -171,7 +171,7 @@ class Core extends Module {
   // Issue.io.out(4).ready := true.B
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
-  dontTouch(Ex.io.out)
+  //dontTouch(Ex.io.out)
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
   Ex.io.out(2).ready := true.B
