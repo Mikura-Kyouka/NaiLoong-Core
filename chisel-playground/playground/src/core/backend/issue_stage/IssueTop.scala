@@ -17,7 +17,7 @@ class IssueTop extends Module {
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
-  val alu2rs = Module(new UnorderIssueQueue(check_dest = true))
+  val alu2rs = Module(new UnorderIssueQueue)
   val mdurs  = Module(new UnorderIssueQueue)
   val lsurs  = Module(new OrderIssueQueue)
   val brurs  = Module(new OrderIssueQueue)
@@ -69,4 +69,28 @@ class IssueTop extends Module {
   payloadram.io.write.dest := io.rtrInstr.bits.preg
   payloadram.io.write.pram_data := io.rtrInstr.bits.data
   payloadram.io.write.valid := io.rtrInstr.valid
+
+  if(GenCtrl.USE_DEBUG) {
+    val alu1rs_debug = Module(new IssueDebug(1))
+    val alu2rs_debug = Module(new IssueDebug(2))
+    val mdurs_debug  = Module(new IssueDebug(3))
+    val lsurs_debug  = Module(new IssueDebug(4))
+    val brurs_debug  = Module(new IssueDebug(5))
+
+    alu1rs_debug.io.valid := alu1rs.io.out.valid
+    alu1rs_debug.io.inst_info := alu1rs.io.out.bits
+    alu1rs_debug.io.ready := alu1rs.io.out.ready
+    alu2rs_debug.io.valid := alu2rs.io.out.valid
+    alu2rs_debug.io.inst_info := alu2rs.io.out.bits
+    alu2rs_debug.io.ready := alu2rs.io.out.ready
+    mdurs_debug.io.valid := mdurs.io.out.valid
+    mdurs_debug.io.inst_info := mdurs.io.out.bits
+    mdurs_debug.io.ready := mdurs.io.out.ready
+    lsurs_debug.io.valid := lsurs.io.out.valid
+    lsurs_debug.io.inst_info := lsurs.io.out.bits
+    lsurs_debug.io.ready := lsurs.io.out.ready
+    brurs_debug.io.valid := brurs.io.out.valid
+    brurs_debug.io.inst_info := brurs.io.out.bits
+    brurs_debug.io.ready := brurs.io.out.ready
+  }
 }
