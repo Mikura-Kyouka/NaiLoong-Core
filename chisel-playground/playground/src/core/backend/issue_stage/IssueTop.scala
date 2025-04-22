@@ -39,6 +39,11 @@ class IssueTop extends Module {
   io.out(2) <> mdurs.io.out
   io.out(3) <> lsurs.io.out
   io.out(4) <> brurs.io.out
+  io.in(0).ready := alu1rs.io.in.ready
+  io.in(1).ready := alu2rs.io.in.ready
+  io.in(2).ready := mdurs.io.in.ready
+  io.in(3).ready := lsurs.io.in.ready
+  io.in(4).ready := brurs.io.in.ready
 
   // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))

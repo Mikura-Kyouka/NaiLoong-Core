@@ -156,7 +156,9 @@ class AligendALU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
+    val redirect = Output(new RedirectIO)
   })
+  
   dontTouch(io.in.bits)
   val alu = Module(new ALU)
   alu.io := DontCare
@@ -166,6 +168,7 @@ class AligendALU extends Module{
   io.out.bits.pc      := io.in.bits.pc
   io.out.bits.data    := alu.io.out.bits
   io.out.bits.robIdx  := io.in.bits.robIdx
+  io.redirect := alu.io.redirect
   
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready

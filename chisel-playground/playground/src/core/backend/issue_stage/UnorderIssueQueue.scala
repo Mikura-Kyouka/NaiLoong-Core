@@ -21,12 +21,12 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
     val dest = Input(UInt(PHYS_REG_BITS.W))
   })
 
-  val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
+  val mem = RegInit(VecInit(Seq.fill(QUEUE_SIZE)(0.U.asTypeOf(new PipelineConnectIO))))
   val valid_vec = RegInit(VecInit(Seq.fill(QUEUE_SIZE.toInt)(false.B)))
   val valid_count= RegInit(0.U(log2Ceil(QUEUE_SIZE.toInt).W))
 
   // 向发射队列写入指令
-  val can_accept = (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
+  val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
   io.in.ready := can_accept
   switch(io.in.bits.inst_cnt) {
     is(1.U) {

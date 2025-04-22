@@ -204,7 +204,6 @@ class TempIf extends Module {
     io.to.bits(i).src1 := DontCare
     io.to.bits(i).src2 := DontCare
     io.to.bits(i).imm := DontCare
-    io.to.bits(i).ctrl := DontCare
     io.to.bits(i).prj := DontCare
     io.to.bits(i).jIsArf := DontCare
     io.to.bits(i).dataj := DontCare

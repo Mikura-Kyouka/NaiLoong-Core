@@ -51,11 +51,19 @@ class RobWritebackInfo extends Bundle {
   val writeData    = UInt(32.W)
 }
 
-class  rtrBundle extends Bundle {
+class rtrBundle extends Bundle {
+  val pc   = UInt(32.W)
   val dest = UInt(5.W)
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)
 }
+
+class BrMisPredInfo extends Bundle {
+  val brMisPred = Valid(UInt(64.W))             // 分支预测错误信号
+  val brMisPredTarget = UInt(64.W)               // 分支预测错误目标地址
+  val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
+}
+
 // 提交接口
 class RobCommit extends Bundle {
   val commit = Vec(4, Valid(new rtrBundle))
@@ -75,10 +83,8 @@ class RobIO extends Bundle {
   // val commitData = Output(Vec(4, Valid(UInt(32.W))))       // 提交的数据
 
   // 分支预测错误接口
-  val brMisPred = Output(Valid(UInt(64.W)))                // 分支预测错误信号
-  val brMisPredTarget = Output(UInt(64.W))                 // 分支预测错误目标地址
-  val brMisPredChkpt = Output(UInt(RegConfig.CHECKPOINT_DEPTH.W)) // 分支预测错误检查点ID
-  
+  val brMisPredInfo = Output(new BrMisPredInfo)
+
   // 异常接口
   val exception = Output(Bool())                           // 异常信号
   val exceptionPC = Output(UInt(64.W))                     // 异常PC
@@ -157,11 +163,11 @@ class Rob extends Module {
     val commitIdx = ((head +& i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      !io.brMisPred.valid && !io.exception
+                      !io.brMisPredInfo.brMisPred.valid && !io.exception
     } else {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
                       canCommit(i-1) &&
-                      !io.brMisPred.valid && !io.exception
+                      !io.brMisPredInfo.brMisPred.valid && !io.exception
     }
   }
   
@@ -173,10 +179,10 @@ class Rob extends Module {
   io.exceptionPC := robEntries(head).pc
   io.exceptionInfo := robEntries(head).exceptionVec
   
-  io.brMisPred.valid := hasBrMispred
-  io.brMisPred.bits := robEntries(head).pc
-  io.brMisPredTarget := robEntries(head).brTarget
-  io.brMisPredChkpt := robEntries(head).checkpoint.id
+  io.brMisPredInfo.brMisPred.valid := hasBrMispred
+  io.brMisPredInfo.brMisPred.bits := robEntries(head).pc
+  io.brMisPredInfo.brMisPredTarget := robEntries(head).brTarget
+  io.brMisPredInfo.brMisPredChkpt := robEntries(head).checkpoint.id
   
   // 提交逻辑
   val commitNum = PopCount(canCommit)
@@ -196,6 +202,7 @@ class Rob extends Module {
     io.commit.commit(i).valid := canCommit(i) && !entry.rfWen && entry.rd =/= 0.U
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
+    io.commit.commit(i).bits.pc   := entry.pc
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
     io.commit.commit(i).bits.data := entry.result
