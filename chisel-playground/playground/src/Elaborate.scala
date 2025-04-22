@@ -1,5 +1,6 @@
 import core.DCacheConfig
 import core.GenCtrl
+
 object Elaborate extends App {
   val parser = new scopt.OptionParser[Config]("Elaborate") {
     opt[String]("target-dir")
