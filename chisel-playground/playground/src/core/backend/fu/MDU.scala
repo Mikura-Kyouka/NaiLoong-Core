@@ -64,4 +64,5 @@ class AlignedMDU extends Module{
   io.in.ready := mdu.io.in.ready
   io.out.valid := mdu.io.out.valid
   mdu.io.out.ready := io.out.ready
+  io.out.bits.redirect := DontCare
 } 

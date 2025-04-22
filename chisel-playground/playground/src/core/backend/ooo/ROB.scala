@@ -6,12 +6,13 @@ import chisel3.util._
 object RobConfig {
   val ROB_ENTRY_NUM = 64
   val ROB_INDEX_WIDTH = log2Ceil(ROB_ENTRY_NUM)
+  val ROB_WRITEBACK_NUM = 5
 }
 
 class RobEntry extends Bundle {
   val valid      = Bool()
   val finished   = Bool()
-  val pc         = UInt(64.W)
+  val pc         = UInt(32.W)
   val instr      = UInt(32.W)
   val exception  = Bool()
   val exceptionVec = UInt(16.W)
@@ -22,7 +23,7 @@ class RobEntry extends Bundle {
   val rfWen      = Bool()
   val isBranch   = Bool()
   val brMispredict = Bool()
-  val brTarget   = UInt(64.W)
+  val brTarget   = UInt(32.W)
   val fuType     = UInt(3.W)
   val result     = UInt(32.W) //FIXME
   val checkpoint = new Bundle {
@@ -47,7 +48,7 @@ class RobWritebackInfo extends Bundle {
   val exception    = Bool()
   val exceptionVec = UInt(16.W)
   val brMispredict = Bool()
-  val brTarget     = UInt(64.W)
+  val brTarget     = UInt(32.W)
   val writeData    = UInt(32.W)
 }
 
@@ -59,14 +60,14 @@ class rtrBundle extends Bundle {
 }
 
 class BrMisPredInfo extends Bundle {
-  val brMisPred = Valid(UInt(64.W))             // 分支预测错误信号
-  val brMisPredTarget = UInt(64.W)               // 分支预测错误目标地址
+  val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
+  val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
 }
 
 // 提交接口
 class RobCommit extends Bundle {
-  val commit = Vec(4, Valid(new rtrBundle))
+  val commit = Vec(5, Valid(new rtrBundle))
 }
 
 class RobIO extends Bundle {
@@ -78,16 +79,15 @@ class RobIO extends Bundle {
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
-  val commitPC = Output(Vec(4, Valid(UInt(64.W))))         // 提交的PC
-  val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
-  // val commitData = Output(Vec(4, Valid(UInt(32.W))))       // 提交的数据
+  val commitPC = Output(Vec(5, Valid(UInt(64.W))))         // 提交的PC
+  val commitInstr = Output(Vec(5, Valid(UInt(32.W))))      // 提交的指令
 
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
 
   // 异常接口
   val exception = Output(Bool())                           // 异常信号
-  val exceptionPC = Output(UInt(64.W))                     // 异常PC
+  val exceptionPC = Output(UInt(32.W))                     // 异常PC
   val exceptionInfo = Output(UInt(16.W))                   // 异常信息
   
   // 调试接口
@@ -144,7 +144,7 @@ class Rob extends Module {
   }
   
   // 指令完成逻辑
-  for (i <- 0 until 4) {
+  for (i <- 0 until 5) {
     when (io.writeback(i).valid) {
       val idx = io.writeback(i).bits.robIdx
       robEntries(idx).finished     := true.B
@@ -157,38 +157,71 @@ class Rob extends Module {
   }
   
   // 判断是否可以提交
-  val canCommit = Wire(Vec(4, Bool()))
-  for (i <- 0 until 4) {
+  val canCommit = Wire(Vec(5, Bool()))
+  val hasBrMispred = Wire(Vec(5, Bool()))
+  val hasException = Wire(Vec(5, Bool()))
+
+  for (i <- 0 until 5) {
     // FIXME: [W004] Dynamic index with width 7 is too wide for Vec of size 64 (expected index width 6).
-    val commitIdx = ((head +& i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
+    // Don't need +& for round queue?
+    val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
-      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      !io.brMisPredInfo.brMisPred.valid && !io.exception
+      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && !io.exception
     } else {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      canCommit(i-1) &&
-                      !io.brMisPredInfo.brMisPred.valid && !io.exception
+                      canCommit(i-1) && !io.exception
     }
+    hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).exception
+    hasBrMispred(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).brMispredict && !hasException(i)
   }
   
-  // 检查异常和分支预测错误
-  val hasException = robEntries(head).valid && robEntries(head).finished && robEntries(head).exception
-  val hasBrMispred = robEntries(head).valid && robEntries(head).finished && robEntries(head).brMispredict && !hasException
-  
-  io.exception := hasException
-  io.exceptionPC := robEntries(head).pc
-  io.exceptionInfo := robEntries(head).exceptionVec
-  
-  io.brMisPredInfo.brMisPred.valid := hasBrMispred
-  io.brMisPredInfo.brMisPred.bits := robEntries(head).pc
-  io.brMisPredInfo.brMisPredTarget := robEntries(head).brTarget
-  io.brMisPredInfo.brMisPredChkpt := robEntries(head).checkpoint.id
-  
+  // 判断在环形缓冲区中idx是否在start之后且在end之前
+  def isAfter(idx: UInt, start: UInt, end: UInt): Bool = {
+    val isAfterStart = Mux(
+      start <= end,
+      idx > start && idx < end,
+      idx > start || idx < end
+    )
+    isAfterStart
+  }
+
+  val exception = hasException.reduce(_ || _)
+  val exceptionIdx = PriorityEncoder(hasException)
+
+  val brMisPred = hasBrMispred.reduce(_ || _)
+  val brMisPredIdx = PriorityEncoder(hasBrMispred)
+
+  io.exception := exception
+  io.exceptionPC := robEntries(head + exceptionIdx).pc
+  io.exceptionInfo := robEntries(head + exceptionIdx).exceptionVec
+
+  io.brMisPredInfo.brMisPred.valid := brMisPred
+  io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
+  io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
+  io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
+
+  // 分支预测错误时，需要将tail回滚到head+1的位置
+  when (brMisPred) {
+    // 回滚ROB尾指针
+    tail := (head +& brMisPredIdx +& 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    // 清除所有在head之后的条目
+    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
+      val idx = i.U
+      when (isAfter(idx, head, tail)) {
+        robEntries(idx).valid := false.B
+      }
+    }
+  }
+
   // 提交逻辑
-  val commitNum = PopCount(canCommit)
-  
+  val commitNum = Mux(
+    exception || brMisPred,
+    brMisPredIdx + 1.U,
+    PopCount(canCommit)
+  )
+
   // 生成提交信息
-  for (i <- 0 until 4) {
+  for (i <- 0 until 5) {
     /* 
     +& 运算符与普通的 + 运算符不同。
     它执行加法运算时会扩展结果的位宽，以便包含加法中产生的进位。
@@ -198,8 +231,15 @@ class Rob extends Module {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
     val entry = robEntries(commitIdx)
     
+    // 在异常或分支预测错误情况下，只提交head位置的指令
+    val shouldCommit = Mux (
+      exception || brMisPred,
+      i.U <= brMisPredIdx && canCommit(brMisPredIdx),
+      canCommit(i)
+    )
+    
     // 物理寄存器回收信息
-    io.commit.commit(i).valid := canCommit(i) && !entry.rfWen && entry.rd =/= 0.U
+    io.commit.commit(i).valid := shouldCommit && !entry.rfWen && entry.rd =/= 0.U
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
     io.commit.commit(i).bits.pc   := entry.pc
@@ -208,31 +248,21 @@ class Rob extends Module {
     io.commit.commit(i).bits.data := entry.result
     
     // 提交PC信息
-    io.commitPC(i).valid := canCommit(i)
+    io.commitPC(i).valid := shouldCommit
     io.commitPC(i).bits := entry.pc
     
     // 提交指令信息
-    io.commitInstr(i).valid := canCommit(i)
+    io.commitInstr(i).valid := shouldCommit && !entry.rfWen 
     io.commitInstr(i).bits := entry.instr
     
-    // io.commitData(i).valid := canCommit(i)
-    // io.commitData(i).bits := entry.result
-
     // 清除已提交的条目
-    when (canCommit(i)) {
+    when (shouldCommit) {
       robEntries(commitIdx).valid := false.B
     }
   }
-  
+
   // 更新头指针
   when (commitNum > 0.U) {
     head := (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
   }
-  
-  // 调试接口
-  // io.debug.robHead := head
-  // io.debug.robTail := tail
-  // io.debug.robCount := count
-  // io.debug.full := full
-  // io.debug.empty := empty
 }

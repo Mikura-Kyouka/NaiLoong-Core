@@ -319,4 +319,6 @@ class AligendUnpipelinedLSU extends Module{
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid
   lsu.io.out.ready := io.out.ready
+
+  io.out.bits.redirect := DontCare
 } 

@@ -265,8 +265,8 @@ class Core extends Module {
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
-  If.io.flush := false.B
-  If.io.new_pc := 0.U
+  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid
+  If.io.new_pc := rob.io.brMisPredInfo.brMisPredTarget
 
   dontTouch(Rn.io.robAllocate)
 
@@ -298,6 +298,8 @@ class Core extends Module {
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
+    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid
+    rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
 
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid

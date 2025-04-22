@@ -5,6 +5,7 @@ import chisel3._
 import chisel3.util._ 
 
 import utils._
+import core.ALUOpType.add
 
 object ALUOpType {
   def add  = "b1000000".U
@@ -63,6 +64,7 @@ object ALUOpType {
 // }
 class ALUIO extends FunctionUnitIO {
   val cfIn = Flipped(new CtrlFlowIO)
+  val pc = Input(UInt(32.W))
   val redirect = new RedirectIO
   val offset = Input(UInt(32.W))
 }
@@ -110,22 +112,28 @@ class ALU extends Module {
   ) // note: here we only have 3 ALUOp as we use invert to expand them to 6(all)
 
   val isBranch = ALUOpType.isBranch(func)
-  val isBru = ALUOpType.isBru(func) //Branch Resolution 
-  val taken = LookupTree(ALUOpType.getBranchType(func), branchOpTable) ^ ALUOpType.isBranchInvert(func) // branch taken
+  val isBru = ALUOpType.isBru(func) //Branch Resolution
+  val taken = !LookupTree(ALUOpType.getBranchType(func), branchOpTable) ^ ALUOpType.isBranchInvert(func) // branch taken
   // if branch type, condition calculation takes over alu, we use another adder
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
-  val target = Mux(isBranch, io.cfIn.pc + io.offset, adderRes)
+  val what = io.pc + io.offset
+  dontTouch(what)
+  dontTouch(adderRes)
+  val target = Mux(isBranch, io.pc + io.offset, adderRes)
   // val predictWrong = Mux(!taken && isBranch, io.cfIn.brIdx(0), !io.cfIn.brIdx(0) || (io.redirect.target =/= io.cfIn.pnpc)) //是分支指令但是不跳转
   // TODO: Temperarily no branch prediction , we assume predictWrong is always true
   val predictWrong = true.B
-  io.redirect.target := Mux(!taken && isBranch, io.cfIn.pc + 4.U, target) // branch not taken, pc changes to snpc, else to target
+  dontTouch(target)
+  dontTouch(taken)
+  dontTouch(isBranch)
+  io.redirect.target := Mux(!taken && isBranch, io.pc + 4.U, target) // branch not taken, pc changes to snpc, else to target
   io.redirect.valid := valid && isBru && predictWrong
   // val redirectRtype = if (EnableOutOfOrderExec) 1.U else 0.U
   // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
   // actually for bl and jirl to write pc + 4 to rd 
   dontTouch(aluRes)
-  io.out.bits := Mux(isBru, io.cfIn.pc + 4.U, aluRes) // out only has a single 32-bit field
+  io.out.bits := Mux(isBru, io.pc + 4.U, aluRes) // out only has a single 32-bit field
   
   io.in.ready := io.out.ready
   io.out.valid := valid 
@@ -151,12 +159,12 @@ class FuOut extends Bundle {
   val pc     = Output(UInt(32.W))
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
+  val redirect = Output(new RedirectIO)
 }
 class AligendALU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
-    val redirect = Output(new RedirectIO)
   })
   
   dontTouch(io.in.bits)
@@ -165,10 +173,12 @@ class AligendALU extends Module{
   alu.io.in.bits.src1 := io.in.bits.src1
   alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   alu.io.in.bits.func := io.in.bits.ctrl.fuOpType
+  alu.io.offset       := io.in.bits.imm
+  alu.io.pc           := io.in.bits.pc
   io.out.bits.pc      := io.in.bits.pc
   io.out.bits.data    := alu.io.out.bits
   io.out.bits.robIdx  := io.in.bits.robIdx
-  io.redirect := alu.io.redirect
+  io.out.bits.redirect := alu.io.redirect
   
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready
