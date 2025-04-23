@@ -54,9 +54,9 @@ class IssueTop extends Module {
     }
   }
   for(i <- 0 until ISSUE_WIDTH) { // busyreg update
-    when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
-      busyreg(io.out(i).bits.preg) := true.B
-    }
+    // when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
+    //   busyreg(io.out(i).bits.preg) := true.B
+    // }
     // fu output update
     when(io.cmtInstr(i).valid) {
       busyreg(io.cmtInstr(i).bits) := false.B
