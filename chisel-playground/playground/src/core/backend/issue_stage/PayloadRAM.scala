@@ -9,8 +9,8 @@ class PayloadRAM extends Module {
     val write = Vec(4, new payloadram_write_info)
   })
 
-  val pram = Mem(PHYS_REG_NUM, UInt(32.W))
-  
+  val pram = Reg(Vec(PHYS_REG_NUM, UInt(32.W)))
+ 
   // read
   io.read(0).pram_data1 := pram(io.read(0).src1)
   io.read(0).pram_data2 := pram(io.read(0).src2)
