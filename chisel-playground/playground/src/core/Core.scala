@@ -281,9 +281,13 @@ class Core extends Module {
 
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
-  
-  //dontTouch(Ex.io.out)
 
+  for(i <- 0 until 4) {
+    Issue.io.rtrInstr(i).bits.data := rob.io.commit.commit(i).bits.data
+    Issue.io.rtrInstr(i).valid := rob.io.commitInstr(i).valid
+    Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
+  }
+  
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
   Ex.io.out(2).ready := true.B

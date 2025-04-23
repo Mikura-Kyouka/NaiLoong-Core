@@ -13,7 +13,7 @@ class IssueTop extends Module {
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     // val cmtInstr = Flipped(Valid(new commit_inst_info))
     val cmtInstr = Input(Vec(5, Valid(UInt(PHYS_REG_BITS.W))))// FIXME: 5 -> ISSUE_WIDTH
-    val rtrInstr = Flipped(Valid(new retire_inst_info))
+    val rtrInstr = Flipped(Vec(4,Valid(new retire_inst_info)))
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
@@ -71,9 +71,13 @@ class IssueTop extends Module {
   mdurs.io.pram_read <> payloadram.io.read(2)
   lsurs.io.pram_read <> payloadram.io.read(3)
   brurs.io.pram_read <> payloadram.io.read(4)
-  payloadram.io.write.dest := io.rtrInstr.bits.preg
-  payloadram.io.write.pram_data := io.rtrInstr.bits.data
-  payloadram.io.write.valid := io.rtrInstr.valid
+
+  for(i <- 0 until 4) {
+    payloadram.io.write(i).dest := io.rtrInstr(i).bits.preg
+    payloadram.io.write(i).pram_data := io.rtrInstr(i).bits.data
+    payloadram.io.write(i).valid := io.rtrInstr(i).valid
+  }
+
 
   if(GenCtrl.USE_DEBUG) {
     val alu1rs_debug = Module(new IssueDebug(1))
