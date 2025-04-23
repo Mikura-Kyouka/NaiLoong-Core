@@ -282,6 +282,11 @@ class Core extends Module {
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
   Issue.io.busy_info := Dispatch.io.busy_info
+  for(i <- 0 until 4) {
+    Issue.io.ex_bypass(i).valid := Ex.io.out(i).valid
+    Issue.io.ex_bypass(i).dest := Ex.io.in(i).bits.preg
+    Issue.io.ex_bypass(i).data := Ex.io.out(i).bits.data
+  }
 
   for(i <- 0 until 4) {
     Issue.io.rtrInstr(i).bits.data := rob.io.commit.commit(i).bits.data
