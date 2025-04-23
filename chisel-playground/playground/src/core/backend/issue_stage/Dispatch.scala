@@ -10,7 +10,14 @@ class Dispatch extends Module {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
     val out = Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info))
+    val busy_info = Output(Vec(4, new busy_info))
   })
+
+  // for busy reg
+  for (i <- 0 until 4) {
+    io.busy_info(i).valid := io.in.bits(i).valid
+    io.busy_info(i).preg := io.in.bits(i).preg
+  }
 
   for (q <- io.out) {
     q.bits.inst_cnt := 0.U
