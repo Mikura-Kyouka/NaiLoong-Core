@@ -10,7 +10,7 @@ object Elaborate extends App {
     ).reduce(_ + "," + _)
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
-    new core.Core(), 
+    new core.DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)), 
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",
