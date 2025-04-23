@@ -123,8 +123,16 @@ class RegRenaming extends Module {
     entry
   }))
 
-  val checkpointRAT = SyncReadMem(1 << RegConfig.CHECKPOINT_DEPTH, 
-    Vec(RegConfig.ARCH_REG_NUM, UInt(RegConfig.PHYS_REG_BITS.W)))
+  // Define a Vec type for the checkpoint RAT
+  val checkpointRATEntryType = Vec(RegConfig.ARCH_REG_NUM, new aliasTableEntry)
+  val checkpointRAT = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH) {
+    VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
+      val entry = Wire(new aliasTableEntry)
+      entry.inARF := true.B
+      entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
+      entry
+    })
+  }))
 
   // 物理寄存器空闲队列
   class FreeList extends Module {
@@ -268,7 +276,7 @@ class RegRenaming extends Module {
 
     // 检查点处理
     when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
-      checkpointRAT.write(input.checkpoint.id, VecInit(rat.map(_.robPointer)))
+      checkpointRAT(input.checkpoint.id) := rat
     }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
@@ -311,11 +319,12 @@ class RegRenaming extends Module {
   // 分支预测错误回滚
   when(io.brMispredict.brMisPred.valid) {
     val checkpoint_id = io.brMispredict.brMisPredChkpt
-    val snapshot = checkpointRAT.read(checkpoint_id)
-    for (i <- 0 until RegConfig.ARCH_REG_NUM) {
-      rat(i).inARF := false.B
-      rat(i).robPointer := snapshot(i)
-    }
+    val snapshot = checkpointRAT(checkpoint_id)
+    rat := snapshot
+    // for (i <- 0 until RegConfig.ARCH_REG_NUM) {
+    //   rat(i).inARF := false.B
+    //   rat(i).robPointer := snapshot(i)
+    // }
   }
 
 }

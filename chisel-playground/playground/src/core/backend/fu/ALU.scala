@@ -170,8 +170,8 @@ class AligendALU extends Module{
   dontTouch(io.in.bits)
   val alu = Module(new ALU)
   alu.io := DontCare
-  alu.io.in.bits.src1 := io.in.bits.src1
-  alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  alu.io.in.bits.src1 := io.in.bits.dataj
+  alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.datak)
   alu.io.in.bits.func := io.in.bits.ctrl.fuOpType
   alu.io.offset       := io.in.bits.imm
   alu.io.pc           := io.in.bits.pc

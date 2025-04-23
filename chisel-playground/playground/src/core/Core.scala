@@ -150,8 +150,6 @@ class Core extends Module {
   io.ws_valid := If.io.ws_valid
   io.rf_rdata := If.io.rf_rdata
 
-  If.io.to.ready := true.B
-
   // If.io.intrpt := io.intrpt
 
   // io.arid := If.io.arid
