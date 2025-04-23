@@ -67,7 +67,7 @@ class BrMisPredInfo extends Bundle {
 
 // 提交接口
 class RobCommit extends Bundle {
-  val commit = Vec(5, Valid(new rtrBundle))
+  val commit = Vec(4, Valid(new rtrBundle))
 }
 
 class RobIO extends Bundle {
@@ -79,8 +79,8 @@ class RobIO extends Bundle {
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
-  val commitPC = Output(Vec(5, Valid(UInt(32.W))))         // 提交的PC
-  val commitInstr = Output(Vec(5, Valid(UInt(32.W))))      // 提交的指令
+  val commitPC = Output(Vec(4, Valid(UInt(32.W))))         // 提交的PC
+  val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
 
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
@@ -157,11 +157,11 @@ class Rob extends Module {
   }
   
   // 判断是否可以提交
-  val canCommit = Wire(Vec(5, Bool()))
-  val hasBrMispred = Wire(Vec(5, Bool()))
-  val hasException = Wire(Vec(5, Bool()))
+  val canCommit = Wire(Vec(4, Bool()))
+  val hasBrMispred = Wire(Vec(4, Bool()))
+  val hasException = Wire(Vec(4, Bool()))
 
-  for (i <- 0 until 5) {
+  for (i <- 0 until 4) {
     // FIXME: [W004] Dynamic index with width 7 is too wide for Vec of size 64 (expected index width 6).
     // Don't need +& for round queue?
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
@@ -221,7 +221,7 @@ class Rob extends Module {
   )
 
   // 生成提交信息
-  for (i <- 0 until 5) {
+  for (i <- 0 until 4) {
     /* 
     +& 运算符与普通的 + 运算符不同。
     它执行加法运算时会扩展结果的位宽，以便包含加法中产生的进位。

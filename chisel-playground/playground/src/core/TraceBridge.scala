@@ -11,8 +11,8 @@ class TraceItem extends Bundle {
 }
 
 class TraceBridgeIO extends Bundle {
-  val in_valids  = Input(Vec(5, Bool()))
-  val in_items   = Input(Vec(5, new TraceItem))
+  val in_valids  = Input(Vec(4, Bool()))
+  val in_items   = Input(Vec(4, new TraceItem))
   
   // 输出给trace比对模块
   val out_valid  = Output(Bool())
@@ -24,8 +24,8 @@ class TraceBridge extends Module {
   val io = IO(new TraceBridgeIO)
   
   // 每个写回一路 FIFO
-  val perItemFifo = Seq.fill(5)(Module(new Queue(new TraceItem, 8)))
-  for (i <- 0 until 5) {
+  val perItemFifo = Seq.fill(4)(Module(new Queue(new TraceItem, 8)))
+  for (i <- 0 until 4) {
     perItemFifo(i).io.enq.valid := io.in_valids(i)
     perItemFifo(i).io.enq.bits := io.in_items(i)
   }
@@ -41,11 +41,11 @@ class TraceBridge extends Module {
   io.out_valid := current_valid
   io.out_item := current_item
   
-  for (i <- 0 until 5) {
+  for (i <- 0 until 4) {
     perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_valid
   }
   
   when (io.out_ready && io.out_valid) {
-    roundRobinCounter := Mux(roundRobinCounter === 4.U, 0.U, roundRobinCounter + 1.U)
+    roundRobinCounter := Mux(roundRobinCounter === 3.U, 0.U, roundRobinCounter + 1.U)
   }
 }

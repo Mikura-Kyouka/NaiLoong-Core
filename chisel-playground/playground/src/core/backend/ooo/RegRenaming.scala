@@ -299,7 +299,7 @@ class RegRenaming extends Module {
   }
 
   // retire 
-  for(i <- 0 until 5) {
+  for(i <- 0 until 4) {
     when(io.rob.commit(i).valid) {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
