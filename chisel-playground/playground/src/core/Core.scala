@@ -281,6 +281,7 @@ class Core extends Module {
 
   Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
+  Issue.io.busy_info := Dispatch.io.busy_info
   
   //dontTouch(Ex.io.out)
 

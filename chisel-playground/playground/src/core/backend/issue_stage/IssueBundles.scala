@@ -67,3 +67,8 @@ class payloadram_write_info extends Bundle {
   val pram_data = Input(UInt(32.W))
   val valid = Input(Bool())
 }
+
+class busy_info extends Bundle {
+  val preg = UInt(PHYS_REG_BITS.W)
+  val valid = Bool()
+}

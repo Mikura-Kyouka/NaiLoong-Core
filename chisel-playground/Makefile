@@ -9,6 +9,7 @@ verilog:
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 
 chiplab:
+	-rm -rf $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 	find $(CHIPLAB_HOME)/IP/myCPU/ -type f ! -name 'core_top.v' -delete

@@ -14,6 +14,8 @@ class IssueTop extends Module {
     // val cmtInstr = Flipped(Valid(new commit_inst_info))
     val cmtInstr = Input(Vec(5, Valid(UInt(PHYS_REG_BITS.W))))// FIXME: 5 -> ISSUE_WIDTH
     val rtrInstr = Flipped(Valid(new retire_inst_info))
+
+    val busy_info = Input(Vec(4, new busy_info))
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
@@ -47,10 +49,15 @@ class IssueTop extends Module {
 
   // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
-  for(i <- 0 until ISSUE_WIDTH) { // busyreg update
-    when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
-      busyreg(io.out(i).bits.preg) := true.B
+  for(i <- 0 until 4) {
+    when(io.in(i).valid && io.in(i).ready && io.busy_info(i).valid && io.busy_info(i).preg =/= 0.U) {
+      busyreg(io.busy_info(i).preg) := true.B
     }
+  }
+  for(i <- 0 until ISSUE_WIDTH) { // busyreg update
+    // when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
+    //   busyreg(io.out(i).bits.preg) := true.B
+    // }
     // fu output update
     when(io.cmtInstr(i).valid) {
       busyreg(io.cmtInstr(i).bits) := false.B
