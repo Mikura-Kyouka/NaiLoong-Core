@@ -94,270 +94,75 @@ class LSUIO extends FunctionUnitIO {
   val isMMIO = Output(Bool())
 }
 
-// class LSU extends Module with HasLSUConst{
-//   val io = IO(new LSUIO)
-//   val (valid, src1, src2, func) = (io.in.valid, io.in.bits.src1, io.in.bits.src2, io.in.bits.func)
-//   def access(valid: Bool, src1: UInt, src2: UInt, func: UInt, dtlbPF: Bool): UInt = {
-//     io.in.valid := valid
-//     io.in.bits.src1 := src1
-//     io.in.bits.src2 := src2
-//     io.in.bits.func := func
-//     io.out.bits
-//   }
+class UnpipeLSUIO extends FunctionUnitIO {
+  val wdata = Input(UInt(32.W))
+  val dmem = new AXI
+  val robRetire = Input(Bool()) // Store insts
+  val complete = Output(Bool()) // tell ROB to commit inst
+  val isMMIO = Output(Bool())
+  val dtlbPF = Output(Bool()) // TODO: refactor it for new backend
+  val loadAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
+  val storeAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
+}
 
-//   val dmem = io.axi
-//   // Gen result
-//   val dmemUserOut = dmem.resp.bits.dat
-//   val moqidxResp = dmemUserOut.moqidx
-//   val moqidxResp = dmem.req
-
-//   // Decode
-//   val instr    = io.uopIn.decode.cf.instr
-//   val storeReq = valid & LSUOpType.isStore(func)
-//   val loadReq  = valid & LSUOpType.isLoad(func)
-//   val llReq = valid & LSUOpType.isLL(func)
-//   val scReq = valid && LSUOpType.isSC(func)
-
-//   // Atom LL/SC Control Bits
-//   val llAddr = WireInit(UInt(32.W), DontCare)
-//   val scInvalid = !(src1 === llAddr) && scReq
-
-//   // PF signal from TLB
-//   val dtlbPF = WireInit(false.B)
-
-//   val addr = src1 + src2
-//   val data = io.uopIn.decode.data.src2
-//   val size = func(1, 0)
-//   val memop = Wire(UInt(5.W))
-//   memop := Cat(
-//     false.B, // commitToTLB
-//     false.B, // commitToSTQ
-//     io.in.valid, // commitToCDB
-//     storeReq || (scReq && !scInvalid), // needStore 
-//     loadReq || llReq // needLoad
-//   )
-
-//   // L/S Queue
-
-//   val storeQueueEnqueue = Wire(Bool())
-
-//   //                           Memory reOrder Queue
-//   // ---------------------------------------------------------------------------
-//   // |   not used   |   waittlb    |   waitmem    |   dmemreq   |   not used   |
-//   // ---------------------------------------------------------------------------
-//   //                |              |              |             |
-//   //              head            tlb            mem           tail
-
-//   val moq = RegInit(VecInit(Seq.fill(moqSize)(0.U.asTypeOf(new moqEntry))))
-//   val moqHeadPtr = RegInit(0.U((log2Up(moqSize)).W))
-//   val moqDtlbPtr = RegInit(0.U((log2Up(moqSize)).W))
-//   val moqDmemPtr = RegInit(0.U((log2Up(moqSize)).W))
-//   val moqTailPtr = RegInit(0.U((log2Up(moqSize)).W))
-//   val moqFull = moqHeadPtr === (moqTailPtr - 1.U) // circular queue
-//   val moqEmpty = moqHeadPtr === moqTailPtr 
-//   val havePendingDtlbReq = moqDtlbPtr =/= moqHeadPtr
-//   val havePendingDmemReq = MEMOpID.needLoad(moq(moqDmemPtr).op) && !moq(moqDmemPtr).loadPageFault && !moq(moqDmemPtr).storePageFault && !moq(moqDmemPtr).loadAddrMisaligned && !moq(moqDmemPtr).storeAddrMisaligned && !moq(moqDmemPtr).finished && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
-//   val havePendingStoreEnq = MEMOpID.needStore(moq(moqDmemPtr).op) && !MEMOpID.needAlu(moq(moqDmemPtr).op) && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
-//   val writebackSelect = Wire(UInt((log2Up(moqSize)).W))
-//   writebackSelect := Mux(haveLoadResp, moqidx)  
-
-//   // load queue enqueue
-//   val moqEnqeue = io.in.fire
-//   when(moqEnqeue){ moqHeadPtr := moqHeadPtr + 1.U }
-//   // move moqDtlbPtr
-//   val dtlbReqSend = io.dtlb.req.fire // || (!dtlbEnable && moqEnque)
-//   when(dtlbReqSend){ moqDtlbPtr := moqDtlbPtr + 1.U }
-//   // move moqDmemPtr
-//   val arFire = dmem.arvalid && dmem.arready
-//   val wFire = (dmem.awvalid && dmem.awready) && (dmem.wvalid && dmem.wready)
-//   val moqReqsend = arFire || wFire
-//   val nextmoqDmemPtr = WireInit(moqDmemPtr)
-//   when(moqReqsend || storeQueueEnqueue){
-//     nextmoqDmemPtr := moqDmemPtr + 1.U
-//   }
-//   moqDmemPtr := nextmoqDmemPtr
-
-//   // load queue dequeue
-//   when(io.out.fire){
-//     moq(writebackSelect).valid := false.B // TODO: writebackselect
-//     moq(writebackSelect).finished := true.B
-//   }
-
-//   when((moqTailPtr =/= moqDmemPtr) && !moq(moqTailPtr).valid && ){
-//     moqTailPtr := moqTailPtr + 1.U
-//     moq(moqTailPtr).valid := false.B
-//     moq(moqTailPtr).finished := false.B
-//   }
-//   // when branch, invalidate insts in wrong branch prediction
-//   List.tabulate(moqSize){i => 
-//     when(io.uopIn.decode.cf.pc =/= moq(i).pc){
-//       moq(i).valid := false.B
-//     }
-//   }
-
-
-//   // write data to moq 
-
-//   when(moqEnqeue){
-//     moq(moqHeadPtr).pc := io.uopIn.decode.cf.pc
-//     moq(moqHeadPtr).func := func
-//     moq(moqHeadPtr).size := size
-//     moq(moqHeadPtr).op := memop
-//     moq(moqHeadPtr).data := genWdata(io.wdata, size)
-//   }
-
-//   when(storeQueueEnque){
-//     moq(moqDmemPtr).finished := true.B
-//     // store inst does not need to access mem until it is commited
-//   }
-
-//   //                               Store Queue
-//   //              ------------------------------------------------------------
-//   // ---> Enqueue |   not used   |   commited   |   retiring   |   retired   |  --> Dequeue
-//   //              ------------------------------------------------------------
-//   //                             |              |              |
-//   //                            head           cmt            req
-//   val storeQueue = Reg(Vec(storeQueueSize, new StoreQueueEntry))
-//   // Store Queue 
-//   val storeHeadPtr    = RegInit(0.U((log2Up(storeQueueSize)+1).W))
-//   val storeCmtPtr     = RegInit(0.U((log2Up(storeQueueSize)+1).W))
-//   val nextStoreCmtPtr = Wire(UInt((log2Up(storeQueueSize)+1).W))
-//   val haveUnconfirmedStore = storeHeadPtr =/= storeCmtPtr
-//   val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid
-//   val haveUnfinishedStore = 0.U =/= storeHeadPtr
-//   val storeQueueFull = storeHeadPtr === storeQueueSize.U
-//   io.haveUnfinishedStore := haveUnfinishedStore
-
-//   // write data to store queue
-
-//   //-------------------------------------------------------
-//   // Load / Store Pipeline
-//   //-------------------------------------------------------
-
-//   //-------------------------------------------------------
-//   // LSU Stage 1: enqueue
-//   // Generate addr, add uop to ls queue
-//   //-------------------------------------------------------
-
-//   //-------------------------------------------------------
-//   // LSU Stage 2,3,4,5: mem req
-//   // Send request to TLB/Cache, and wait for response
-//   //-------------------------------------------------------
-
-//   //-------------------------------------------------------
-//   // DTLB Access
-//   //-------------------------------------------------------
-//   // Send request to dtlb
-//   when(io.dtlb.resp.fire){
-    
-//   }
-
-
-//   //-------------------------------------------------------
-//   // Mem Req
-//   //-------------------------------------------------------
-
-//   val loadDMemReq  = Wire()
-//   val storeDMemReq = Wire()
-//   val noDmemReq   = Wire()
-
-//   val storeReadygo = storeDMemReq.valid && (!storeM)
-//   val loadReadygo = loadDMemReq.valid && !storeQueueFull
+class UnpipelinedLSU extends Module with HasLSUConst {
+  val io = IO(new UnpipeLSUIO)
+  io := DontCare
+  val dcache = Module(new DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)))
+  dcache.io.axi <> io.dmem
+  dcache.io.req.valid := io.in.valid
+  dcache.io.req.bits.addr := io.in.bits.src1 + io.in.bits.src2
+  dcache.io.req.bits.wdata := io.wdata
+  dcache.io.req.bits.wmask := MuxLookup(io.in.bits.func(1, 0), 0.U)(
+    List(
+    "b00".U -> "b0001".U,
+    "b01".U -> "b0011".U,
+    "b10".U -> "b1111".U
+    )
+  )
+  dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
   
-//   val memReq = Mux1H(List(
-//     loadReadygo -> loadDMemReq,
-//     storeReadygo -> storeDMemReq,
-//     noDmemReq -> noMemReq
-//   ))
+  io.out.valid := dcache.io.resp.valid
+  io.out.bits := dcache.io.resp.bits.rdata
 
-//   // Send request to dmem
+  io.in.ready := dcache.io.req.ready
+}
 
-//   def genWmask(size: UInt): UInt = {
-//     LookupTree(sizeEncode, List(
-//       0.U -> "b0001".U,
-//       1.U -> "b0011".U,
-//       2.U -> "b1111".U
-//     )) << addr(1, 0)
-//   }
+class AligendUnpipelinedLSU extends Module{
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
+    val out = Decoupled(new FuOut)
+    val lsAXI = new AXI
+    val robCommit = Input(new RobCommit)
+  })
+  val lsu = Module(new UnpipelinedLSU)
 
-//   //-------------------------------------------------------
-//   // Mem Resp
-//   //-------------------------------------------------------
+  // load
+  io.out.valid := lsu.io.complete
 
-//   val lsuMMIO = WireInit(false.B)
+  // store
+  val commitIdx = io.robCommit.commit.map(_.valid)
+  val commitDatas = io.robCommit.commit.map(_.bits)
+  lsu.io.robRetire := commitIdx.reduce(_ || _)
+  lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
 
-//   // Store addr forward match
-//   // if match, get data from store queue, and mark that inst as resped
-//   val dataBackVec = Wire(Vec(4, UInt(32.W)))
-//   val dataBack = dataBackVec.asUInt
-//   val forwardVec = VecInit(List.tabulate(storeQueueSize){i => {
-//     i.U < storeHeadPtr && dmem.araddr(31, 2) === storeQueue(i).paddr(31, 2) && storeQueue(i).valid
-//   }})
-//   val forwardWmask = List.tabulate(storeQueueSize)(i => storeQueue(i).wmask & Fill(4, forwardVec(i))).foldRight(0.U)((sum, i) => sum | i) // 用于从右到左地对集合中的元素进行递归处理
-//   for(j <- 0 to 3){
-//     dataBackVec(j) := MuxCase(
-//       default = 0.U,
-//       mapping = List.tabulate(storeQueueSize)(i =>{
-//         (forwardVec(i) -> storeQueue(i).wmask(j), storeQueue(i).data(8*(j+1)-1, 8*j))
-//       }).reverse
-//     )
-//   }
-//   // store addr backward match
+  lsu.io.dmem <> io.lsAXI
+  lsu.io.dtlbPF := DontCare
+  lsu.io.isMMIO := DontCare
+
+  lsu.io.loadAddrMisaligned := DontCare
+  lsu.io.storeAddrMisaligned := DontCare
+
+  lsu.io.in.bits.src1 := io.in.bits.src1
+  lsu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  lsu.io.in.bits.func := io.in.bits.ctrl.fuOpType
+  io.out.bits.pc := io.in.bits.pc
+  io.out.bits.data := lsu.io.out.bits
+  io.out.bits.robIdx := io.in.bits.robIdx
   
-//   // write back to load queue
-//   when(dmem.rvalid && dmem.rready && MEMOpID.needLoad(opReg)){
-//     moq(moqDmemPtr).fdata := dataBack
-//     moq(moqDmemPtr).fmask := forwardWmask
-//   }
+  lsu.io.in.valid := io.in.valid
+  io.in.ready := lsu.io.in.ready
+  io.out.valid := lsu.io.out.valid
+  lsu.io.out.ready := io.out.ready
+} 
 
-//   when(dmem.rvalid && dmem.rready){
-//     when(MEMOpID.commitToCDB(opResp)){
-//       when(MEMOpID.needLoad(opResp)){moq(moqidxResp).data := rdataFwdSel}    
-//       moq(moqidxResp).finished := true.B
-//     }
-//   }
-//   //-------------------------------------------------------
-//   // LSU Stage 4: Atom and CDB broadcast
-//   // Atom ALU gets data and writes its result to temp reg
-//   //-------------------------------------------------------
-
-
-
-//   val rdataFwdSelVec = Wire(Vec(4, (UInt((4).W)))) // XLEN/8
-//   val rdataFwdSel = rdataFwdSelVec.asUInt
-//   for(j <- (0 until 4)){
-//     //rdataFwdSelVec(j) := Mux() //TODO
-//   }
-//   val rdata = rdataFwdSel
-//   val rdataSel = rdata
-//   val rdataPartialLoad = LookupTree(moq(moqidxResp), List(
-//       LSUOpType.lb   -> SignExt(rdataSel(7, 0) , 32),
-//       LSUOpType.lh   -> SignExt(rdataSel(15, 0), 32),
-//       LSUOpType.lw   -> SignExt(rdataSel(31, 0), 32),
-//       LSUOpType.lbu  -> ZeroExt(rdataSel(7, 0) , 32),
-//       LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), 32),
-//   ))
-//   // Commit to CDB
-//   io.out.bits := MuxCase(
-//     default = rdataPartialLoad, // TODO: exception atom 
-//     mapping = List(
-//       (moq(writebackSelect).loadPageFault || moq(writebackSelect).storePageFault || moq(writebackSelect).loadAddrMisaligned || moq(writebackSelect).storeAddrMisaligned) -> moq(writebackSelect).vaddr,
-//       LSUOpType.isSC(moq(writebackSelect).func) -> !MEMOpID.needStore(moq(writebackSelect).op),
-//     )
-//   )
-
-//   io.uopOut := DontCare
-//   io.isMMIO := moq(writebackSelect).isMMIO
-//   io.in.ready := !moqFull 
-//   io.out.valid := havePendingCDBCmt || haveLoadResp
-//   // assert(!(io.out.valid && !io.out.ready)) // assert(!io.out.valid || io.out.ready)
-
-//   when(io.flush){
-//     moqHeadPtr := nextmoqDmemPtr // Head <- nextDmem
-//     moqDtlbPtr := nextmoqDmemPtr // Dtlb <- nextDmem
-//     for(i <- 0 until moqSize){
-//       moq(i).valid := false.B
-//       moq(i).tlbin := false.B
-//     }
-//   }
-// }

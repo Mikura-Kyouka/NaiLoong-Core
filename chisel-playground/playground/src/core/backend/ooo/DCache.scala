@@ -84,7 +84,7 @@ sealed class DataBundle(implicit val cacheConfig: DCacheConfig)
 
 class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val io = IO(new Bundle{
-        val req = Flipped(Valid(new reqBundle))
+        val req = Flipped(Decoupled(new reqBundle))
         val resp = Valid(new respBundle)
         val axi = new AXI
     })
@@ -121,6 +121,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
+    io.req.ready := state === s_idle
     io.resp.valid := false.B
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
