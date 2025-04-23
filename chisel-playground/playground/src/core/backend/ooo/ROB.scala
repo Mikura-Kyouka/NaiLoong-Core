@@ -79,7 +79,7 @@ class RobIO extends Bundle {
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
-  val commitPC = Output(Vec(5, Valid(UInt(64.W))))         // 提交的PC
+  val commitPC = Output(Vec(5, Valid(UInt(32.W))))         // 提交的PC
   val commitInstr = Output(Vec(5, Valid(UInt(32.W))))      // 提交的指令
 
   // 分支预测错误接口
@@ -252,7 +252,7 @@ class Rob extends Module {
     io.commitPC(i).bits := entry.pc
     
     // 提交指令信息
-    io.commitInstr(i).valid := shouldCommit && !entry.rfWen 
+    io.commitInstr(i).valid := shouldCommit
     io.commitInstr(i).bits := entry.instr
     
     // 清除已提交的条目

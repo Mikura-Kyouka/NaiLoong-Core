@@ -3,5 +3,5 @@ import chisel3._
 
 object GenCtrl {
   var USE_DIFF = true
-  def USE_DEBUG = true
+  def USE_DEBUG = false
 }
