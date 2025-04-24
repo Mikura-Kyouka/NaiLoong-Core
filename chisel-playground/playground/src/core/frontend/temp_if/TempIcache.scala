@@ -76,10 +76,17 @@ class TempIcache extends Module {
   dontTouch(hit2)
   dontTouch(hit3)
 
+  val cnt = RegInit(0.U(3.W))
+  when(io.valid && io.ready) {
+    cnt := 0.U
+  }.elsewhen(cnt < 3.U) {
+    cnt := cnt + 1.U
+  }
+
   io.valid := (hit0 || raddr0 < read_pc) && 
               (hit1 || raddr1 < read_pc) && 
               (hit2 || raddr2 < read_pc) && 
-              (hit3 || raddr3 < read_pc)
+              (hit3 || raddr3 < read_pc) && cnt === 3.U
 
   io.inst0.pc := raddr0
   io.inst0.inst := cache(index).data(0)

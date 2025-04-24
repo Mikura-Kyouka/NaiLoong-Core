@@ -299,6 +299,7 @@ class Core extends Module {
   Ex.io.out(4).ready := true.B
   
   // FIXME: ROB need 5 writeback channel
+  dontTouch(Ex.io.out)
   for(i <- 0 until 5) {
     // rob entry <complete flag> update
     rob.io.writeback(i) := DontCare
