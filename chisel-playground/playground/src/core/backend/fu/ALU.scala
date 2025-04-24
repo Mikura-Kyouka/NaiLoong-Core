@@ -113,7 +113,17 @@ class ALU extends Module {
 
   val isBranch = ALUOpType.isBranch(func)
   val isBru = ALUOpType.isBru(func) //Branch Resolution
-  val taken = !LookupTree(ALUOpType.getBranchType(func), branchOpTable) ^ ALUOpType.isBranchInvert(func) // branch taken
+
+  // object LookupTree {
+  // def apply[T <: Data](key: UInt, mapping: Iterable[(UInt, T)]): T =
+  //   Mux1H(mapping.map(p => (p._1 === key, p._2)))
+  // }
+  
+  val branchType = ALUOpType.getBranchType(func)
+  dontTouch(branchType)
+  val taken = LookupTree(ALUOpType.getBranchType(func), branchOpTable) || 
+              (ALUOpType.isBranchInvert(func) && !LookupTree(ALUOpType.getBranchType(func), branchOpTable)) // branch taken
+
   // if branch type, condition calculation takes over alu, we use another adder
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
   val what = io.pc + io.offset

@@ -166,7 +166,9 @@ class Rob extends Module {
     // Don't need +& for round queue?
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
-      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && !io.exception
+      val preHasCommit = !robEntries(commitIdx - 1.U).valid
+      canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
+                      preHasCommit && !io.exception
     } else {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
                       canCommit(i-1) && !io.exception
@@ -200,25 +202,22 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
 
-  // 分支预测错误时，需要将tail回滚到head+1的位置
+  // 分支预测错误时，需要将tail回滚到head+x的位置
   when (brMisPred) {
     // 回滚ROB尾指针
+    printf("ROB: Rollback tail from %d to %d\n", tail, head +& brMisPredIdx +& 1.U)
     tail := (head +& brMisPredIdx +& 1.U) % RobConfig.ROB_ENTRY_NUM.U
-    // 清除所有在head之后的条目
+    // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
       val idx = i.U
       when (isAfter(idx, head, tail)) {
+        printf("ROB: Clear entry %d\n", idx)
         robEntries(idx).valid := false.B
       }
     }
   }
 
   // 提交逻辑
-  val commitNum = Mux(
-    exception || brMisPred,
-    brMisPredIdx + 1.U,
-    PopCount(canCommit)
-  )
 
   // 生成提交信息
   for (i <- 0 until 4) {
@@ -260,6 +259,8 @@ class Rob extends Module {
       robEntries(commitIdx).valid := false.B
     }
   }
+
+  val commitNum = PopCount(io.commitInstr.map(_.valid))
 
   // 更新头指针
   when (commitNum > 0.U) {
