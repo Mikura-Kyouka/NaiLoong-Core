@@ -41,8 +41,13 @@ class Decoder extends Module {
         def apply() = UInt(1.W)
     }
     */
+    
     io.out.bits.ctrl.rfSrc1 := rfSrc1
-    io.out.bits.ctrl.rfSrc2 := rfSrc2
+    when (srcIsRd === SrcIsRd.y) (
+        io.out.bits.ctrl.rfSrc2 := rd
+    ).otherwise (
+        io.out.bits.ctrl.rfSrc2 := rfSrc2
+    )
 
     io.out.bits.ctrl.rfWen := rfWen 
     io.out.bits.ctrl.rfDest := rfDest

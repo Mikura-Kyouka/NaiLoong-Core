@@ -38,8 +38,8 @@ object ALUOpType {
   def isBru(func: UInt) = func(4)
   def isBranch(func: UInt) = !func(3)
   def isJump(func: UInt) = isBru(func) && !isBranch(func)
-  def getBranchType(func: UInt) = func(2, 1)
-  def isBranchInvert(func: UInt) = func(0)
+  def getBranchType(func: UInt) = func(2, 0)
+  // def isBranchInvert(func: UInt) = func(0)
 }
 
 // class FunctionUnitIO extends Bundle {
@@ -108,21 +108,21 @@ class ALU extends Module {
   val branchOpTable = List(
     ALUOpType.getBranchType(ALUOpType.beq)  -> !xorRes.orR, // .orR:所有位都是0,返回false
     ALUOpType.getBranchType(ALUOpType.blt)  -> slt, 
-    ALUOpType.getBranchType(ALUOpType.bltu) -> sltu
+    ALUOpType.getBranchType(ALUOpType.bltu) -> sltu,
+    ALUOpType.getBranchType(ALUOpType.bne)  -> xorRes.orR,
+    ALUOpType.getBranchType(ALUOpType.bge)  -> !slt,
+    ALUOpType.getBranchType(ALUOpType.bgeu) -> !sltu,
   ) // note: here we only have 3 ALUOp as we use invert to expand them to 6(all)
 
   val isBranch = ALUOpType.isBranch(func)
   val isBru = ALUOpType.isBru(func) //Branch Resolution
 
-  // object LookupTree {
-  // def apply[T <: Data](key: UInt, mapping: Iterable[(UInt, T)]): T =
-  //   Mux1H(mapping.map(p => (p._1 === key, p._2)))
-  // }
-  
-  val branchType = ALUOpType.getBranchType(func)
-  dontTouch(branchType)
-  val taken = LookupTree(ALUOpType.getBranchType(func), branchOpTable) || 
-              (ALUOpType.isBranchInvert(func) && !LookupTree(ALUOpType.getBranchType(func), branchOpTable)) // branch taken
+  val debug1 = LookupTree(ALUOpType.getBranchType(func), branchOpTable)
+  val debug2 = ALUOpType.getBranchType(func)
+  dontTouch(debug1)
+  dontTouch(debug2)
+
+  val taken = ALUOpType.isBranch(func) && LookupTree(ALUOpType.getBranchType(func), branchOpTable)  // branch taken
 
   // if branch type, condition calculation takes over alu, we use another adder
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
@@ -137,7 +137,8 @@ class ALU extends Module {
   dontTouch(taken)
   dontTouch(isBranch)
   io.redirect.target := Mux(!taken && isBranch, io.pc + 4.U, target) // branch not taken, pc changes to snpc, else to target
-  io.redirect.valid := valid && isBru && predictWrong
+  // io.redirect.valid := valid && isBru && predictWrong
+  io.redirect.valid := taken && isBru
   // val redirectRtype = if (EnableOutOfOrderExec) 1.U else 0.U
   // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
