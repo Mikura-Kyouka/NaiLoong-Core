@@ -6,7 +6,7 @@ import IssueConfig._
 class PayloadRAM extends Module {
   val io = IO(new Bundle {
     val read = Vec(ISSUE_WIDTH, new payloadram_read_info)
-    val write = Vec(4, new payloadram_write_info)
+    val write = Vec(5, new payloadram_write_info)
   })
 
   val pram = Reg(Vec(PHYS_REG_NUM, UInt(32.W)))
@@ -24,7 +24,7 @@ class PayloadRAM extends Module {
   io.read(4).pram_data2 := pram(io.read(4).src2)
 
   // write
-  for(i <- 0 until 4) {
+  for(i <- 0 until 5) {
     when(io.write(i).valid) {
       pram(io.write(i).dest) := io.write(i).pram_data
     }

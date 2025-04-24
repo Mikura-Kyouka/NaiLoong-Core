@@ -41,7 +41,7 @@ class Decoder extends Module {
         def apply() = UInt(1.W)
     }
     */
-    
+
     io.out.bits.ctrl.rfSrc1 := rfSrc1
     when (srcIsRd === SrcIsRd.y) (
         io.out.bits.ctrl.rfSrc2 := rd
@@ -80,7 +80,12 @@ class Decoder extends Module {
     io.out.bits.cf <> io.in.bits
     
     // 检查点ID赋值（这样能保证唯一性吗？）
-    io.out.bits.cf.runahead_checkpoint_id := (io.in.bits.instr ^ io.in.bits.pc(15,0)).asUInt
+    val seed = WireInit(UInt(16.W), 1234567.U)
+    val preSeed = RegNext(seed)
+    when (io.out.bits.ctrl.fuType === FuType.bru) {
+        seed := preSeed + 1.U
+    }
+    io.out.bits.cf.runahead_checkpoint_id := seed
 
     //excp_ine 
 }

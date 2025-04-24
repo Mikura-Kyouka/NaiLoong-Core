@@ -15,7 +15,7 @@ class IssueTop extends Module {
     val cmtInstr = Input(Vec(5, Valid(UInt(PHYS_REG_BITS.W))))// FIXME: 5 -> ISSUE_WIDTH
     val rtrInstr = Flipped(Vec(4,Valid(new retire_inst_info)))
     val busy_info = Input(Vec(5, new busy_info))
-    val ex_bypass = Input(Vec(4, new bypass_info))
+    val ex_bypass = Input(Vec(5, new bypass_info))
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
@@ -79,7 +79,7 @@ class IssueTop extends Module {
   lsurs.io.pram_read <> payloadram.io.read(3)
   brurs.io.pram_read <> payloadram.io.read(4)
 
-  for(i <- 0 until 4) {
+  for(i <- 0 until 5) {
     val prev_valid = RegNext(io.ex_bypass(i).valid)
     val bypass_fire = io.ex_bypass(i).valid && !prev_valid
     payloadram.io.write(i).dest := io.ex_bypass(i).dest

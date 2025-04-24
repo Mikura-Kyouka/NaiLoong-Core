@@ -8,7 +8,7 @@ object RegConfig {
   val ARCH_REG_NUM = 32
   val PHYS_REG_NUM = 64
   val PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM)
-  val CHECKPOINT_DEPTH = 8
+  val CHECKPOINT_DEPTH = 16
 }
 
 class Rename extends Module {
@@ -98,6 +98,7 @@ class RenameOutput extends Bundle {
 
 class aliasTableEntry extends Bundle {
   val inARF      = Bool() // if true, read arf; else read rob(robPointer)
+  val preg       = UInt(RegConfig.PHYS_REG_BITS.W)
   val robPointer = UInt(RobConfig.ROB_INDEX_WIDTH.W)
 }
 
@@ -119,6 +120,7 @@ class RegRenaming extends Module {
   val rat = RegInit(VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
     val entry = Wire(new aliasTableEntry)
     entry.inARF := true.B
+    entry.preg := 0.U(RegConfig.PHYS_REG_BITS.W)
     entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
     entry
   }))
@@ -129,6 +131,7 @@ class RegRenaming extends Module {
     VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
       val entry = Wire(new aliasTableEntry)
       entry.inARF := true.B
+      entry.preg := 0.U(RegConfig.PHYS_REG_BITS.W)
       entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
       entry
     })
@@ -226,7 +229,12 @@ class RegRenaming extends Module {
   io.in.ready := canAlloc && io.out.ready
   io.out.valid := io.in.valid && canAlloc
 
-  // 重命名逻辑
+  val temp_prj = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
+  val temp_prk = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
+  val temp_jIsArf = Wire(Vec(4, Bool()))
+  val temp_kIsArf = Wire(Vec(4, Bool()))
+
+  // 寄存器重命名
   for (i <- 0 until 4) {
     val input = io.in.bits(i)
     val rj = input.ctrl.rfSrc1
@@ -235,17 +243,6 @@ class RegRenaming extends Module {
     val rfWen = input.ctrl.rfWen // 0有效
     val isZeroReg = (rd === 0.U)
 
-    // 源寄存器映射
-    io.out.bits(i).prj := Mux(rj.orR, rat(rj).robPointer, 0.U)
-    io.out.bits(i).jIsArf := rat(rj).inARF
-    io.out.bits(i).dataj := arf(rj)
-
-    io.out.bits(i).prk := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR,
-                            rat(rk).robPointer, 
-                            0.U)
-    io.out.bits(i).kIsArf := rat(rk).inARF
-    io.out.bits(i).datak := arf(rk)
-    
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg
     freeList.io.allocReq(i).valid := needAlloc && io.in.valid
@@ -256,7 +253,7 @@ class RegRenaming extends Module {
                            freeList.io.allocResp(i).bits,
                            0.U)
     io.out.bits(i).preg := allocated_preg
-    
+
     // 更新ROB条目中的物理寄存器信息
     io.robAllocate.allocEntries(i).preg := allocated_preg
     io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
@@ -266,12 +263,24 @@ class RegRenaming extends Module {
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
       rat(rd).inARF := false.B
+      rat(rd).preg := allocated_preg
       rat(rd).robPointer := freeList.io.allocResp(i).bits
     }
 
+    // 源寄存器映射
+    temp_prj(i) := Mux(rj.orR, rat(rj).preg, 0.U)
+    temp_jIsArf(i) := rat(rj).inARF
+    io.out.bits(i).dataj := arf(rj)
+
+    temp_prk(i) := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR,
+                            rat(rk).preg, 
+                            0.U)
+    temp_kIsArf(i) := rat(rk).inARF
+    io.out.bits(i).datak := arf(rk)
+    
     // 立即数不需要物理寄存器
     when(input.ctrl.src2Type === SrcType.imm) {
-      io.out.bits(i).prk := 0.U 
+      temp_prk(i) := 0.U 
     }
 
     // 检查点处理
@@ -281,10 +290,30 @@ class RegRenaming extends Module {
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
-    io.out.bits(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
+    io.out.bits(i).old_preg := Mux(rd.orR, rat(rd).preg, 0.U)
     
     // 分配ROB索引
     io.out.bits(i).robIdx := io.robAllocate.allocResp(i)
+  }
+
+  // 组内相关性处理
+  io.out.bits(0).prj := temp_prj(0)
+  io.out.bits(0).jIsArf := temp_jIsArf(0)
+  io.out.bits(0).prk := temp_prk(0)
+  io.out.bits(0).kIsArf := temp_kIsArf(0)
+
+  for (i <- 0 until 4) {
+    val input = io.in.bits(i)
+    val rj = input.ctrl.rfSrc1
+    val rk = input.ctrl.rfSrc2
+    val rd = input.ctrl.rfDest
+
+    for (j <- 0 until i) {
+      io.out.bits(i).prj := Mux(rj === io.in.bits(j).ctrl.rfDest, io.out.bits(j).preg, temp_prj(i))
+      io.out.bits(i).jIsArf := Mux(rj === io.in.bits(j).ctrl.rfDest, false.B, temp_jIsArf(i))
+      io.out.bits(i).prk := Mux(rk === io.in.bits(j).ctrl.rfDest, io.out.bits(j).preg, temp_prk(i))
+      io.out.bits(i).kIsArf := Mux(rk === io.in.bits(j).ctrl.rfDest, false.B, temp_kIsArf(i))
+    }
   }
   
   // 零寄存器不保留旧值
@@ -321,10 +350,5 @@ class RegRenaming extends Module {
     val checkpoint_id = io.brMispredict.brMisPredChkpt
     val snapshot = checkpointRAT(checkpoint_id)
     rat := snapshot
-    // for (i <- 0 until RegConfig.ARCH_REG_NUM) {
-    //   rat(i).inARF := false.B
-    //   rat(i).robPointer := snapshot(i)
-    // }
   }
-
 }
