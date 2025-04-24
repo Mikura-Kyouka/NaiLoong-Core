@@ -50,7 +50,7 @@ class Rename extends Module {
     io.out.bits(i).old_preg := regRenaming.io.out.bits(i).old_preg
     io.out.bits(i).checkpoint.needSave := regRenaming.io.out.bits(i).checkpoint.valid
     io.out.bits(i).checkpoint.id := regRenaming.io.out.bits(i).checkpoint.id
-    io.out.bits(i).robIdx := regRenaming.io.out.bits(i).robIdx // 添加ROB索引
+    io.out.bits(i).robIdx := regRenaming.io.out.bits(i).robIdx   // 添加ROB索引
 
     io.out.bits(i).instr := io.in.bits(i).instr
     io.out.bits(i).pc := io.in.bits(i).pc
@@ -76,7 +76,7 @@ class RenameInput extends Bundle {
     val needSave = Bool()
     val id = UInt(64.W)
   }
-  val pc = UInt(64.W)       // 添加PC
+  val pc = UInt(32.W)       // 添加PC
   val instr = UInt(32.W)    // 添加指令
 }
 
@@ -240,7 +240,7 @@ class RegRenaming extends Module {
     io.out.bits(i).jIsArf := rat(rj).inARF
     io.out.bits(i).dataj := arf(rj)
 
-    io.out.bits(i).prk := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR, 
+    io.out.bits(i).prk := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR,
                             rat(rk).robPointer, 
                             0.U)
     io.out.bits(i).kIsArf := rat(rk).inARF

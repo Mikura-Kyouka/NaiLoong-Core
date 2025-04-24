@@ -69,6 +69,15 @@ class OrderIssueQueue extends Module {
   }
 
   // read
+  val debug_read_ptr = WireInit(read_ptr)
+  val debug_read_ptr_valid = WireInit(valid_vec(read_ptr))
+  val debug_read_ptr_prj = WireInit(mem(read_ptr).prj)
+  val debug_read_ptr_prk = WireInit(mem(read_ptr).prk)
+  dontTouch(debug_read_ptr)
+  dontTouch(debug_read_ptr_valid)
+  dontTouch(debug_read_ptr_prj)
+  dontTouch(debug_read_ptr_prk)
+
   val can_issue = !io.busyreg(mem(read_ptr).prj) && !io.busyreg(mem(read_ptr).prk) && valid_vec(read_ptr)
   //io.out := mem(read_ptr)
   io.pram_read.src1 := mem(read_ptr).prj
