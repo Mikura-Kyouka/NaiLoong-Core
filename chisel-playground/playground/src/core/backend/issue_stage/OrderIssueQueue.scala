@@ -83,8 +83,8 @@ class OrderIssueQueue extends Module {
   io.pram_read.src1 := mem(read_ptr).prj
   io.pram_read.src2 := mem(read_ptr).prk
   val out = mem(read_ptr)
-  out.dataj := Mux(mem(read_ptr).jIsArf, mem(read_ptr).dataj, io.pram_read.pram_data1)
-  out.datak := Mux(mem(read_ptr).kIsArf, mem(read_ptr).datak, io.pram_read.pram_data2)
+  out.src1 := Mux(mem(read_ptr).jIsArf, mem(read_ptr).dataj, io.pram_read.pram_data1)
+  out.src2 := Mux(mem(read_ptr).kIsArf, mem(read_ptr).datak, io.pram_read.pram_data2)
   // out.src1 := io.pram_read.pram_data1
   // out.src2 := io.pram_read.pram_data2
   io.out.bits := out
