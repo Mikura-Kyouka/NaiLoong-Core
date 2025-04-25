@@ -57,7 +57,7 @@ class Decoder extends Module {
         ImmType.si12    -> SignExt(instr(21, 10), 32),  // si12  addi slti sltui l/d[ ] cacop preld
         ImmType.ui12    -> ZeroExt(instr(21, 10), 32),  // ui12 andi ori xori
         ImmType.si16_pc -> SignExt(Cat(instr(25, 10), 0.U(2.W)), 32), // si16_pc jirl beq bne blt[u] bge[u]
-        ImmType.si26_pc -> SignExt(Cat(instr(25, 10), instr(9, 0), 0.U(2.W)), 32), // si26_pc b bl
+        ImmType.si26_pc -> SignExt(Cat(instr(9, 0), instr(25, 10), 0.U(2.W)), 32), // si26_pc b bl
         ImmType.si20    -> Cat(instr(24, 5), 0.U(12.W)), // lu12i_w pcaddu12i
         ImmType.si14_pc -> SignExt(Cat(instr(23, 10), 0.U(2.W)), 32)   //si14_pc ll sc
     ))

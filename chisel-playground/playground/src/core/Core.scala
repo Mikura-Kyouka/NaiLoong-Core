@@ -245,11 +245,19 @@ class Core extends Module {
     trace.rf_we    := item.bits.dest =/= 0.U
     trace.rf_wnum  := item.bits.dest
     trace.rf_wdata := item.bits.data
+    trace.valid    := DontCare
     trace
     })
   })
 
-  traceBridge.io.in_valids := VecInit(rob.io.commit.commit.map(_.valid))
+  traceBridge.io.in_valids := VecInit(rob.io.commitInstr.map { item =>
+    WireInit({
+    val trace = Wire(Bool())
+    trace := item.valid
+    trace
+    })
+  })
+
   traceBridge.io.out_ready := true.B 
 
   // 连接到 trace checker

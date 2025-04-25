@@ -136,9 +136,10 @@ class ALU extends Module {
   dontTouch(target)
   dontTouch(taken)
   dontTouch(isBranch)
-  io.redirect.target := Mux(!taken && isBranch, io.pc + 4.U, target) // branch not taken, pc changes to snpc, else to target
+  val brValid = (taken || !isBranch) && isBru
+  io.redirect.target := Mux(isBranch, target, io.pc + io.offset) // branch not taken, pc changes to snpc, else to target
   // io.redirect.valid := valid && isBru && predictWrong
-  io.redirect.valid := taken && isBru
+  io.redirect.valid := brValid && predictWrong
   // val redirectRtype = if (EnableOutOfOrderExec) 1.U else 0.U
   // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
