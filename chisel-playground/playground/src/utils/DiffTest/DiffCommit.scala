@@ -21,6 +21,11 @@ class DiffCommit extends Module {
     val reg = Input(Vec(32, UInt(32.W)))
   })
 
+when(io.instr(0).valid || io.instr(1).valid) {
+  printf(p"reg[12] = 0x${Hexadecimal(io.reg(12))}\n")
+}
+
+
   val DiffBridge = Module(new DiffBridge())
   DiffBridge.io.clock := clock
   DiffBridge.io.coreid := 0.U
