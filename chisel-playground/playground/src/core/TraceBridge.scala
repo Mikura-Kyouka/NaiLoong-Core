@@ -27,11 +27,20 @@ class TraceBridge extends Module {
   // 每个写回一路 FIFO
   val perItemFifo = Seq.fill(4)(Module(new Queue(new TraceItem, 8)))
   for (i <- 0 until 4) {
-    perItemFifo(i).io.enq.valid := true.B
     perItemFifo(i).io.enq.bits := io.in_items(i)
     perItemFifo(i).io.enq.bits.valid := io.in_valids(i)
   }
   
+  when (io.in_items(0).valid || io.in_items(1).valid || io.in_items(2).valid || io.in_items(3).valid) {
+    for (i <- 0 until 4) {
+      perItemFifo(i).io.enq.valid := io.in_valids(i)
+    }
+  } .otherwise {
+    for (i <- 0 until 4) {
+      perItemFifo(i).io.enq.valid := false.B
+    }
+  }
+
   val roundRobinCounter = RegInit(0.U(3.W))
   
   val validVec = VecInit(perItemFifo.map(_.io.deq.bits.valid))
@@ -46,10 +55,12 @@ class TraceBridge extends Module {
   io.out_item := current_item
   
   for (i <- 0 until 4) {
-    perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_valid
+    perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_deq_valid
   }
   
-  when (io.out_ready) {
+  when (!deqValidVec.reduce(_ || _)) {
+    roundRobinCounter := 0.U
+  }.elsewhen (io.out_ready && current_deq_valid) {
     roundRobinCounter := Mux(roundRobinCounter === 3.U, 0.U, roundRobinCounter + 1.U)
   }
 }

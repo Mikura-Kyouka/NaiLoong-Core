@@ -245,7 +245,7 @@ class Core extends Module {
     trace.rf_we    := item.bits.dest =/= 0.U
     trace.rf_wnum  := item.bits.dest
     trace.rf_wdata := item.bits.data
-    trace.valid    := DontCare
+    trace.valid    := item.valid
     trace
     })
   })
