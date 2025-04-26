@@ -74,11 +74,11 @@ class TempIf extends Module {
 
   val pc = RegInit("h1c000000".U(32.W))
 
-  val idle :: read :: nop :: Nil = Enum(3)
+  val idle :: read :: flush :: Nil = Enum(3)
   val state = RegInit(idle)
 
   // AXI signals
-  val arvalid = RegInit(true.B)
+  val arvalid = RegInit(false.B)
   io.arvalid := arvalid
   val rready = RegInit(false.B)
   io.rready := rready
@@ -160,32 +160,46 @@ class TempIf extends Module {
 
   switch(state) {
     is(idle) {
-      when(io.arvalid && io.arready) {
-        state := nop
+      when(io.arvalid && io.arready && !flushed) {
+        state := read
         arvalid := false.B
         rready := true.B
-      }.otherwise {
+      }.elsewhen(flushed) {
+        state := flush
+        arvalid := false.B
+        rready := true.B
+      }.elsewhen(io.to.ready) {
         arvalid := true.B
       }
       cache_wen := false.B
-      when(flushed) { flushed := false.B }
-    }
-    is(nop) {
-      state := read
     }
     is(read) {
-      when(io.rvalid && io.rready) {
+      when(io.rvalid && io.rready && !flushed) {
         state := idle
         rready := false.B
         arvalid := true.B
         inst := io.rdata
         pc := pc + 4.U
 
-        cache_wen := ~flushed
+        cache_wen := true.B
         cache_waddr := pc
         cache_wdata := io.rdata
-      }.otherwise {
+      }.elsewhen(flushed) {
+        state := flush
+        arvalid := false.B
         rready := true.B
+        cache_wen := false.B
+      }
+    }
+    is(flush) {
+      when(io.to.ready) {
+        state := idle
+        inst := io.rdata
+
+        cache_wen := false.B
+        cache_waddr := pc
+        cache_wdata := io.rdata
+        flushed := false.B
       }
     }
   }

@@ -3,6 +3,7 @@ import chisel3._
 import chisel3.util._
 
 import CacheConfig._
+import core.LSUOpType.sw
 
 // 直接映射cache
 object CacheConfig {
@@ -49,7 +50,9 @@ class TempIcache extends Module {
     val tag = io.waddr(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
     val offset = io.waddr(3, 2)
     cache(index).valid(offset) := true.B
-    cache(index).tag := tag
+    when(offset === 3.U) {
+      cache(index).tag := tag
+    }
     cache(index).data(offset) := io.wdata
   }
 
@@ -61,6 +64,7 @@ class TempIcache extends Module {
   val raddr3 = Cat(read_pc(31, 4), 12.U(4.W))
 
   val index = read_pc(INDEX_BIT_NUM + OFFSET_BIT_NUM - 1, OFFSET_BIT_NUM)
+  dontTouch(index)
 
   val tag0 = raddr0(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
   val tag1 = raddr1(31, INDEX_BIT_NUM + OFFSET_BIT_NUM)
@@ -90,16 +94,16 @@ class TempIcache extends Module {
 
   io.inst0.pc := raddr0
   io.inst0.inst := cache(index).data(0)
-  io.inst0.valid := raddr0 < read_pc
+  io.inst0.valid := raddr0 < read_pc || hit0
   io.inst1.pc := raddr1
   io.inst1.inst := cache(index).data(1)
-  io.inst1.valid := raddr1 < read_pc
+  io.inst1.valid := raddr1 < read_pc || hit1
   io.inst2.pc := raddr2
   io.inst2.inst := cache(index).data(2)
-  io.inst2.valid := raddr2 < read_pc
+  io.inst2.valid := raddr2 < read_pc || hit2
   io.inst3.pc := raddr3
   io.inst3.inst := cache(index).data(3)
-  io.inst3.valid := raddr3 < read_pc
+  io.inst3.valid := raddr3 < read_pc || hit3
   io.read_pc := read_pc
 
   when(io.flush) {
