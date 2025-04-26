@@ -17,6 +17,8 @@ class Decoder extends Module {
         ListLookup(instr, Instructions.DecodeDefault, Instructions.DecodeTable)
     io.out.bits := DontCare
 
+    dontTouch(immType)
+
     io.out.bits.ctrl.fuType := fuType
     io.out.bits.ctrl.fuOpType := fuOpType
 

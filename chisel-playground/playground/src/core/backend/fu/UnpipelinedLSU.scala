@@ -80,7 +80,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   lsExecUnit.io.in.bits.func := DontCare
   lsExecUnit.io.wdata        := DontCare
   io.out.valid               := false.B
-  io.in.ready                := false.B
+  io.in.ready                := true.B
 
   // 
   state := MuxLookup(state, s_idle)(List(
