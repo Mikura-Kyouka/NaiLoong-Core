@@ -5,7 +5,7 @@ import chisel3.util._
 
 class TraceItem extends Bundle {
   val pc    = UInt(32.W)
-  val rf_we = Bool()
+  val rf_we = UInt(4.W)
   val rf_wnum = UInt(5.W)
   val rf_wdata = UInt(32.W)
   val valid = Bool()
