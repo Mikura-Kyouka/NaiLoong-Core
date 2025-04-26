@@ -113,6 +113,8 @@ class Core extends Module {
   io.arprot := If.io.arprot
   ifAXI.arvalid := If.io.arvalid
   If.io.arready := ifAXI.arready
+  ifAXI.arvalid := If.io.arvalid
+  If.io.arready := ifAXI.arready
 
   If.io.rid := ifAXI.rid
   If.io.rdata := ifAXI.rdata
@@ -120,7 +122,18 @@ class Core extends Module {
   If.io.rlast := ifAXI.rlast
   If.io.rvalid := ifAXI.rvalid
   ifAXI.rready := If.io.rready
+  If.io.rid := ifAXI.rid
+  If.io.rdata := ifAXI.rdata
+  If.io.rresp := ifAXI.rresp
+  If.io.rlast := ifAXI.rlast
+  If.io.rvalid := ifAXI.rvalid
+  ifAXI.rready := If.io.rready
 
+  ifAXI.awid := If.io.awid
+  ifAXI.awaddr := If.io.awaddr
+  ifAXI.awlen := If.io.awlen
+  ifAXI.awsize := If.io.awsize
+  ifAXI.awburst := If.io.awburst
   ifAXI.awid := If.io.awid
   ifAXI.awaddr := If.io.awaddr
   ifAXI.awlen := If.io.awlen
@@ -149,6 +162,184 @@ class Core extends Module {
   If.io.reg_num := io.reg_num
   io.ws_valid := If.io.ws_valid
   io.rf_rdata := If.io.rf_rdata
+
+  // If.io.intrpt := io.intrpt
+
+  // io.arid := If.io.arid
+  // io.araddr := If.io.araddr
+  // io.arlen := If.io.arlen
+  // io.arsize := If.io.arsize
+  // io.arburst := If.io.arburst
+  // io.arlock := If.io.arlock
+  // io.arcache := If.io.arcache
+  // io.arprot := If.io.arprot
+  // io.arvalid := If.io.arvalid
+  // If.io.arready := io.arready
+
+  // If.io.rid := io.rid
+  // If.io.rdata := io.rdata
+  // If.io.rresp := io.rresp
+  // If.io.rlast := io.rlast
+  // If.io.rvalid := io.rvalid
+  // io.rready := If.io.rready
+
+  // io.awid := If.io.awid
+  // io.awaddr := If.io.awaddr
+  // io.awlen := If.io.awlen
+  // io.awsize := If.io.awsize
+  // io.awburst := If.io.awburst
+  // io.awlock := If.io.awlock
+  // io.awcache := If.io.awcache
+  // io.awprot := If.io.awprot
+  // io.awvalid := If.io.awvalid
+  // If.io.awready := io.awready
+
+  // io.wid := If.io.wid
+  // io.wdata := If.io.wdata
+  // io.wstrb := If.io.wstrb
+  // io.wlast := If.io.wlast
+  // io.wvalid := If.io.wvalid
+  // If.io.wready := io.wready
+
+  // If.io.bid := io.bid
+  // If.io.bresp := io.bresp
+  // If.io.bvalid := io.bvalid
+  // io.bready := If.io.bready
+
+  // If.io.break_point := io.break_point
+  // If.io.infor_flag := io.infor_flag
+  // If.io.reg_num := io.reg_num
+  // io.ws_valid := If.io.ws_valid
+  // io.rf_rdata := If.io.rf_rdata
+
+  val lsAXI = Wire(new AXI)
+  lsAXI <> Ex.io.lsAXI
+
+  arb.io.ifu <> ifAXI
+  arb.io.lsu <> lsAXI
+
+  io.arid := arb.io.out.arid
+  io.araddr := arb.io.out.araddr
+  io.arlen := arb.io.out.arlen
+  io.arsize := arb.io.out.arsize
+  io.arburst := arb.io.out.arburst
+  io.arvalid := arb.io.out.arvalid
+  arb.io.out.arready := io.arready
+
+  arb.io.out.rid := io.rid
+  arb.io.out.rdata := io.rdata
+  arb.io.out.rresp := io.rresp
+  arb.io.out.rlast := io.rlast
+  arb.io.out.rvalid := io.rvalid
+  io.rready := arb.io.out.rready
+
+  io.awid := arb.io.out.awid
+  io.awaddr := arb.io.out.awaddr
+  io.awlen := arb.io.out.awlen
+  io.awsize := arb.io.out.awsize
+  io.awburst := arb.io.out.awburst
+  io.awvalid := arb.io.out.awvalid
+  arb.io.out.awready := io.awready
+
+  io.wdata := arb.io.out.wdata
+  io.wstrb := arb.io.out.wstrb
+  io.wlast := arb.io.out.wlast
+  io.wvalid := arb.io.out.wvalid
+  arb.io.out.wready := io.wready
+
+  arb.io.out.bid := io.bid
+  arb.io.out.bresp := io.bresp
+  arb.io.out.bvalid := io.bvalid
+  io.bready := arb.io.out.bready
+
+  // If.io.intrpt := io.intrpt
+
+  // io.arid := If.io.arid
+  // io.araddr := If.io.araddr
+  // io.arlen := If.io.arlen
+  // io.arsize := If.io.arsize
+  // io.arburst := If.io.arburst
+  // io.arlock := If.io.arlock
+  // io.arcache := If.io.arcache
+  // io.arprot := If.io.arprot
+  // io.arvalid := If.io.arvalid
+  // If.io.arready := io.arready
+
+  // If.io.rid := io.rid
+  // If.io.rdata := io.rdata
+  // If.io.rresp := io.rresp
+  // If.io.rlast := io.rlast
+  // If.io.rvalid := io.rvalid
+  // io.rready := If.io.rready
+
+  // io.awid := If.io.awid
+  // io.awaddr := If.io.awaddr
+  // io.awlen := If.io.awlen
+  // io.awsize := If.io.awsize
+  // io.awburst := If.io.awburst
+  // io.awlock := If.io.awlock
+  // io.awcache := If.io.awcache
+  // io.awprot := If.io.awprot
+  // io.awvalid := If.io.awvalid
+  // If.io.awready := io.awready
+
+  // io.wid := If.io.wid
+  // io.wdata := If.io.wdata
+  // io.wstrb := If.io.wstrb
+  // io.wlast := If.io.wlast
+  // io.wvalid := If.io.wvalid
+  // If.io.wready := io.wready
+
+  // If.io.bid := io.bid
+  // If.io.bresp := io.bresp
+  // If.io.bvalid := io.bvalid
+  // io.bready := If.io.bready
+
+  // If.io.break_point := io.break_point
+  // If.io.infor_flag := io.infor_flag
+  // If.io.reg_num := io.reg_num
+  // io.ws_valid := If.io.ws_valid
+  // io.rf_rdata := If.io.rf_rdata
+
+  val lsAXI = Wire(new AXI)
+  lsAXI <> Ex.io.lsAXI
+
+  arb.io.ifu <> ifAXI
+  arb.io.lsu <> lsAXI
+
+  io.arid := arb.io.out.arid
+  io.araddr := arb.io.out.araddr
+  io.arlen := arb.io.out.arlen
+  io.arsize := arb.io.out.arsize
+  io.arburst := arb.io.out.arburst
+  io.arvalid := arb.io.out.arvalid
+  arb.io.out.arready := io.arready
+
+  arb.io.out.rid := io.rid
+  arb.io.out.rdata := io.rdata
+  arb.io.out.rresp := io.rresp
+  arb.io.out.rlast := io.rlast
+  arb.io.out.rvalid := io.rvalid
+  io.rready := arb.io.out.rready
+
+  io.awid := arb.io.out.awid
+  io.awaddr := arb.io.out.awaddr
+  io.awlen := arb.io.out.awlen
+  io.awsize := arb.io.out.awsize
+  io.awburst := arb.io.out.awburst
+  io.awvalid := arb.io.out.awvalid
+  arb.io.out.awready := io.awready
+
+  io.wdata := arb.io.out.wdata
+  io.wstrb := arb.io.out.wstrb
+  io.wlast := arb.io.out.wlast
+  io.wvalid := arb.io.out.wvalid
+  arb.io.out.wready := io.wready
+
+  arb.io.out.bid := io.bid
+  arb.io.out.bresp := io.bresp
+  arb.io.out.bvalid := io.bvalid
+  io.bready := arb.io.out.bready
 
   // If.io.intrpt := io.intrpt
 
@@ -326,6 +517,8 @@ class Core extends Module {
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
 
+  // lsu <=> rob
+  Ex.io.robCommit := rob.io.commit
   // lsu <=> rob
   Ex.io.robCommit := rob.io.commit
   // arf and rat update
