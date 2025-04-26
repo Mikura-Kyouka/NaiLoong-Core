@@ -156,6 +156,8 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.in.bits.src1 := io.in.bits.src1
   lsu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   lsu.io.in.bits.func := io.in.bits.ctrl.fuOpType
+
+  io.out.bits := DontCare
   io.out.bits.pc := io.in.bits.pc
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx

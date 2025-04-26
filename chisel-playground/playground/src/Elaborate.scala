@@ -1,5 +1,6 @@
 import core.DCacheConfig
 import core.GenCtrl
+import core.Core
 
 object Elaborate extends App {
   val parser = new scopt.OptionParser[Config]("Elaborate") {
@@ -28,7 +29,7 @@ object Elaborate extends App {
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
     // new core.DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)), 
-    new core.UnpipelinedLSU(),
+    new Core(),
     args = Array(
       "--throw-on-first-error",
       "--split-verilog",

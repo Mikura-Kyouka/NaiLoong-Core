@@ -209,7 +209,7 @@ class Core extends Module {
     WireInit({
     val trace = Wire(new TraceItem)
     trace.pc       := item.bits.pc
-    trace.rf_we    := Fill(4, item.bits.dest =/= 0.U)
+    trace.rf_we    := Mux(item.bits.dest =/= 0.U, "b1111".U(4.W), 0.U(4.W))
     trace.rf_wnum  := item.bits.dest
     trace.rf_wdata := item.bits.data
     trace.valid    := item.valid
