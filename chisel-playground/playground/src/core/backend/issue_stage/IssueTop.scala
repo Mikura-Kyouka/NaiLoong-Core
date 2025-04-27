@@ -80,11 +80,11 @@ class IssueTop extends Module {
   brurs.io.pram_read <> payloadram.io.read(4)
 
   for(i <- 0 until 5) {
-    val prev_valid = RegNext(io.ex_bypass(i).valid)
-    val bypass_fire = io.ex_bypass(i).valid && !prev_valid
+    // val prev_valid = RegNext(io.ex_bypass(i).valid)
+    // val bypass_fire = io.ex_bypass(i).valid && !prev_valid
     payloadram.io.write(i).dest := io.ex_bypass(i).dest
     payloadram.io.write(i).pram_data := io.ex_bypass(i).data
-    payloadram.io.write(i).valid := bypass_fire
+    payloadram.io.write(i).valid := io.ex_bypass(i).valid
   }
 
 
