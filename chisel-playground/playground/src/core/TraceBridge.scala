@@ -52,7 +52,15 @@ class TraceBridge extends Module {
   val current_item = itemVec(roundRobinCounter)
   
   io.out_valid := current_valid
-  io.out_item := current_item
+
+  val validatedOutItem = Wire(new TraceItem)
+  validatedOutItem.pc := current_item.pc
+  validatedOutItem.rf_we := Mux(current_deq_valid, current_item.rf_we, 0.U)
+  validatedOutItem.rf_wnum := current_item.rf_wnum
+  validatedOutItem.rf_wdata := current_item.rf_wdata
+  validatedOutItem.valid := current_valid
+
+  io.out_item := validatedOutItem
   
   for (i <- 0 until 4) {
     perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_deq_valid

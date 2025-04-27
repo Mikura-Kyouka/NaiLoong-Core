@@ -80,11 +80,6 @@ class Core extends Module {
 
   val arb = Module(new Arb)
 
-  // for (i <- 0 until 4) {
-  //   Rn.io.rob.commit(i).valid := false.B
-  //   Rn.io.rob.commit(i).bits := 0.U(RegConfig.PHYS_REG_BITS.W)
-  // }
-
   PipelineConnect(If.io.to, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
