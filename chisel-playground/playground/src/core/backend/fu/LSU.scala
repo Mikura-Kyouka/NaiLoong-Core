@@ -125,7 +125,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io.out.valid := dcache.io.resp.valid
   io.out.bits := dcache.io.resp.bits.rdata
 
-  io.in.ready := dcache.io.req.ready
+  io.in.ready := dcache.io.req.ready && (!io.in.valid || io.out.fire)
 }
 
 class AligendUnpipelinedLSU extends Module{
