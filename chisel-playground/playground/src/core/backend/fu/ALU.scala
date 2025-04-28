@@ -30,6 +30,8 @@ object ALUOpType {
   def bltu = "b0010110".U
   def bgeu = "b0010111".U
 
+  def lu12i = "b1000001".U
+
   // for RAS
   def call = "b1011100".U
   def ret  = "b1011110".U
@@ -90,7 +92,7 @@ class ALU extends Module {
 
   val shsrc1 = src1
   val shamt = src2(4, 0) //shift amount
-  val res = MuxLookup(func, adderRes)(
+  val aluRes = MuxLookup(func, adderRes)(
     List(
       ALUOpType.sll  -> ((shsrc1  << shamt)(31, 0)),
       ALUOpType.slt  -> ZeroExt(slt, 32),
@@ -100,10 +102,11 @@ class ALU extends Module {
       ALUOpType.or   -> (src1  |  src2),
       ALUOpType.nor  -> ~(src1  |  src2), 
       ALUOpType.and  -> (src1  &  src2),
-      ALUOpType.sra  -> ((shsrc1.asSInt >> shamt).asUInt)
+      ALUOpType.sra  -> ((shsrc1.asSInt >> shamt).asUInt),
+      ALUOpType.lu12i -> src2
     )
   )
-  val aluRes = res
+  // val aluRes = res
 
   val branchOpTable = List(
     ALUOpType.getBranchType(ALUOpType.beq)  -> !xorRes.orR, // .orR:所有位都是0,返回false

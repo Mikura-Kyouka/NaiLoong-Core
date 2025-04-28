@@ -131,7 +131,7 @@ object Inst {
         bge             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bge,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bltu            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bltu,  SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bgeu            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bgeu,  SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
-        lu12i_w         -> List(ImmType.si20    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        lu12i_w         -> List(ImmType.si20    , FuType.alu, ALUOpType.lu12i, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         pcaddu12i       -> List(ImmType.si20    , FuType.alu, ALUOpType.add,   SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         slti            -> List(ImmType.si12    , FuType.alu, ALUOpType.slt,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sltui           -> List(ImmType.si12    , FuType.alu, ALUOpType.sltu,  SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
