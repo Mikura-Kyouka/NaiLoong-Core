@@ -21,6 +21,8 @@ class DiffCommit extends Module {
     val reg = Input(Vec(32, UInt(32.W)))
   })
 
+  val timer64 = RegInit(0.U(64.W))
+  timer64 := timer64 + 1.U
 
   val DiffBridge = Module(new DiffBridge())
   DiffBridge.io.clock := clock
@@ -34,7 +36,8 @@ class DiffCommit extends Module {
   DiffBridge.io.is_TLBFILL_0 := RegNext(io.instr(0).is_TLBFILL, 0.U)
   DiffBridge.io.TLBFILL_index_0 := RegNext(io.instr(0).TLBFILL_index, 0.U)
   DiffBridge.io.is_CNTinst_0 := RegNext(io.instr(0).is_CNTinst, 0.U)
-  DiffBridge.io.timer_64_value_0 := RegNext(io.instr(0).timer_64_value, 0.U)
+  // DiffBridge.io.timer_64_value_0 := RegNext(io.instr(0).timer_64_value, 0.U)
+  DiffBridge.io.timer_64_value_0 := timer64
   DiffBridge.io.wen_0 := RegNext(io.instr(0).wen, 0.U)
   DiffBridge.io.wdest_0 := RegNext(io.instr(0).wdest, 0.U)
   DiffBridge.io.wdata_0 := RegNext(io.instr(0).wdata, 0.U)
@@ -49,7 +52,8 @@ class DiffCommit extends Module {
   DiffBridge.io.is_TLBFILL_1 := RegNext(io.instr(1).is_TLBFILL, 0.U)
   DiffBridge.io.TLBFILL_index_1 := RegNext(io.instr(1).TLBFILL_index, 0.U)
   DiffBridge.io.is_CNTinst_1 := RegNext(io.instr(1).is_CNTinst, 0.U)
-  DiffBridge.io.timer_64_value_1 := RegNext(io.instr(1).timer_64_value, 0.U)
+  // DiffBridge.io.timer_64_value_1 := RegNext(io.instr(1).timer_64_value, 0.U)
+  DiffBridge.io.timer_64_value_1 := timer64
   DiffBridge.io.wen_1 := RegNext(io.instr(1).wen, 0.U)
   DiffBridge.io.wdest_1 := RegNext(io.instr(1).wdest, 0.U)
   DiffBridge.io.wdata_1 := RegNext(io.instr(1).wdata, 0.U)

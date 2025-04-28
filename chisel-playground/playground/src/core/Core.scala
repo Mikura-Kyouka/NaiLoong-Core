@@ -302,7 +302,7 @@ class Core extends Module {
   if(GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 
-    DiffCommit.io.instr(0).valid := rob.io.commitInstr(0).valid
+    DiffCommit.io.instr(0).valid := rob.io.commitInstr(0).valid && rob.io.commit.commit(0).bits.inst_valid
     DiffCommit.io.instr(0).pc := rob.io.commitPC(0).bits
     DiffCommit.io.instr(0).instr := rob.io.commitInstr(0).bits
     DiffCommit.io.instr(0).skip := DontCare
@@ -316,7 +316,7 @@ class Core extends Module {
     DiffCommit.io.instr(0).csr_rstat := DontCare
     DiffCommit.io.instr(0).csr_data := DontCare
 
-    DiffCommit.io.instr(1).valid := rob.io.commitInstr(1).valid
+    DiffCommit.io.instr(1).valid := rob.io.commitInstr(1).valid && rob.io.commit.commit(1).bits.inst_valid
     DiffCommit.io.instr(1).pc := rob.io.commitPC(1).bits
     DiffCommit.io.instr(1).instr := rob.io.commitInstr(1).bits
     DiffCommit.io.instr(1).skip := DontCare
@@ -330,7 +330,7 @@ class Core extends Module {
     DiffCommit.io.instr(1).csr_rstat := DontCare
     DiffCommit.io.instr(1).csr_data := DontCare
 
-    DiffCommit.io.instr(2).valid := rob.io.commitInstr(2).valid
+    DiffCommit.io.instr(2).valid := rob.io.commitInstr(2).valid && rob.io.commit.commit(2).bits.inst_valid
     DiffCommit.io.instr(2).pc := rob.io.commitPC(2).bits
     DiffCommit.io.instr(2).instr := rob.io.commitInstr(2).bits
     DiffCommit.io.instr(2).skip := DontCare
@@ -344,7 +344,7 @@ class Core extends Module {
     DiffCommit.io.instr(2).csr_rstat := DontCare
     DiffCommit.io.instr(2).csr_data := DontCare
 
-    DiffCommit.io.instr(3).valid := rob.io.commitInstr(3).valid
+    DiffCommit.io.instr(3).valid := rob.io.commitInstr(3).valid && rob.io.commit.commit(3).bits.inst_valid
     DiffCommit.io.instr(3).pc := rob.io.commitPC(3).bits
     DiffCommit.io.instr(3).instr := rob.io.commitInstr(3).bits
     DiffCommit.io.instr(3).skip := DontCare

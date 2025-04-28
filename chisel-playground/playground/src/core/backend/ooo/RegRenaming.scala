@@ -39,6 +39,7 @@ class Rename extends Module {
     regRenaming.io.in.bits(i).checkpoint <> io.in.bits(i).checkpoint
     regRenaming.io.in.bits(i).pc := io.in.bits(i).pc         // 添加PC
     regRenaming.io.in.bits(i).instr := io.in.bits(i).instr   // 添加指令
+    regRenaming.io.in.bits(i).inst_valid := io.in.bits(i).valid
 
     io.out.bits(i).prj := regRenaming.io.out.bits(i).prj
     io.out.bits(i).jIsArf := regRenaming.io.out.bits(i).jIsArf
@@ -78,6 +79,7 @@ class RenameInput extends Bundle {
   }
   val pc = UInt(32.W)       // 添加PC
   val instr = UInt(32.W)    // 添加指令
+  val inst_valid = Bool()
 }
 
 class RenameOutput extends Bundle {
@@ -209,6 +211,7 @@ class RegRenaming extends Module {
     entry.checkpoint.valid := input.checkpoint.needSave
     entry.checkpoint.id := input.checkpoint.id
     entry.fuType := input.ctrl.fuType
+    entry.inst_valid := input.inst_valid
     
     // 这些字段在后面的指令执行阶段设置
     entry.finished := DontCare
@@ -337,7 +340,7 @@ class RegRenaming extends Module {
 
   // retire 
   for(i <- 0 until 4) {
-    when(io.rob.commit(i).valid) {
+    when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
       // rat update
