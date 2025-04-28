@@ -22,6 +22,7 @@ vivado:
 	mkdir -p $(BUILD_DIR)
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR) --use-diff=false
 	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_FUNC_SRC)/ \;
+	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_PERF_SRC)/ \;
 
 help:
 	mill -i $(PRJ).runMain Elaborate --help
