@@ -35,6 +35,9 @@ sealed trait HasCacheConst {
   val WordIndexBits = log2Up(LineBeats) // TODO
   val TagBits = 32 - OffsetBits - IndexBits
 
+  // 打印参数
+  println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
+
   def addrBundle = new Bundle {
     val tag = UInt(TagBits.W)
     val index = UInt(IndexBits.W)
@@ -109,6 +112,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //                            +-------------------no----------------------------------+
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
+    //   000        001          010          011               100               101            110          111
     val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(8)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
@@ -116,7 +120,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
         s_write_mem1 -> Mux(io.axi.awready && io.axi.wready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.bvalid, s_idle, s_write_mem2),
-        s_read_mem1 -> Mux(io.axi.arready, s_write_mem2, s_read_mem1),
+        s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(req.cmd, s_write_cache, s_read_cache), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
@@ -129,6 +133,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val cacheData = dataArray(addr.index)(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
+    io.axi.araddr := req.addr
     io.axi.rready := true.B
     // axi write chanel
     io.axi.awvalid := state === s_write_mem1
