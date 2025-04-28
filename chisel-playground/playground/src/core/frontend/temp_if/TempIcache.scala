@@ -94,16 +94,16 @@ class TempIcache extends Module {
 
   io.inst0.pc := raddr0
   io.inst0.inst := cache(index).data(0)
-  io.inst0.valid := raddr0 < read_pc || hit0
+  io.inst0.valid := raddr0 >= read_pc 
   io.inst1.pc := raddr1
   io.inst1.inst := cache(index).data(1)
-  io.inst1.valid := raddr1 < read_pc || hit1
+  io.inst1.valid := raddr1 >= read_pc 
   io.inst2.pc := raddr2
   io.inst2.inst := cache(index).data(2)
-  io.inst2.valid := raddr2 < read_pc || hit2
+  io.inst2.valid := raddr2 >= read_pc 
   io.inst3.pc := raddr3
   io.inst3.inst := cache(index).data(3)
-  io.inst3.valid := raddr3 < read_pc || hit3
+  io.inst3.valid := raddr3 >= read_pc 
   io.read_pc := read_pc
 
   when(io.flush) {
