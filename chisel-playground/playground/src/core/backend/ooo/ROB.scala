@@ -207,13 +207,13 @@ class Rob extends Module {
   // 分支预测错误时，需要将tail回滚到head+x的位置
   when (brMisPred) {
     // 回滚ROB尾指针
-    printf("ROB: Rollback tail from %d to %d\n", tail, head +& brMisPredIdx +& 1.U)
+    // printf("ROB: Rollback tail from %d to %d\n", tail, head +& brMisPredIdx +& 1.U)
     tail := (head +& brMisPredIdx +& 1.U) % RobConfig.ROB_ENTRY_NUM.U
     // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
       val idx = i.U
       when (isAfter(idx, head, tail)) {
-        printf("ROB: Clear entry %d\n", idx)
+        // printf("ROB: Clear entry %d\n", idx)
         robEntries(idx).valid := false.B
       }
     }

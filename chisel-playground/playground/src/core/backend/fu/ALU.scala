@@ -117,25 +117,15 @@ class ALU extends Module {
   val isBranch = ALUOpType.isBranch(func)
   val isBru = ALUOpType.isBru(func) //Branch Resolution
 
-  val debug1 = LookupTree(ALUOpType.getBranchType(func), branchOpTable)
-  val debug2 = ALUOpType.getBranchType(func)
-  dontTouch(debug1)
-  dontTouch(debug2)
-
   val taken = ALUOpType.isBranch(func) && LookupTree(ALUOpType.getBranchType(func), branchOpTable)  // branch taken
 
   // if branch type, condition calculation takes over alu, we use another adder
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
-  val what = io.pc + io.offset
-  dontTouch(what)
-  dontTouch(adderRes)
   val target = Mux(isBranch, io.pc + io.offset, adderRes)
   // val predictWrong = Mux(!taken && isBranch, io.cfIn.brIdx(0), !io.cfIn.brIdx(0) || (io.redirect.target =/= io.cfIn.pnpc)) //是分支指令但是不跳转
   // TODO: Temperarily no branch prediction , we assume predictWrong is always true
   val predictWrong = true.B
-  dontTouch(target)
-  dontTouch(taken)
-  dontTouch(isBranch)
+
   val brValid = (taken || !isBranch) && isBru
   io.redirect.target := Mux(isBranch, target, io.pc + io.offset) // branch not taken, pc changes to snpc, else to target
   // io.redirect.valid := valid && isBru && predictWrong
