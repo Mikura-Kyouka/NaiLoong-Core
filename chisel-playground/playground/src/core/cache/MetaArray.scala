@@ -6,13 +6,13 @@ import chisel3.util._
 class MetaArray extends Module {
   val io = IO(new Bundle {
     val addra = Input(UInt(16.W))
-    val clka = Input(Bool())
+    val clka = Input(Clock())
     val dina = Input(UInt(26.W))
     val douta = Output(UInt(26.W))
     val wea = Input(Bool())
 
     val addrb = Input(UInt(16.W))
-    val clkb = Input(Bool())
+    val clkb = Input(Clock())
     val dinb = Input(UInt(26.W))
     val doutb = Output(UInt(26.W))
     val web = Input(Bool())
