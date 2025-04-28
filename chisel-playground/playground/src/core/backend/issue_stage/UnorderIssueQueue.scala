@@ -55,7 +55,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
                           mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
     }
     else {
-      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i)
+      can_issue_vec(i) := (!io.busyreg(mem(i).prj) || mem(i).jIsArf) && (!io.busyreg(mem(i).prk) || mem(i).kIsArf) && valid_vec(i)
     }
   }
   val can_issue = can_issue_vec.reduce(_ || _)

@@ -78,7 +78,7 @@ class OrderIssueQueue extends Module {
   dontTouch(debug_read_ptr_prj)
   dontTouch(debug_read_ptr_prk)
 
-  val can_issue = !io.busyreg(mem(read_ptr).prj) && !io.busyreg(mem(read_ptr).prk) && valid_vec(read_ptr)
+  val can_issue = (!io.busyreg(mem(read_ptr).prj) || mem(read_ptr).jIsArf) && (!io.busyreg(mem(read_ptr).prk) || mem(read_ptr).kIsArf) && valid_vec(read_ptr)
   //io.out := mem(read_ptr)
   io.pram_read.src1 := mem(read_ptr).prj
   io.pram_read.src2 := mem(read_ptr).prk
