@@ -30,6 +30,7 @@ class RobEntry extends Bundle {
     val valid = Bool()
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
+  val inst_valid = Bool()
 }
 
 // ROB分配接口
@@ -57,6 +58,7 @@ class rtrBundle extends Bundle {
   val dest = UInt(5.W)
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)
+  val inst_valid = Bool()
 }
 
 class BrMisPredInfo extends Bundle {
@@ -245,6 +247,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
     io.commit.commit(i).bits.data := entry.result
+    io.commit.commit(i).bits.inst_valid := entry.inst_valid
     
     // 提交PC信息
     io.commitPC(i).valid := shouldCommit
