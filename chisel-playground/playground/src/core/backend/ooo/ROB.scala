@@ -19,6 +19,7 @@ class RobEntry extends Bundle {
   val intrVec    = UInt(12.W)
   val rd         = UInt(5.W)
   val preg       = UInt(RegConfig.PHYS_REG_BITS.W)
+  val use_preg   = Bool()
   val old_preg   = UInt(RegConfig.PHYS_REG_BITS.W)
   val rfWen      = Bool()
   val isBranch   = Bool()
@@ -59,6 +60,7 @@ class rtrBundle extends Bundle {
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)
   val inst_valid = Bool()
+  val use_preg = Bool()
 }
 
 class BrMisPredInfo extends Bundle {
@@ -140,6 +142,7 @@ class Rob extends Module {
         robEntries(allocIdx) := io.allocate.allocEntries(i)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
+        robEntries(allocIdx).use_preg := io.allocate.allocEntries(i).use_preg
       }
     }
     tail := (tail + io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
@@ -248,6 +251,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.preg := entry.preg
     io.commit.commit(i).bits.data := entry.result
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
+    io.commit.commit(i).bits.use_preg := entry.use_preg
     
     // 提交PC信息
     io.commitPC(i).valid := shouldCommit
