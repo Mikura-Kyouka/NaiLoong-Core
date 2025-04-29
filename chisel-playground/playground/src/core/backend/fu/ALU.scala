@@ -114,8 +114,8 @@ class ALU extends Module {
     ALUOpType.getBranchType(ALUOpType.bltu) -> sltu,
     ALUOpType.getBranchType(ALUOpType.bne)  -> xorRes.orR,
     ALUOpType.getBranchType(ALUOpType.bge)  -> !slt,
-    ALUOpType.getBranchType(ALUOpType.bgeu) -> !sltu,
-  ) // note: here we only have 3 ALUOp as we use invert to expand them to 6(all)
+    ALUOpType.getBranchType(ALUOpType.bgeu) -> !sltu
+  )
 
   val isBranch = ALUOpType.isBranch(func)
   val isBru = ALUOpType.isBru(func) //Branch Resolution
@@ -125,17 +125,18 @@ class ALU extends Module {
   // if branch type, condition calculation takes over alu, we use another adder
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
   val target = Mux(isBranch, io.pc + io.offset, adderRes)
+  dontTouch(target)
   // val predictWrong = Mux(!taken && isBranch, io.cfIn.brIdx(0), !io.cfIn.brIdx(0) || (io.redirect.target =/= io.cfIn.pnpc)) //是分支指令但是不跳转
   // TODO: Temperarily no branch prediction , we assume predictWrong is always true
   val predictWrong = true.B
 
   val brValid = (taken || !isBranch) && isBru
-  io.redirect.target := Mux(isBranch, target, io.pc + io.offset) // branch not taken, pc changes to snpc, else to target
-  // io.redirect.valid := valid && isBru && predictWrong
+  val isJirl = ALUOpType.getBranchType(func) === ALUOpType.getBranchType(ALUOpType.jirl)
+  io.redirect.target := Mux(isBranch || isJirl,
+                            target, io.pc + io.offset) 
   io.redirect.valid := brValid && predictWrong
-  // val redirectRtype = if (EnableOutOfOrderExec) 1.U else 0.U
-  // io.redirect.rtype := redirectRtype
   io.redirect.rtype := DontCare // TODO
+  
   // actually for bl and jirl to write pc + 4 to rd 
   dontTouch(aluRes)
   io.out.bits := Mux(isBru, io.pc + 4.U, aluRes) // out only has a single 32-bit field
