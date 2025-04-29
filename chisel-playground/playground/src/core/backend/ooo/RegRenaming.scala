@@ -199,17 +199,16 @@ class RegRenaming extends Module {
     }
 
     // 回收逻辑
-    for (i <- 0 until 4) {
-      when(io.free(i).valid) {
-        tail := (tail +& 1.U) % entries.size.U
-      }
+    val freeValidCount = PopCount(io.free.map(_.valid))
+    when(freeValidCount > 0.U) {
+      tail := (tail +& freeValidCount) % entries.size.U
     }
 
-    io.count := Mux(tail > head, tail - head, Mux(tail < head, (entries.size.U - head) + tail, 0.U))
+    io.count := Mux(tail >= head, tail - head, (entries.size.U - head) + tail)
 
     when(io.rollback.valid) {
-      head := io.rollback.bits.head
-      tail := io.rollback.bits.tail +& 1.U % entries.size.U
+      head := io.rollback.bits.head % entries.size.U
+      tail := io.rollback.bits.tail % entries.size.U
     }
   }
 
@@ -282,7 +281,7 @@ class RegRenaming extends Module {
     io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
     // FIXME:
     io.robAllocate.allocEntries(i).valid := needAlloc && freeList.io.allocResp(i).valid
-    io.robAllocate.allocEntries(i).use_preg := needAlloc 
+    io.robAllocate.allocEntries(i).use_preg := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
@@ -308,11 +307,11 @@ class RegRenaming extends Module {
     }
 
     // 检查点处理
-    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
-      checkpointRAT(input.checkpoint.id) := rat
-      checkpointFreelist(input.checkpoint.id).head := freeList.io.flHead
-      checkpointFreelist(input.checkpoint.id).tail := freeList.io.flTail
-    }
+    // when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
+    //   checkpointRAT(input.checkpoint.id) := rat
+    //   checkpointFreelist(input.checkpoint.id).head := freeList.io.flHead +& 1.U % 64.U
+    //   checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
+    // }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
@@ -339,6 +338,19 @@ class RegRenaming extends Module {
       io.out.bits(i).jIsArf := Mux(rj === io.in.bits(j).ctrl.rfDest, false.B, temp_jIsArf(i))
       io.out.bits(i).prk := Mux(rk === io.in.bits(j).ctrl.rfDest, io.out.bits(j).preg, temp_prk(i))
       io.out.bits(i).kIsArf := Mux(rk === io.in.bits(j).ctrl.rfDest, false.B, temp_kIsArf(i))
+    }
+  }
+
+  // 存储检查点
+  for (i <- 0 until 4) {
+    val input = io.in.bits(i)
+    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
+      checkpointRAT(input.checkpoint.id) := rat
+      val allocUntilCheckpointValid = PopCount(VecInit((0 until i + 1).map(j => 
+        io.robAllocate.allocEntries(j).use_preg
+      )))
+      checkpointFreelist(input.checkpoint.id).head := (freeList.io.flHead +& allocUntilCheckpointValid) % 64.U
+      checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
     }
   }
   
@@ -378,8 +390,8 @@ class RegRenaming extends Module {
     rat := ratSnapshot
 
     val freelistSnapshot = checkpointFreelist(checkpoint_id)
-    freeList.io.rollback.bits.head := freelistSnapshot.head
-    freeList.io.rollback.bits.tail := freelistSnapshot.tail
+    freeList.io.rollback.bits.head := 0.U
+    freeList.io.rollback.bits.tail := 63.U
   }.otherwise {
     freeList.io.rollback.bits := DontCare
   }
