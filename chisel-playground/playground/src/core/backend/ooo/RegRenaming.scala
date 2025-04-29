@@ -209,7 +209,7 @@ class RegRenaming extends Module {
 
     when(io.rollback.valid) {
       head := io.rollback.bits.head
-      tail := io.rollback.bits.tail
+      tail := io.rollback.bits.tail +& 1.U % entries.size.U
     }
   }
 
