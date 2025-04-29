@@ -185,9 +185,9 @@ class Rob extends Module {
   // 判断在环形缓冲区中idx是否在start之后且在end之前
   def isAfter(idx: UInt, start: UInt, end: UInt): Bool = {
     val isAfterStart = Mux(
-      start <= end,
-      idx > start && idx < end,
-      idx > start || idx < end
+      start > end,
+      idx >= start && idx < end,
+      idx >= start || idx < end
     )
     isAfterStart
   }
@@ -207,23 +207,7 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
 
-  // 分支预测错误时，需要将tail回滚到head+x的位置
-  when (brMisPred) {
-    // 回滚ROB尾指针
-    // printf("ROB: Rollback tail from %d to %d\n", tail, head +& brMisPredIdx +& 1.U)
-    tail := (head +& brMisPredIdx +& 1.U) % RobConfig.ROB_ENTRY_NUM.U
-    // 清除所有在tail之后的条目
-    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
-      val idx = i.U
-      when (isAfter(idx, head, tail)) {
-        // printf("ROB: Clear entry %d\n", idx)
-        robEntries(idx).valid := false.B
-      }
-    }
-  }
-
   // 提交逻辑
-
   // 生成提交信息
   for (i <- 0 until 4) {
     /* 
@@ -270,7 +254,22 @@ class Rob extends Module {
   val commitNum = PopCount(io.commitInstr.map(_.valid))
 
   // 更新头指针
+  val nextHead = (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
   when (commitNum > 0.U) {
-    head := (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
+    head := nextHead
+  }
+
+  // 分支预测错误时，需要将tail回滚到head+x的位置
+  when (brMisPred) {
+    // 回滚ROB尾指针
+    val rollbackTail = (head +& brMisPredIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    tail := rollbackTail
+    // 清除所有在tail之后的条目
+    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
+      val idx = i.U
+      when (isAfter(idx, rollbackTail, nextHead)) {
+        robEntries(idx).valid := false.B
+      }
+    }
   }
 }
