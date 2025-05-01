@@ -279,7 +279,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
-    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid
+    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid && Ex.io.in(i).bits.valid
     rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
 
     // <busy reg> update
@@ -299,67 +299,55 @@ class Core extends Module {
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
-  
-  // difftest
-  if(GenCtrl.USE_DIFF) {
+
+  if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 
-    DiffCommit.io.instr(0).valid := rob.io.commitInstr(0).valid && rob.io.commit.commit(0).bits.inst_valid
-    DiffCommit.io.instr(0).pc := rob.io.commitPC(0).bits
-    DiffCommit.io.instr(0).instr := rob.io.commitInstr(0).bits
-    DiffCommit.io.instr(0).skip := DontCare
-    DiffCommit.io.instr(0).is_TLBFILL := DontCare
-    DiffCommit.io.instr(0).TLBFILL_index := DontCare
-    DiffCommit.io.instr(0).is_CNTinst := DontCare
-    DiffCommit.io.instr(0).timer_64_value := DontCare
-    DiffCommit.io.instr(0).wen := rob.io.commit.commit(0).bits.dest =/= 0.U
-    DiffCommit.io.instr(0).wdest := rob.io.commit.commit(0).bits.dest
-    DiffCommit.io.instr(0).wdata := rob.io.commit.commit(0).bits.data
-    DiffCommit.io.instr(0).csr_rstat := DontCare
-    DiffCommit.io.instr(0).csr_data := DontCare
+    // 1) 收集原始 4 路信号
+    val diffValids = VecInit((0 until 4).map { i =>
+      rob.io.commitInstr(i).valid && rob.io.commit.commit(i).bits.inst_valid
+    })
+    val diffPCs    = VecInit((0 until 4).map(i => rob.io.commitPC(i).bits))
+    val diffInsts  = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits))
+    val diffDests  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.dest))
+    val diffDatas  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.data))
+    val diffWens   = diffDests.map(_ =/= 0.U)
 
-    DiffCommit.io.instr(1).valid := rob.io.commitInstr(1).valid && rob.io.commit.commit(1).bits.inst_valid
-    DiffCommit.io.instr(1).pc := rob.io.commitPC(1).bits
-    DiffCommit.io.instr(1).instr := rob.io.commitInstr(1).bits
-    DiffCommit.io.instr(1).skip := DontCare
-    DiffCommit.io.instr(1).is_TLBFILL := DontCare
-    DiffCommit.io.instr(1).TLBFILL_index := DontCare
-    DiffCommit.io.instr(1).is_CNTinst := DontCare
-    DiffCommit.io.instr(1).timer_64_value := DontCare
-    DiffCommit.io.instr(1).wen := rob.io.commit.commit(1).bits.dest =/= 0.U
-    DiffCommit.io.instr(1).wdest := rob.io.commit.commit(1).bits.dest
-    DiffCommit.io.instr(1).wdata := rob.io.commit.commit(1).bits.data
-    DiffCommit.io.instr(1).csr_rstat := DontCare
-    DiffCommit.io.instr(1).csr_data := DontCare
+    // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
+    //    prefixSum(0)=0, prefixSum(1)=valid(0), prefixSum(2)=valid(0)+valid(1), ...
+    val prefixSum = Wire(Vec(4, UInt(3.W)))
+    prefixSum(0) := 0.U
+    for (j <- 1 until 4) {
+      prefixSum(j) := prefixSum(j-1) + diffValids(j-1).asUInt
+    }
 
-    DiffCommit.io.instr(2).valid := rob.io.commitInstr(2).valid && rob.io.commit.commit(2).bits.inst_valid
-    DiffCommit.io.instr(2).pc := rob.io.commitPC(2).bits
-    DiffCommit.io.instr(2).instr := rob.io.commitInstr(2).bits
-    DiffCommit.io.instr(2).skip := DontCare
-    DiffCommit.io.instr(2).is_TLBFILL := DontCare
-    DiffCommit.io.instr(2).TLBFILL_index := DontCare
-    DiffCommit.io.instr(2).is_CNTinst := DontCare
-    DiffCommit.io.instr(2).timer_64_value := DontCare
-    DiffCommit.io.instr(2).wen := rob.io.commit.commit(2).bits.dest =/= 0.U
-    DiffCommit.io.instr(2).wdest := rob.io.commit.commit(2).bits.dest
-    DiffCommit.io.instr(2).wdata := rob.io.commit.commit(2).bits.data
-    DiffCommit.io.instr(2).csr_rstat := DontCare
-    DiffCommit.io.instr(2).csr_data := DontCare
+    // 3) 对每一路输出 k，选出原始中第 k 个 valid 为真的输入
+    for (k <- 0 until 4) {
+      // sel(j) = “第 j 路输入 valid，并且在它之前正好有 k 条 valid”
+      val sel = VecInit((0 until 4).map { j =>
+        diffValids(j) && (prefixSum(j) === k.U)
+      })
+      // 输出 valid
+      DiffCommit.io.instr(k).valid := sel.asUInt.orR
 
-    DiffCommit.io.instr(3).valid := rob.io.commitInstr(3).valid && rob.io.commit.commit(3).bits.inst_valid
-    DiffCommit.io.instr(3).pc := rob.io.commitPC(3).bits
-    DiffCommit.io.instr(3).instr := rob.io.commitInstr(3).bits
-    DiffCommit.io.instr(3).skip := DontCare
-    DiffCommit.io.instr(3).is_TLBFILL := DontCare
-    DiffCommit.io.instr(3).TLBFILL_index := DontCare
-    DiffCommit.io.instr(3).is_CNTinst := DontCare
-    DiffCommit.io.instr(3).timer_64_value := DontCare
-    DiffCommit.io.instr(3).wen := rob.io.commit.commit(3).bits.dest =/= 0.U
-    DiffCommit.io.instr(3).wdest := rob.io.commit.commit(3).bits.dest
-    DiffCommit.io.instr(3).wdata := rob.io.commit.commit(3).bits.data
-    DiffCommit.io.instr(3).csr_rstat := DontCare
-    DiffCommit.io.instr(3).csr_data := DontCare
+      // 用 Mux1H 实现 one-hot 选择
+      DiffCommit.io.instr(k).pc    := Mux1H(sel.zip(diffPCs))
+      DiffCommit.io.instr(k).instr := Mux1H(sel.zip(diffInsts))
+      DiffCommit.io.instr(k).wdest  := Mux1H(sel.zip(diffDests))
+      DiffCommit.io.instr(k).wdata  := Mux1H(sel.zip(diffDatas))
+      DiffCommit.io.instr(k).wen    := Mux1H(sel.zip(diffWens))
 
+      // 其它字段保持 DontCare（或你原来写的那套赋值）
+      DiffCommit.io.instr(k).skip          := DontCare
+      DiffCommit.io.instr(k).is_TLBFILL    := DontCare
+      DiffCommit.io.instr(k).TLBFILL_index := DontCare
+      DiffCommit.io.instr(k).is_CNTinst    := DontCare
+      DiffCommit.io.instr(k).timer_64_value:= DontCare
+      DiffCommit.io.instr(k).csr_rstat     := DontCare
+      DiffCommit.io.instr(k).csr_data      := DontCare
+    }
+
+    // 4) 其余接口
     DiffCommit.io.reg := Rn.io.arf
   }
 }
