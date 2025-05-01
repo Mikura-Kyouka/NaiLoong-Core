@@ -15,6 +15,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
+    val flush = Input(Bool())
   })
 
   val io_raw = IO(new Bundle {
@@ -80,5 +81,13 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
     }
     valid_vec(QUEUE_SIZE - 1) := false.B
     valid_count := valid_count - 1.U
+  }
+
+  // flush
+  when(io.flush) {
+    valid_count := 0.U
+    for (i <- 0 until QUEUE_SIZE.toInt) {
+      valid_vec(i) := false.B
+    }
   }
 }

@@ -261,6 +261,8 @@ class Core extends Module {
     Issue.io.rtrInstr(i).valid := rob.io.commitInstr(i).valid
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
   }
+
+  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid
   
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B

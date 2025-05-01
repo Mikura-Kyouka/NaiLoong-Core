@@ -14,6 +14,7 @@ class OrderIssueQueue extends Module {
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
     val pram_read = Flipped(new payloadram_read_info)
+    val flush = Input(Bool())
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
@@ -92,5 +93,14 @@ class OrderIssueQueue extends Module {
   when(io.out.fire) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B
     read_ptr := read_ptr + 1.U
+  }
+
+  // flush
+  when(io.flush) {
+    write_ptr := 0.U
+    read_ptr := 0.U
+    for (i <- 0 until QUEUE_SIZE.toInt) {
+      valid_vec(i) := false.B
+    }
   }
 }

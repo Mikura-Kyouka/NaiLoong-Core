@@ -16,6 +16,7 @@ class IssueTop extends Module {
     val rtrInstr = Flipped(Vec(4,Valid(new retire_inst_info)))
     val busy_info = Input(Vec(5, new busy_info))
     val ex_bypass = Input(Vec(5, new bypass_info))
+    val flush = Input(Bool())
   })
 
   val alu1rs = Module(new UnorderIssueQueue)
@@ -46,6 +47,11 @@ class IssueTop extends Module {
   io.in(2).ready := mdurs.io.in.ready
   io.in(3).ready := lsurs.io.in.ready
   io.in(4).ready := brurs.io.in.ready
+  alu1rs.io.flush := io.flush
+  alu2rs.io.flush := io.flush
+  mdurs.io.flush := io.flush
+  lsurs.io.flush := io.flush
+  brurs.io.flush := io.flush
 
   // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
