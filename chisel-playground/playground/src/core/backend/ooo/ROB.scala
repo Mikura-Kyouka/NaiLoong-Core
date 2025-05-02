@@ -185,9 +185,9 @@ class Rob extends Module {
   // 判断在环形缓冲区中idx是否在start之后且在end之前
   def isAfter(idx: UInt, start: UInt, end: UInt): Bool = {
     val isAfterStart = Mux(
-      start > end,
-      idx >= start && idx < end,
-      idx >= start || idx < end
+      start >= end,
+      idx >= start || idx < end,
+      idx >= start && idx < end
     )
     isAfterStart
   }
