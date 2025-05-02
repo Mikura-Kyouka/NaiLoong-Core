@@ -284,7 +284,7 @@ class RegRenaming extends Module {
     io.robAllocate.allocEntries(i).use_preg := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
-    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
+    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid) {
       rat(rd).inARF := false.B
       rat(rd).preg := allocated_preg
       rat(rd).robPointer := freeList.io.allocResp(i).bits
