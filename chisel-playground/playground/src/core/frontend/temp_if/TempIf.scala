@@ -74,11 +74,23 @@ class TempIf extends Module {
 
   val pc = RegInit("h1c000000".U(32.W))
 
-  val idle :: read :: nop :: Nil = Enum(3)
+  // 解决非16字节对齐的问题
+  val use_cached_pc = RegInit(false.B)
+  when(io.flush) {
+    use_cached_pc := true.B
+  }.elsewhen(io.to.ready && io.to.valid) {
+    use_cached_pc := false.B
+  }
+  val cached_new_pc = RegInit(0.U(32.W))
+  when(io.flush) {
+    cached_new_pc := io.new_pc
+  }
+
+  val idle :: read :: waitar :: waitr :: Nil = Enum(4)
   val state = RegInit(idle)
 
   // AXI signals
-  val arvalid = RegInit(true.B)
+  val arvalid = RegInit(false.B)
   io.arvalid := arvalid
   val rready = RegInit(false.B)
   io.rready := rready
@@ -136,21 +148,21 @@ class TempIf extends Module {
   temp_cache.io.wen := cache_wen
   temp_cache.io.new_pc := io.new_pc
   temp_cache.io.flush := io.flush
-  temp_cache.io.ready := io.to.ready
+  temp_cache.io.ready := !io.flush
   io.to.valid := temp_cache.io.valid
 
   io.to.bits(0).instr := temp_cache.io.inst0.inst
   io.to.bits(0).pc := temp_cache.io.inst0.pc
-  io.to.bits(0).valid := temp_cache.io.inst0.valid
+  io.to.bits(0).valid := temp_cache.io.inst0.valid && (!use_cached_pc || io.to.bits(0).pc(5, 4) >= cached_new_pc(5, 4))
   io.to.bits(1).instr := temp_cache.io.inst1.inst
   io.to.bits(1).pc := temp_cache.io.inst1.pc
-  io.to.bits(1).valid := temp_cache.io.inst1.valid
+  io.to.bits(1).valid := temp_cache.io.inst1.valid && (!use_cached_pc || io.to.bits(1).pc(5, 4) >= cached_new_pc(5, 4))
   io.to.bits(2).instr := temp_cache.io.inst2.inst
   io.to.bits(2).pc := temp_cache.io.inst2.pc
-  io.to.bits(2).valid := temp_cache.io.inst2.valid
+  io.to.bits(2).valid := temp_cache.io.inst2.valid && (!use_cached_pc || io.to.bits(2).pc(5, 4) >= cached_new_pc(5, 4))
   io.to.bits(3).instr := temp_cache.io.inst3.inst
   io.to.bits(3).pc := temp_cache.io.inst3.pc
-  io.to.bits(3).valid := temp_cache.io.inst3.valid
+  io.to.bits(3).valid := temp_cache.io.inst3.valid && (!use_cached_pc || io.to.bits(3).pc(5, 4) >= cached_new_pc(5, 4))
 
   val flushed = RegInit(false.B)
   when(io.flush || temp_cache.io.read_pc(31, 4) =/= pc(31, 4)) {
@@ -160,32 +172,61 @@ class TempIf extends Module {
 
   switch(state) {
     is(idle) {
-      when(io.arvalid && io.arready) {
-        state := nop
+      when(io.arvalid && io.arready && !flushed) {
+        state := read
         arvalid := false.B
         rready := true.B
-      }.otherwise {
+      }.elsewhen(io.arvalid && io.arready && flushed) {
+        state := waitr
+        arvalid := false.B
+        rready := true.B
+      }.elsewhen(flushed) {
+        state := waitar
+        arvalid := true.B
+        rready := false.B
+      }.elsewhen(io.to.ready) {
         arvalid := true.B
       }
       cache_wen := false.B
-      when(flushed) { flushed := false.B }
     }
-    is(nop) {
-      state := read
+    is(waitar) {
+      when(io.arvalid && io.arready) {
+        state := waitr
+        rready := true.B
+        arvalid := false.B
+      }
     }
     is(read) {
-      when(io.rvalid && io.rready) {
+      when(io.rvalid && io.rready && !flushed) {
         state := idle
         rready := false.B
         arvalid := true.B
         inst := io.rdata
         pc := pc + 4.U
 
-        cache_wen := ~flushed
+        cache_wen := true.B
         cache_waddr := pc
         cache_wdata := io.rdata
-      }.otherwise {
-        rready := true.B
+      }.elsewhen(io.rvalid && io.rready && flushed) {
+        state := idle
+        arvalid := false.B
+        cache_wen := false.B
+      }.elsewhen(flushed) {
+        state := waitr
+        arvalid := false.B
+        cache_wen := false.B
+      }
+    }
+    is(waitr) {
+      when(io.rvalid) {
+        state := idle
+        inst := io.rdata
+        rready := false.B
+
+        cache_wen := false.B
+        cache_waddr := pc
+        cache_wdata := io.rdata
+        flushed := false.B
       }
     }
   }

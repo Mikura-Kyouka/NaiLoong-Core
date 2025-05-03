@@ -15,6 +15,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
+    val flush = Input(Bool())
   })
 
   val io_raw = IO(new Bundle {
@@ -55,7 +56,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
                           mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
     }
     else {
-      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i)
+      can_issue_vec(i) := (!io.busyreg(mem(i).prj) || mem(i).jIsArf) && (!io.busyreg(mem(i).prk) || mem(i).kIsArf) && valid_vec(i)
     }
   }
   val can_issue = can_issue_vec.reduce(_ || _)
@@ -68,9 +69,11 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   io.pram_read.src2 := mem(first_can_issue_index).prk
   val out = mem(first_can_issue_index)
   // FIXME: src comes from arf/payloadram
+  val prj_0 = Fill(32, mem(first_can_issue_index).prj =/= 0.U)
+  val prk_0 = Fill(32, mem(first_can_issue_index).prk =/= 0.U)
   io.out.bits := out
-  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, io.pram_read.pram_data1)
-  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, io.pram_read.pram_data2)
+  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
+  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prj_0 & io.pram_read.pram_data2)
   when(io.out.valid) {
     for(i <- 0 until (QUEUE_SIZE - 1)) {
       when(i.U >= first_can_issue_index) {
@@ -80,5 +83,13 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
     }
     valid_vec(QUEUE_SIZE - 1) := false.B
     valid_count := valid_count - 1.U
+  }
+
+  // flush
+  when(io.flush) {
+    valid_count := 0.U
+    for (i <- 0 until QUEUE_SIZE.toInt) {
+      valid_vec(i) := false.B
+    }
   }
 }

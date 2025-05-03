@@ -3,6 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 import core.SrcType.reg
+import core.IssueConfig.PHYS_REG_NUM
 
 object RegConfig {
   val ARCH_REG_NUM = 32
@@ -39,6 +40,7 @@ class Rename extends Module {
     regRenaming.io.in.bits(i).checkpoint <> io.in.bits(i).checkpoint
     regRenaming.io.in.bits(i).pc := io.in.bits(i).pc         // 添加PC
     regRenaming.io.in.bits(i).instr := io.in.bits(i).instr   // 添加指令
+    regRenaming.io.in.bits(i).inst_valid := io.in.bits(i).valid
 
     io.out.bits(i).prj := regRenaming.io.out.bits(i).prj
     io.out.bits(i).jIsArf := regRenaming.io.out.bits(i).jIsArf
@@ -78,6 +80,7 @@ class RenameInput extends Bundle {
   }
   val pc = UInt(32.W)       // 添加PC
   val instr = UInt(32.W)    // 添加指令
+  val inst_valid = Bool()
 }
 
 class RenameOutput extends Bundle {
@@ -137,6 +140,14 @@ class RegRenaming extends Module {
     })
   }))
 
+  // Store the state of the freelist for checkpoints
+  class FreeListState extends Bundle {
+    val head = UInt((RegConfig.PHYS_REG_BITS + 1).W)
+    val tail = UInt((RegConfig.PHYS_REG_BITS + 1).W)
+  }
+
+  val checkpointFreelist = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH)(0.U.asTypeOf(new FreeListState))))
+
   // 物理寄存器空闲队列
   class FreeList extends Module {
     val io = IO(new Bundle {
@@ -144,11 +155,17 @@ class RegRenaming extends Module {
       val allocResp = Vec(4, DecoupledIO(UInt(RegConfig.PHYS_REG_BITS.W)))
       val free      = Flipped(Vec(4, ValidIO(UInt(RegConfig.PHYS_REG_BITS.W))))
       val count     = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
+      val rollback  = Input(Valid(new FreeListState))
+      val flHead    = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
+      val flTail    = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
     })
     // 寄存器初始化
-    val entries = RegInit(VecInit((RegConfig.ARCH_REG_NUM until RegConfig.PHYS_REG_NUM).map(_.U)))
+    val entries = RegInit(VecInit((0 until RegConfig.PHYS_REG_NUM).map(_.U)))
     val head = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
-    val tail = RegInit((RegConfig.PHYS_REG_NUM - RegConfig.ARCH_REG_NUM).U)
+    val tail = RegInit((RegConfig.PHYS_REG_NUM - 1).U((RegConfig.PHYS_REG_BITS + 1).W))
+
+    io.flHead := head
+    io.flTail := tail
 
     // 分配有效性校验
     val reqValid = Wire(Vec(4, Bool()))
@@ -182,14 +199,17 @@ class RegRenaming extends Module {
     }
 
     // 回收逻辑
-    for (i <- 0 until 4) {
-      when(io.free(i).valid) {
-        entries(tail % entries.size.U) := io.free(i).bits
-        tail := tail +% 1.U
-      }
+    val freeValidCount = PopCount(io.free.map(_.valid))
+    when(freeValidCount > 0.U) {
+      tail := (tail +& freeValidCount) % entries.size.U
     }
 
     io.count := Mux(tail >= head, tail - head, (entries.size.U - head) + tail)
+
+    when(io.rollback.valid) {
+      head := io.rollback.bits.head % entries.size.U
+      tail := io.rollback.bits.tail % entries.size.U
+    }
   }
 
   val freeList = Module(new FreeList)
@@ -209,6 +229,7 @@ class RegRenaming extends Module {
     entry.checkpoint.valid := input.checkpoint.needSave
     entry.checkpoint.id := input.checkpoint.id
     entry.fuType := input.ctrl.fuType
+    entry.inst_valid := input.inst_valid
     
     // 这些字段在后面的指令执行阶段设置
     entry.finished := DontCare
@@ -227,6 +248,7 @@ class RegRenaming extends Module {
   // 握手信号控制
   val canAlloc = freeList.io.count >= 4.U && io.robAllocate.canAllocate
   io.in.ready := canAlloc && io.out.ready
+  dontTouch(canAlloc)
   io.out.valid := io.in.valid && canAlloc
 
   val temp_prj = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
@@ -259,9 +281,10 @@ class RegRenaming extends Module {
     io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
     // FIXME:
     io.robAllocate.allocEntries(i).valid := needAlloc && freeList.io.allocResp(i).valid
+    io.robAllocate.allocEntries(i).use_preg := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
-    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid) {
+    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid) {
       rat(rd).inARF := false.B
       rat(rd).preg := allocated_preg
       rat(rd).robPointer := freeList.io.allocResp(i).bits
@@ -284,9 +307,11 @@ class RegRenaming extends Module {
     }
 
     // 检查点处理
-    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
-      checkpointRAT(input.checkpoint.id) := rat
-    }
+    // when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
+    //   checkpointRAT(input.checkpoint.id) := rat
+    //   checkpointFreelist(input.checkpoint.id).head := freeList.io.flHead +& 1.U % 64.U
+    //   checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
+    // }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
@@ -315,6 +340,19 @@ class RegRenaming extends Module {
       io.out.bits(i).kIsArf := Mux(rk === io.in.bits(j).ctrl.rfDest, false.B, temp_kIsArf(i))
     }
   }
+
+  // 存储检查点
+  for (i <- 0 until 4) {
+    val input = io.in.bits(i)
+    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
+      checkpointRAT(input.checkpoint.id) := rat
+      val allocUntilCheckpointValid = PopCount(VecInit((0 until i + 1).map(j => 
+        io.robAllocate.allocEntries(j).use_preg
+      )))
+      checkpointFreelist(input.checkpoint.id).head := (freeList.io.flHead +& allocUntilCheckpointValid) % 64.U
+      checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
+    }
+  }
   
   // 零寄存器不保留旧值
   io.out.bits.foreach { out =>
@@ -331,13 +369,13 @@ class RegRenaming extends Module {
 
   // 连接ROB回收接口
   freeList.io.free.zip(io.rob.commit).foreach { case (free, commit) =>
-    free.valid := commit.valid
+    free.valid := commit.bits.use_preg && commit.valid
     free.bits  := commit.bits.preg
   }
 
   // retire 
   for(i <- 0 until 4) {
-    when(io.rob.commit(i).valid) {
+    when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
       // rat update
@@ -348,7 +386,15 @@ class RegRenaming extends Module {
   // 分支预测错误回滚
   when(io.brMispredict.brMisPred.valid) {
     val checkpoint_id = io.brMispredict.brMisPredChkpt
-    val snapshot = checkpointRAT(checkpoint_id)
-    rat := snapshot
+    val ratSnapshot = checkpointRAT(checkpoint_id)
+    rat := ratSnapshot
+
+    val freelistSnapshot = checkpointFreelist(checkpoint_id)
+    freeList.io.rollback.bits.head := 0.U
+    freeList.io.rollback.bits.tail := 63.U
+  }.otherwise {
+    freeList.io.rollback.bits := DontCare
   }
+
+  freeList.io.rollback.valid := io.brMispredict.brMisPred.valid
 }

@@ -14,6 +14,7 @@ class OrderIssueQueue extends Module {
 
     val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
     val pram_read = Flipped(new payloadram_read_info)
+    val flush = Input(Bool())
   })
 
   val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
@@ -78,19 +79,30 @@ class OrderIssueQueue extends Module {
   dontTouch(debug_read_ptr_prj)
   dontTouch(debug_read_ptr_prk)
 
-  val can_issue = !io.busyreg(mem(read_ptr).prj) && !io.busyreg(mem(read_ptr).prk) && valid_vec(read_ptr)
+  val can_issue = (!io.busyreg(mem(read_ptr).prj) || mem(read_ptr).jIsArf) && (!io.busyreg(mem(read_ptr).prk) || mem(read_ptr).kIsArf) && valid_vec(read_ptr)
   //io.out := mem(read_ptr)
   io.pram_read.src1 := mem(read_ptr).prj
   io.pram_read.src2 := mem(read_ptr).prk
   val out = mem(read_ptr)
+  val prj_0 = Fill(32, mem(read_ptr).prj =/= 0.U)
+  val prk_0 = Fill(32, mem(read_ptr).prk =/= 0.U)
   io.out.bits := out
-  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, io.pram_read.pram_data1)
-  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, io.pram_read.pram_data2)
+  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
+  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
   // out.src1 := io.pram_read.pram_data1
   // out.src2 := io.pram_read.pram_data2
   io.out.valid := can_issue
   when(io.out.fire) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B
     read_ptr := read_ptr + 1.U
+  }
+
+  // flush
+  when(io.flush) {
+    write_ptr := 0.U
+    read_ptr := 0.U
+    for (i <- 0 until QUEUE_SIZE.toInt) {
+      valid_vec(i) := false.B
+    }
   }
 }

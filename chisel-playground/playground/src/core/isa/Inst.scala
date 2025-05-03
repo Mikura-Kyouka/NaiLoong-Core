@@ -52,8 +52,8 @@ object Inst {
     def bltu            = BitPat("b011010_????????????????_?????_?????")     // n39_bltu 
     def bgeu            = BitPat("b011011_????????????????_?????_?????")     // n40_bgeu 
 
-    def lu12i_w         = BitPat("b001010_?????????????????????_?????")     // n1_lu12i_w 
-    def pcaddu12i       = BitPat("b001110_?????????????????????_?????")     // n21_pcaddu12i 
+    def lu12i_w         = BitPat("b0001010_????????????????????_?????")     // n1_lu12i_w 
+    def pcaddu12i       = BitPat("b0001110_????????????????????_?????")     // n21_pcaddu12i 
     
     def slti            = BitPat("b0000001000_????????????_?????_?????")     // n22_slti 
     def sltui           = BitPat("b0000001001_????????????_?????_?????")     // n23_sltui 
@@ -123,7 +123,7 @@ object Inst {
         ll_w            -> List(ImmType.si14_pc , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sc_w            -> List(ImmType.si14_pc , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y), 
         jirl            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.jirl,  SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
-        b               -> List(ImmType.si26_pc , FuType.bru, ALUOpType.b,     SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        b               -> List(ImmType.si26_pc , FuType.bru, ALUOpType.b,     SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y), 
         bl              -> List(ImmType.si26_pc , FuType.bru, ALUOpType.bl,    SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.r1, RfWen.y, IsLegal.y), 
         beq             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.beq,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bne             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bne,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
@@ -131,7 +131,7 @@ object Inst {
         bge             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bge,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bltu            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bltu,  SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bgeu            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bgeu,  SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
-        lu12i_w         -> List(ImmType.si20    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        lu12i_w         -> List(ImmType.si20    , FuType.alu, ALUOpType.lu12i, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         pcaddu12i       -> List(ImmType.si20    , FuType.alu, ALUOpType.add,   SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         slti            -> List(ImmType.si12    , FuType.alu, ALUOpType.slt,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sltui           -> List(ImmType.si12    , FuType.alu, ALUOpType.sltu,  SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
