@@ -69,9 +69,11 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   io.pram_read.src2 := mem(first_can_issue_index).prk
   val out = mem(first_can_issue_index)
   // FIXME: src comes from arf/payloadram
+  val prj_0 = Fill(32, mem(first_can_issue_index).prj =/= 0.U)
+  val prk_0 = Fill(32, mem(first_can_issue_index).prk =/= 0.U)
   io.out.bits := out
-  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, io.pram_read.pram_data1)
-  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, io.pram_read.pram_data2)
+  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
+  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prj_0 & io.pram_read.pram_data2)
   when(io.out.valid) {
     for(i <- 0 until (QUEUE_SIZE - 1)) {
       when(i.U >= first_can_issue_index) {
