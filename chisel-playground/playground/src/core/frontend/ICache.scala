@@ -18,7 +18,7 @@ sealed trait HasICacheConst {
   val Sets = TotalSize / LineSize / Ways
   val OffsetBits = log2Up(LineSize) // 26 6 2
   val IndexBits = log2Up(Sets)
-  val WordIndexBits = log2Up(LineBeats) // TODO
+  val WordIndexBits = if (LineBeats == 1) 0 else log2Up(LineBeats) // TODO
   val TagBits = 32 - OffsetBits - IndexBits
 
   def addrBundle = new Bundle {
@@ -227,7 +227,7 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
 // Stage2: Data Access
 class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
-  val rdata = Output(UInt(32.W))
+  val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
   val wordIndex = Output(UInt(WordIndexBits.W))
 }
@@ -332,7 +332,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.axi.arburst := "b01".U // INCR
 
   val burst = RegInit(0.U(WordIndexBits.W))
-  val dataLatch = RegInit(0.U(32.W))
+  val dataLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
   val rdata = io.axi.rdata
 
   io.metaArrayWrite.valid := false.B
@@ -343,6 +343,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when(io.axi.rvalid && state === s_wait_data) {
     burst := burst + 1.U
     axiDataLatch(burst) := rdata
+    dataLatch(burst) := rdata
   }
   when(io.axi.rlast && state === s_wait_data) {
     burst := 0.U
@@ -357,11 +358,11 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     io.metaArrayWrite.tag := tag
   }
   
-  when(burst === io.in.bits.wordIndex) {
-    dataLatch := io.axi.rdata 
-  }
+  // when(burst === io.in.bits.wordIndex) {
+  //   dataLatch := io.axi.rdata 
+  // }
 
-  io.out.bits.rdata := DontCare
+  // io.out.bits.rdata := DontCare
   when(!hit){
     io.out.bits.rdata := dataLatch
   }.otherwise{
@@ -376,7 +377,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage2Out))
-    val out = Decoupled(new Stage3Out)
+    // val out = Decoupled(new Stage3Out)
+    val out = Decoupled(Vec(4, new IFU2IDU))
     val inFire = Input(Bool())
     val cacheDataVec = Input(Vec(LineBeats, UInt(32.W)))
     val flush = Input(Bool())
@@ -386,15 +388,40 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val hit = io.in.bits.hit
   dontTouch(io.in.bits.hit)
   val flag = RegNext(io.inFire)
-  val cacheDataChoosen = RegInit(0.U(32.W))
+  val cacheDataVecLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
   when(flag){
-    cacheDataChoosen := cacheDataVec(wordIndex)
+    cacheDataVecLatch := cacheDataVec
   }
-  val rdata = Mux(hit, Mux(flag, cacheDataVec(wordIndex), cacheDataChoosen), io.in.bits.rdata)
+  val rdata = Mux(hit, Mux(flag, cacheDataVec, cacheDataVecLatch), io.in.bits.rdata)
   dontTouch(rdata)
 
-  io.out.bits.rdata := rdata
-  io.out.bits.addr := io.in.bits.addr
+  val ValidVec = Wire(UInt(4.W))
+  ValidVec := MuxLookup(io.in.bits.addr(3,2), 0.U(4.W))(
+    Seq(
+      0.U -> "b1111".U,
+      1.U -> "b1110".U,
+      2.U -> "b1100".U,
+      3.U -> "b1000".U
+    )
+  )
+
+  // 0 0000, 4 0100, 8 1000, c 1100
+  io.out.bits(0).inst := rdata
+  io.out.bits(0).pc := Cat(io.in.bits.addr(31, 4), "h0".U(4.W))
+  io.out.bits(0).Valid := ValidVec(0)
+
+  io.out.bits(1).inst := rdata
+  io.out.bits(1).pc := Cat(io.in.bits.addr(31, 4), "h4".U(4.W))
+  io.out.bits(1).Valid := ValidVec(1)
+
+  io.out.bits(2).inst := rdata
+  io.out.bits(2).pc := Cat(io.in.bits.addr(31, 4), "h8".U(4.W))
+  io.out.bits(2).Valid := ValidVec(2)
+
+  io.out.bits(3).inst := rdata
+  io.out.bits(3).pc := Cat(io.in.bits.addr(31, 4), "hc".U(4.W))
+  io.out.bits(3).Valid := ValidVec(3)
+
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush 
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
