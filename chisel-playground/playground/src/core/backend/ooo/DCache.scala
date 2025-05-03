@@ -41,13 +41,13 @@ sealed trait HasCacheConst {
   def addrBundle = new Bundle {
     val tag = UInt(TagBits.W)
     val index = UInt(IndexBits.W)
-    val WordIndex = UInt(WordIndexBits.W)
+    // val WordIndex = UInt(WordIndexBits.W)
     val byteOffset = UInt(2.W)
   }
 
   def getMataIdx(addr: UInt) = addr.asTypeOf(addrBundle).index
-  def getDataIdx(addr: UInt) =
-    Cat(getMataIdx(addr), addr.asTypeOf(addrBundle).WordIndex)
+  // def getDataIdx(addr: UInt) =
+  //   Cat(getMataIdx(addr), addr.asTypeOf(addrBundle).WordIndex)
 
   def isSameWorld(a1: UInt, a2: UInt) = ((a1 >> 2) === (a2 >> 2))
   def isSetConflict(a1: UInt, a2: UInt) =
@@ -175,5 +175,9 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     when(state === s_read_cache){
       resp.rdata := cacheData
       io.resp.valid := true.B
+    }
+
+    when(io.req.valid){
+      printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
     }
 }

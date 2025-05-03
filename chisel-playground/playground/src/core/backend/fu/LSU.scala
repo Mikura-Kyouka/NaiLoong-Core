@@ -144,7 +144,8 @@ class AligendUnpipelinedLSU extends Module{
   val commitIdx = io.robCommit.commit.map(_.valid)
   val commitDatas = io.robCommit.commit.map(_.bits)
   lsu.io.robRetire := commitIdx.reduce(_ || _)
-  lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
+  // lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
+  lsu.io.wdata := io.in.bits.src2
 
   lsu.io.dmem <> io.lsAXI
   lsu.io.dtlbPF := DontCare
