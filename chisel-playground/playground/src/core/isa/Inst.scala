@@ -123,7 +123,7 @@ object Inst {
         ll_w            -> List(ImmType.si14_pc , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sc_w            -> List(ImmType.si14_pc , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y), 
         jirl            -> List(ImmType.si16_pc , FuType.bru, ALUOpType.jirl,  SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
-        b               -> List(ImmType.si26_pc , FuType.bru, ALUOpType.b,     SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        b               -> List(ImmType.si26_pc , FuType.bru, ALUOpType.b,     SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y), 
         bl              -> List(ImmType.si26_pc , FuType.bru, ALUOpType.bl,    SrcType.pc , SrcType.imm, SrcIsRd.n, Dest.r1, RfWen.y, IsLegal.y), 
         beq             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.beq,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
         bne             -> List(ImmType.si16_pc , FuType.bru, ALUOpType.bne,   SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.n, IsLegal.y), 
