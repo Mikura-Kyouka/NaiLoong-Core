@@ -1,17 +1,15 @@
 package core
 
-package core
-
 import chisel3._
 import chisel3.util._
 
-case class CacheConfig(
+case class ICacheConfig(
     totalSize: Int = 4 * 16, // Bytes
     ways: Int = 1
 )
 
-sealed trait HasCacheConst {
-  implicit val cacheConfig: CacheConfig
+sealed trait HasICacheConst {
+  implicit val cacheConfig: ICacheConfig
 
   val TotalSize = cacheConfig.totalSize
   val Ways = cacheConfig.ways
@@ -39,16 +37,16 @@ sealed trait HasCacheConst {
     (a1.asTypeOf(addrBundle).index === a2.asTypeOf(addrBundle).index)
 }
 
-sealed abstract class CacheBundle(implicit cacheConfig: CacheConfig)
+sealed abstract class ICacheBundle(implicit cacheConfig: ICacheConfig)
     extends Bundle
-    with HasCacheConst
+    with HasICacheConst
 
-sealed abstract class CacheModule(implicit cacheConfig: CacheConfig)
+sealed abstract class ICacheModule(implicit cacheConfig: ICacheConfig)
     extends Module
-    with HasCacheConst
+    with HasICacheConst
 
-sealed class MetaBundle(implicit val cacheConfig: CacheConfig)
-    extends CacheBundle {
+sealed class ICacheMetaBundle(implicit val cacheConfig: ICacheConfig)
+    extends ICacheBundle {
   val tag = Output(UInt(TagBits.W))
   val valid = Output(UInt(1.W))
 
@@ -59,8 +57,8 @@ sealed class MetaBundle(implicit val cacheConfig: CacheConfig)
   }
 }
 
-sealed class DataBundle(implicit val cacheConfig: CacheConfig)
-    extends CacheBundle {
+sealed class ICacheDataBundle(implicit val cacheConfig: ICacheConfig)
+    extends ICacheBundle {
   val data = Output(UInt(32.W)) // DataBits
 
   def apply(data: UInt) = {
@@ -116,7 +114,7 @@ object ICachePipelineConnect {
   }
 }
 
-class ICache(implicit val cacheConfig: CacheConfig) extends CacheModule {
+class ICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val axi = new AXI
     val ready = Input(Bool())
@@ -131,7 +129,7 @@ class ICache(implicit val cacheConfig: CacheConfig) extends CacheModule {
   io.axi := DontCare // walk around
   val addr = io.addr.asTypeOf(addrBundle)
   
-  val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
+  val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
   // see 《SuperScalar RISC Processor Design》 P24
@@ -219,7 +217,7 @@ class Stage1In extends Bundle {
   val valid = Input(Bool())
 }
 
-class Stage1Out(implicit val cacheConfig: CacheConfig) extends CacheBundle {
+class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
@@ -227,7 +225,7 @@ class Stage1Out(implicit val cacheConfig: CacheConfig) extends CacheBundle {
 }
 
 // Stage2: Data Access
-class Stage2Out(implicit val cacheConfig: CacheConfig) extends CacheBundle {
+class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
   val rdata = Output(UInt(32.W))
   val hit = Output(Bool())
@@ -240,13 +238,13 @@ class Stage3Out extends Bundle {
   val rdata = Output(UInt(32.W))
 }
 
-class metaArrayWriteBundle(implicit val cacheConfig: CacheConfig) extends CacheBundle {
+class metaArrayWriteBundle(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
   val valid = Output(Bool())
 }
 
-class Stage1(implicit val cacheConfig: CacheConfig) extends CacheModule {
+class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = new Stage1In // Flipped(Decoupled(new Stage1Out))
     val out = Decoupled(new Stage1Out)
@@ -256,7 +254,7 @@ class Stage1(implicit val cacheConfig: CacheConfig) extends CacheModule {
   })
 
   val addr = io.in.addr.asTypeOf(addrBundle)
-  val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
+  val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val index = addr.index 
   val tag = addr.tag 
   
@@ -274,7 +272,7 @@ class Stage1(implicit val cacheConfig: CacheConfig) extends CacheModule {
   io.out.valid := io.in.valid && !io.flush
 }
 
-class Stage2(implicit val cacheConfig: CacheConfig) extends CacheModule {
+class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage1Out))
     val metaArrayTag = Input(UInt(TagBits.W))
@@ -375,7 +373,7 @@ class Stage2(implicit val cacheConfig: CacheConfig) extends CacheModule {
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || (io.axi.rlast && state === s_wait_data))
 }
 
-class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
+class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage2Out))
     val out = Decoupled(new Stage3Out)
@@ -402,7 +400,7 @@ class Stage3(implicit val cacheConfig: CacheConfig) extends CacheModule {
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 
-class PipelinedICache(implicit val cacheConfig: CacheConfig) extends CacheModule {
+class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle{
     val in = new Stage1In
     val out = Decoupled(new Stage3Out)

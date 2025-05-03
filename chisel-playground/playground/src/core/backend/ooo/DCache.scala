@@ -32,7 +32,7 @@ sealed trait HasCacheConst {
   val Sets = TotalSize / LineSize / Ways
   val OffsetBits = log2Up(LineSize) // 26 6 2
   val IndexBits = log2Up(Sets)
-  val WordIndexBits = log2Up(LineBeats) // TODO
+  val WordIndexBits = if (LineBeats == 1) 0 else log2Up(LineBeats) // TODO
   val TagBits = 32 - OffsetBits - IndexBits
 
   // 打印参数
@@ -41,13 +41,13 @@ sealed trait HasCacheConst {
   def addrBundle = new Bundle {
     val tag = UInt(TagBits.W)
     val index = UInt(IndexBits.W)
-    // val WordIndex = UInt(WordIndexBits.W)
+    val WordIndex = UInt(WordIndexBits.W)
     val byteOffset = UInt(2.W)
   }
 
   def getMataIdx(addr: UInt) = addr.asTypeOf(addrBundle).index
-  // def getDataIdx(addr: UInt) =
-  //   Cat(getMataIdx(addr), addr.asTypeOf(addrBundle).WordIndex)
+  def getDataIdx(addr: UInt) =
+    Cat(getMataIdx(addr), addr.asTypeOf(addrBundle).WordIndex)
 
   def isSameWorld(a1: UInt, a2: UInt) = ((a1 >> 2) === (a2 >> 2))
   def isSetConflict(a1: UInt, a2: UInt) =
