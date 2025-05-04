@@ -13,7 +13,7 @@ class PCIO extends Bundle {
 
 class PC extends Module {
   val io = IO(new PCIO)
-  val pcReg = RegInit(0x1c000000L.U(32.W)) // TODO
+  val pcReg = RegInit("h1c000000".U(32.W)) // TODO
   val snpc = pcReg + 16.U
   when(io.PCSrc){
     pcReg := io.dnpc

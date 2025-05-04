@@ -313,13 +313,17 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
   when(io.flush && (state =/= s_idle || !hit)) { refetchLatch := true.B }
-  when(io.axi.rlast) {refetchLatch := false.B}
+  when(io.axi.rlast && io.axi.rvalid) {refetchLatch := false.B}
   val refetch = io.flush || refetchLatch
+
+  val FLAG = io.axi.rlast && io.axi.rvalid
+  dontTouch(FLAG)
 
   state := MuxLookup(state, s_idle)(Seq(
     s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
-    s_wait_data -> Mux(io.axi.rlast, Mux(refetch, Mux(hit, s_valid, s_fetching), s_valid), s_wait_data),
+    s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, Mux(hit, s_valid, s_fetching), s_valid), s_wait_data),
+    // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
     s_valid -> s_idle
   ))
   // axi read signals
@@ -345,7 +349,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     axiDataLatch(burst) := rdata
     dataLatch(burst) := rdata
   }
-  when(io.axi.rlast && state === s_wait_data) {
+  when((io.axi.rlast && io.axi.rvalid) && state === s_wait_data) {
     burst := 0.U
     // dataArray update 
     dataArray(index)(0)(0) := axiDataLatch(0)
@@ -371,7 +375,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   io.out.bits.addr := io.in.bits.addr
   io.out.valid := ((hit && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
-  io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || (io.axi.rlast && state === s_wait_data))
+  io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
 }
 
 class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
