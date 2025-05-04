@@ -69,7 +69,8 @@ class Core extends Module {
     val debug1_wb_rf_wdata=Output(UInt(32.W))
   })
 
-  val If = Module(new TempIf)
+  // val If = Module(new TempIf)
+  val If = Module(new IFU)
   val Id = Module(new IDU)
   val Rn = Module(new Rename)
   val Dispatch = Module(new Dispatch)
@@ -80,7 +81,7 @@ class Core extends Module {
 
   val arb = Module(new Arb)
 
-  PipelineConnect(If.io.to, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
+  PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.in(0).fire, rob.io.brMisPredInfo.brMisPred.valid)
@@ -98,59 +99,59 @@ class Core extends Module {
 
   If.io.intrpt := io.intrpt
 
-  ifAXI.arid := If.io.arid
-  ifAXI.araddr := If.io.araddr
-  ifAXI.arlen := If.io.arlen
-  ifAXI.arsize := If.io.arsize
-  ifAXI.arburst := If.io.arburst
-  io.arlock := If.io.arlock
-  io.arcache := If.io.arcache
-  io.arprot := If.io.arprot
-  ifAXI.arvalid := If.io.arvalid
-  If.io.arready := ifAXI.arready
-  ifAXI.arvalid := If.io.arvalid
-  If.io.arready := ifAXI.arready
+  ifAXI.arid := If.io.axi.arid
+  ifAXI.araddr := If.io.axi.araddr
+  ifAXI.arlen := If.io.axi.arlen
+  ifAXI.arsize := If.io.axi.arsize
+  ifAXI.arburst := If.io.axi.arburst
+  io.arlock  := DontCare
+  io.arcache := DontCare
+  io.arprot  := DontCare
+  ifAXI.arvalid := If.io.axi.arvalid
+  If.io.axi.arready := ifAXI.arready
+  ifAXI.arvalid := If.io.axi.arvalid
+  If.io.axi.arready := ifAXI.arready
 
-  If.io.rid := ifAXI.rid
-  If.io.rdata := ifAXI.rdata
-  If.io.rresp := ifAXI.rresp
-  If.io.rlast := ifAXI.rlast
-  If.io.rvalid := ifAXI.rvalid
-  ifAXI.rready := If.io.rready
-  If.io.rid := ifAXI.rid
-  If.io.rdata := ifAXI.rdata
-  If.io.rresp := ifAXI.rresp
-  If.io.rlast := ifAXI.rlast
-  If.io.rvalid := ifAXI.rvalid
-  ifAXI.rready := If.io.rready
+  If.io.axi.rid := ifAXI.rid
+  If.io.axi.rdata := ifAXI.rdata
+  If.io.axi.rresp := ifAXI.rresp
+  If.io.axi.rlast := ifAXI.rlast
+  If.io.axi.rvalid := ifAXI.rvalid
+  ifAXI.rready := If.io.axi.rready
+  If.io.axi.rid := ifAXI.rid
+  If.io.axi.rdata := ifAXI.rdata
+  If.io.axi.rresp := ifAXI.rresp
+  If.io.axi.rlast := ifAXI.rlast
+  If.io.axi.rvalid := ifAXI.rvalid
+  ifAXI.rready := If.io.axi.rready
 
-  ifAXI.awid := If.io.awid
-  ifAXI.awaddr := If.io.awaddr
-  ifAXI.awlen := If.io.awlen
-  ifAXI.awsize := If.io.awsize
-  ifAXI.awburst := If.io.awburst
-  ifAXI.awid := If.io.awid
-  ifAXI.awaddr := If.io.awaddr
-  ifAXI.awlen := If.io.awlen
-  ifAXI.awsize := If.io.awsize
-  ifAXI.awburst := If.io.awburst
-  io.awlock := If.io.awlock
-  io.awcache := If.io.awcache
-  io.awprot := If.io.awprot
-  ifAXI.awvalid := If.io.awvalid
-  If.io.awready := ifAXI.awready
+  ifAXI.awid := If.io.axi.awid
+  ifAXI.awaddr := If.io.axi.awaddr
+  ifAXI.awlen := If.io.axi.awlen
+  ifAXI.awsize := If.io.axi.awsize
+  ifAXI.awburst := If.io.axi.awburst
+  ifAXI.awid := If.io.axi.awid
+  ifAXI.awaddr := If.io.axi.awaddr
+  ifAXI.awlen := If.io.axi.awlen
+  ifAXI.awsize := If.io.axi.awsize
+  ifAXI.awburst := If.io.axi.awburst
+  io.awlock  := DontCare
+  io.awcache := DontCare
+  io.awprot  := DontCare
+  ifAXI.awvalid := If.io.axi.awvalid
+  If.io.axi.awready := ifAXI.awready
 
-  io.wid := If.io.wid
-  ifAXI.wdata := If.io.wdata
-  ifAXI.wstrb := If.io.wstrb
-  ifAXI.wlast := If.io.wlast
-  ifAXI.wvalid := If.io.wvalid
-  If.io.wready := ifAXI.wready
+  io.wid := DontCare
+  ifAXI.wdata := If.io.axi.wdata
+  ifAXI.wstrb := If.io.axi.wstrb
+  ifAXI.wlast := If.io.axi.wlast
+  ifAXI.wvalid := If.io.axi.wvalid
+  If.io.axi.wready := ifAXI.wready
 
-  If.io.bid := ifAXI.bid
-  If.io.bresp := ifAXI.bresp
-  If.io.bvalid := ifAXI.bvalid
-  ifAXI.bready := If.io.bready
+  If.io.axi.bid := ifAXI.bid
+  If.io.axi.bresp := ifAXI.bresp
+  If.io.axi.bvalid := ifAXI.bvalid
+  ifAXI.bready := If.io.axi.bready
 
   If.io.break_point := io.break_point
   If.io.infor_flag := io.infor_flag
@@ -234,8 +235,9 @@ class Core extends Module {
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
   If.io.flush := rob.io.brMisPredInfo.brMisPred.valid
-  If.io.new_pc := rob.io.brMisPredInfo.brMisPredTarget
-
+  If.io.dnpc := rob.io.brMisPredInfo.brMisPredTarget
+  If.io.pcSel := rob.io.brMisPredInfo.brMisPred.valid
+  
   dontTouch(Rn.io.robAllocate)
 
   // Rn.io.out.ready := true.B

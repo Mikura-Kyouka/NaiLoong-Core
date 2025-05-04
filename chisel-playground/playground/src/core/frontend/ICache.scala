@@ -296,8 +296,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.hit := hit
   io.out.bits.wordIndex := wordIndex
 
-  val cacheData = Wire(UInt(32.W))
-  cacheData := dataArray(index)(0)(wordIndex)
+  val cacheData = Wire(Vec(LineBeats, UInt(32.W)))
+  cacheData := dataArray(index)(0)//(wordIndex)
   dontTouch(cacheData)
   val cacheDataVec = Wire(Vec(LineBeats, UInt(32.W)))
   cacheDataVec := dataArray(index)(0)
@@ -406,19 +406,19 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   )
 
   // 0 0000, 4 0100, 8 1000, c 1100
-  io.out.bits(0).inst := rdata
+  io.out.bits(0).inst := rdata(0)
   io.out.bits(0).pc := Cat(io.in.bits.addr(31, 4), "h0".U(4.W))
   io.out.bits(0).Valid := ValidVec(0)
 
-  io.out.bits(1).inst := rdata
+  io.out.bits(1).inst := rdata(1)
   io.out.bits(1).pc := Cat(io.in.bits.addr(31, 4), "h4".U(4.W))
   io.out.bits(1).Valid := ValidVec(1)
 
-  io.out.bits(2).inst := rdata
+  io.out.bits(2).inst := rdata(2)
   io.out.bits(2).pc := Cat(io.in.bits.addr(31, 4), "h8".U(4.W))
   io.out.bits(2).Valid := ValidVec(2)
 
-  io.out.bits(3).inst := rdata
+  io.out.bits(3).inst := rdata(3)
   io.out.bits(3).pc := Cat(io.in.bits.addr(31, 4), "hc".U(4.W))
   io.out.bits(3).Valid := ValidVec(3)
 
@@ -430,7 +430,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle{
     val in = new Stage1In
-    val out = Decoupled(new Stage3Out)
+    val out = Decoupled(Vec(4, new IFU2IDU))
     val axi = new AXI
     val s1Fire = Output(Bool())
     val flush = Input(Bool())

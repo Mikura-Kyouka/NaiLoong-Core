@@ -13,10 +13,40 @@ class IFU extends Module{
     val io = IO(new Bundle {
         val out   = Decoupled(Vec(4, new IFU2IDU))
         val axi   = new AXI
+        
         val pcSel = Input(Bool())
         val flush = Input(Bool())
         val dnpc  = Input(UInt(32.W))
+
+        val intrpt = Input(Bool())
+
+        val break_point=Input(Bool())
+        val infor_flag =Input(Bool())
+        val reg_num    =Input(UInt(5.W))
+        val ws_valid   =Output(Bool())
+        val rf_rdata   =Output(UInt(32.W))
+
+        val debug0_wb_pc      =Output(UInt(32.W))
+        val debug0_wb_rf_wen  =Output(UInt(4.W))
+        val debug0_wb_rf_wnum =Output(UInt(5.W))
+        val debug0_wb_rf_wdata=Output(UInt(32.W))
+  
+        val debug1_wb_pc      =Output(UInt(32.W))
+        val debug1_wb_rf_wen  =Output(UInt(4.W))
+        val debug1_wb_rf_wnum =Output(UInt(5.W))
+        val debug1_wb_rf_wdata=Output(UInt(32.W))
     })
+    io.ws_valid := false.B
+    io.rf_rdata := 0.U
+    io.debug0_wb_pc := 0.U
+    io.debug0_wb_rf_wen := 0.U
+    io.debug0_wb_rf_wnum := 0.U
+    io.debug0_wb_rf_wdata := 0.U
+    io.debug1_wb_pc := 0.U
+    io.debug1_wb_rf_wen := 0.U
+    io.debug1_wb_rf_wnum := 0.U
+    io.debug1_wb_rf_wdata := 0.U
+
     io.axi := DontCare
     /* Full AXI4 initialization */
     io.axi.arid := 0.U(4.W)
