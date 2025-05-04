@@ -70,8 +70,10 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   // 压缩队列
   when(io.out.fire) {
     for (i <- 0 until QUEUE_SIZE - 1) {
-      next_mem(i) := mem(i + 1)
-      next_valid_vec(i) := valid_vec(i + 1)
+      when(can_issue_vec(i)){
+        next_mem(i) := mem(i + 1)
+        next_valid_vec(i) := valid_vec(i + 1)
+      }
     }
     next_valid_vec(QUEUE_SIZE - 1) := false.B
   }
