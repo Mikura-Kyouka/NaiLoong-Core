@@ -25,28 +25,20 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   val mem = RegInit(VecInit(Seq.fill(QUEUE_SIZE)(0.U.asTypeOf(new PipelineConnectIO))))
   val valid_vec = RegInit(VecInit(Seq.fill(QUEUE_SIZE.toInt)(false.B)))
   val valid_count= RegInit(0.U(log2Ceil(QUEUE_SIZE.toInt).W))
+  val next_mem = WireInit(mem)
+  val next_valid_vec = WireInit(valid_vec)
 
-  // 向发射队列写入指令
+  // 判断是否可以接受
   val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
   io.in.ready := can_accept
-  switch(io.in.bits.inst_cnt) {
-    is(1.U) {
-      when(io.in.valid && io.in.ready) {
-        mem(valid_count) := io.in.bits.inst_vec(0)
-        valid_vec(valid_count) := true.B
-        valid_count := valid_count + 1.U
-      }
-    }
-    is(2.U) {
-      when(io.in.valid && io.in.ready) {
-        mem(valid_count) := io.in.bits.inst_vec(0)
-        valid_vec(valid_count) := true.B
-        mem(valid_count + 1.U) := io.in.bits.inst_vec(1)
-        valid_vec(valid_count + 1.U) := true.B
-        valid_count := valid_count + 2.U
-      }
-    }
+
+  // 计算下一拍的valid_count
+  val enq_count = Wire(UInt(2.W))  // 最多一次入两条指令
+  enq_count := 0.U
+  when(io.in.fire) {
+    enq_count := io.in.bits.inst_cnt
   }
+  val deq_count = Mux(io.out.fire, 1.U, 0.U)
 
   // 判断指令是否可以发射
   val can_issue_vec = Wire(Vec(QUEUE_SIZE, Bool()))
@@ -62,7 +54,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   val can_issue = can_issue_vec.reduce(_ || _)
   io.out.valid := can_issue
 
-  // 发射并压缩队列
+  // 发射指令
   val first_can_issue_index = PriorityEncoder(can_issue_vec)
   //io.out := mem(first_can_issue_index)
   io.pram_read.src1 := mem(first_can_issue_index).prj
@@ -74,22 +66,38 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   io.out.bits := out
   io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
   io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prj_0 & io.pram_read.pram_data2)
-  when(io.out.valid) {
-    for(i <- 0 until (QUEUE_SIZE - 1)) {
-      when(i.U >= first_can_issue_index) {
-        mem(i) := mem(i + 1)
-        valid_vec(i):= valid_vec(i + 1)
-      }
+
+  // 压缩队列
+  when(io.out.fire) {
+    for (i <- 0 until QUEUE_SIZE - 1) {
+      next_mem(i) := mem(i + 1)
+      next_valid_vec(i) := valid_vec(i + 1)
     }
-    valid_vec(QUEUE_SIZE - 1) := false.B
-    valid_count := valid_count - 1.U
+    next_valid_vec(QUEUE_SIZE - 1) := false.B
+  }
+
+  // write
+  when(io.in.fire) {
+    when(io.in.bits.inst_cnt === 1.U) {
+      next_mem(valid_count) := io.in.bits.inst_vec(0)
+      next_valid_vec(valid_count) := true.B
+    }.elsewhen(io.in.bits.inst_cnt === 2.U) {
+      next_mem(valid_count) := io.in.bits.inst_vec(0)
+      next_valid_vec(valid_count) := true.B
+      next_mem(valid_count + 1.U) := io.in.bits.inst_vec(1)
+      next_valid_vec(valid_count + 1.U) := true.B
+    }
   }
 
   // flush
   when(io.flush) {
-    valid_count := 0.U
     for (i <- 0 until QUEUE_SIZE.toInt) {
-      valid_vec(i) := false.B
+      next_valid_vec(i) := false.B
     }
   }
+
+  // 更新状态
+  mem := next_mem
+  valid_vec := next_valid_vec
+  valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
 }
