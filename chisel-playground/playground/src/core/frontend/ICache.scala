@@ -309,7 +309,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // miss access
   //    00          01           10           
-  val s_idle :: s_fetching :: s_wait_data :: s_valid :: Nil = Enum(4)
+  val s_idle :: s_fetching :: s_wait_data :: s_valid :: s_judge :: Nil = Enum(5)
   val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
   when(io.flush && (state =/= s_idle || !hit)) { refetchLatch := true.B }
@@ -322,10 +322,11 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   state := MuxLookup(state, s_idle)(Seq(
     s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
-    s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, Mux(hit, s_valid, s_fetching), s_valid), s_wait_data),
+    s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, s_idle, s_valid), s_wait_data),
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
     s_valid -> s_idle
   ))
+
   // axi read signals
   io.axi.arvalid := state === s_fetching
   io.axi.araddr := Cat(addr(31, OffsetBits), Fill(OffsetBits, 0.U(1.W)))
