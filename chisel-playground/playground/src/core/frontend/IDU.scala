@@ -82,10 +82,10 @@ class Decoder extends Module {
     io.out.bits.cf <> io.in.bits
     
     // 检查点ID赋值（这样能保证唯一性吗？）
-    val seed = WireInit(UInt(16.W), 1234567.U)
-    val preSeed = RegNext(seed)
+    val seed = RegInit(UInt(16.W), 1234567.U)
+    
     when (io.out.bits.ctrl.fuType === FuType.bru) {
-        seed := preSeed + 1.U
+        seed := seed + 1.U
     }
     io.out.bits.cf.runahead_checkpoint_id := seed
 

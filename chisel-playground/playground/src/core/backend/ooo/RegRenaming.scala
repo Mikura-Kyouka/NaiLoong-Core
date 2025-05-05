@@ -376,16 +376,6 @@ class RegRenaming extends Module {
     free.bits  := commit.bits.preg
   }
 
-  // retire 
-  for(i <- 0 until 4) {
-    when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
-      // write arf 
-      arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
-      // rat update
-      rat(io.rob.commit(i).bits.dest).inARF := true.B 
-    }
-  }
-
   // 分支预测错误回滚
   when(io.brMispredict.brMisPred.valid) {
     val checkpoint_id = io.brMispredict.brMisPredChkpt
@@ -398,6 +388,16 @@ class RegRenaming extends Module {
   }.otherwise {
     freeList.io.rollback.bits := DontCare
   }
+    freeList.io.rollback.valid := io.brMispredict.brMisPred.valid
 
-  freeList.io.rollback.valid := io.brMispredict.brMisPred.valid
+  // retire 
+  for(i <- 0 until 4) {
+    when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
+      // write arf 
+      arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
+      // rat update
+      rat(io.rob.commit(i).bits.dest).inARF := true.B 
+    }
+  }
+
 }
