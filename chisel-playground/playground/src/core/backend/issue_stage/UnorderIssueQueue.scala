@@ -27,6 +27,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   val valid_count= RegInit(0.U(log2Ceil(QUEUE_SIZE.toInt).W))
   val next_mem = WireInit(mem)
   val next_valid_vec = WireInit(valid_vec)
+  dontTouch(next_valid_vec)
 
   // 判断是否可以接受
   val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
@@ -70,7 +71,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   // 压缩队列
   when(io.out.fire) {
     for (i <- 0 until QUEUE_SIZE - 1) {
-      when(can_issue_vec(i)){
+      when(i.U >= first_can_issue_index) {
         next_mem(i) := mem(i + 1)
         next_valid_vec(i) := valid_vec(i + 1)
       }
@@ -80,14 +81,15 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
 
   // write
   when(io.in.fire) {
+    val base = valid_count - deq_count
     when(io.in.bits.inst_cnt === 1.U) {
-      next_mem(valid_count) := io.in.bits.inst_vec(0)
-      next_valid_vec(valid_count) := true.B
+      next_mem(base) := io.in.bits.inst_vec(0)
+      next_valid_vec(base) := true.B
     }.elsewhen(io.in.bits.inst_cnt === 2.U) {
-      next_mem(valid_count) := io.in.bits.inst_vec(0)
-      next_valid_vec(valid_count) := true.B
-      next_mem(valid_count + 1.U) := io.in.bits.inst_vec(1)
-      next_valid_vec(valid_count + 1.U) := true.B
+      next_mem(base) := io.in.bits.inst_vec(0)
+      next_valid_vec(base) := true.B
+      next_mem(base + 1.U) := io.in.bits.inst_vec(1)
+      next_valid_vec(base + 1.U) := true.B
     }
   }
 

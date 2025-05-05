@@ -55,22 +55,26 @@ class IssueTop extends Module {
 
   // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
-  for(i <- 0 until 5) {
-    when(io.in(i).valid && io.in(i).ready) {
-      when(io.in(i).bits.inst_vec(0).preg =/= 0.U) {
-        busyreg(io.in(i).bits.inst_vec(0).preg) := true.B
+  for(i <- 0 until 4) {
+    when(io.in(0).valid && io.in(i).ready) {
+      when(io.in(0).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(0).bits.inst_cnt) {
+        busyreg(io.in(0).bits.inst_vec(i).preg) := true.B
       }
-      when(io.in(i).bits.inst_vec(1).preg =/= 0.U) {
-        busyreg(io.in(i).bits.inst_vec(1).preg) := true.B
+      when(io.in(1).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(1).bits.inst_cnt) {
+        busyreg(io.in(1).bits.inst_vec(i).preg) := true.B
       }
-      when(io.in(i).bits.inst_vec(2).preg =/= 0.U) {
-        busyreg(io.in(i).bits.inst_vec(2).preg) := true.B
+      when(io.in(2).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(2).bits.inst_cnt) {
+        busyreg(io.in(2).bits.inst_vec(i).preg) := true.B
       }
-      when(io.in(i).bits.inst_vec(3).preg =/= 0.U) {
-        busyreg(io.in(i).bits.inst_vec(3).preg) := true.B
+      when(io.in(3).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(3).bits.inst_cnt) {
+        busyreg(io.in(3).bits.inst_vec(i).preg) := true.B
+      }
+      when(io.in(4).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(4).bits.inst_cnt) {
+        busyreg(io.in(4).bits.inst_vec(i).preg) := true.B
       }
     }
   }
+
   for(i <- 0 until 4) { // busyreg update
     // when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
     //   busyreg(io.out(i).bits.preg) := true.B
