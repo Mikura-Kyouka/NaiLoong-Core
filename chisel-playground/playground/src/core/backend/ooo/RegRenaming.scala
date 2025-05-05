@@ -161,7 +161,7 @@ class RegRenaming extends Module {
     })
     // 寄存器初始化
     val entries = RegInit(VecInit((0 until RegConfig.PHYS_REG_NUM).map(_.U)))
-    val head = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
+    val head = RegInit(1.U((RegConfig.PHYS_REG_BITS + 1).W))
     val tail = RegInit((RegConfig.PHYS_REG_NUM - 1).U((RegConfig.PHYS_REG_BITS + 1).W))
 
     io.flHead := head
@@ -177,10 +177,10 @@ class RegRenaming extends Module {
       allocIndexes(i) := (head +& i.U) % entries.size.U
     }
 
-    val fireCnt = PopCount(io.allocResp.map(_.fire))
-    when(fireCnt > 0.U) {
-      head := (head + fireCnt) % entries.size.U
-    }
+    // val fireCnt = PopCount(io.allocResp.map(_.fire))
+    // when(fireCnt > 0.U) {
+    //   head := (head + fireCnt) % entries.size.U
+    // }
 
     // 并行分配逻辑
     val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
@@ -193,18 +193,21 @@ class RegRenaming extends Module {
 
     // Head指针更新
     when(io.allocResp.map(_.valid).reduce(_||_)) {
-      head := Mux(head + allocCnt >= entries.size.U,
-                head + allocCnt - entries.size.U,
-                head + allocCnt)
+      head := Mux(head +& allocCnt >= entries.size.U,
+                head +& allocCnt - entries.size.U + 1.U,
+                head +& allocCnt)
     }
 
     // 回收逻辑
     val freeValidCount = PopCount(io.free.map(_.valid))
     when(freeValidCount > 0.U) {
-      tail := (tail +& freeValidCount) % entries.size.U
+      // tail := (tail +& freeValidCount) % entries.size.U
+      tail := Mux(tail +& freeValidCount >= entries.size.U,
+                tail +& freeValidCount - entries.size.U + 1.U,
+                tail +& freeValidCount)
     }
 
-    io.count := Mux(tail >= head, tail - head, (entries.size.U - head) + tail)
+    io.count := Mux(tail >= head, tail - head, (entries.size.U - head) + tail - 1.U)  
 
     when(io.rollback.valid) {
       head := io.rollback.bits.head % entries.size.U
@@ -390,7 +393,7 @@ class RegRenaming extends Module {
     rat := ratSnapshot
 
     val freelistSnapshot = checkpointFreelist(checkpoint_id)
-    freeList.io.rollback.bits.head := 0.U
+    freeList.io.rollback.bits.head := 1.U
     freeList.io.rollback.bits.tail := 63.U
   }.otherwise {
     freeList.io.rollback.bits := DontCare
