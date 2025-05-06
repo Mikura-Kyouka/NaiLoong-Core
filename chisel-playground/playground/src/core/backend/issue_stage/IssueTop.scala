@@ -53,7 +53,6 @@ class IssueTop extends Module {
   lsurs.io.flush := io.flush
   brurs.io.flush := io.flush
 
-  // retire inst
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
   for(i <- 0 until 4) {
     when(io.in(0).valid && io.in(i).ready) {
@@ -75,6 +74,7 @@ class IssueTop extends Module {
     }
   }
 
+  // retire inst
   for(i <- 0 until 4) { // busyreg update
     // when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
     //   busyreg(io.out(i).bits.preg) := true.B

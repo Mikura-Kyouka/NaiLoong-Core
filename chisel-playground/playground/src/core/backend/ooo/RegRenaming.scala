@@ -171,16 +171,23 @@ class RegRenaming extends Module {
     val reqValid = Wire(Vec(4, Bool()))
     val reqReady = Wire(Vec(4, Bool()))
     val allocIndexes = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
+    val respValid = Wire(Vec(4, Bool()))
+    val cnt = Wire(Vec(4, UInt(2.W)))
+
     for (i <- 0 until 4) {
       reqValid(i) := io.allocReq(i).valid
       reqReady(i) := io.count >= (i + 1).U
-      allocIndexes(i) := (head +& i.U) % entries.size.U
+      respValid(i) := reqValid(i) && reqReady(i)
     }
 
-    // val fireCnt = PopCount(io.allocResp.map(_.fire))
-    // when(fireCnt > 0.U) {
-    //   head := (head + fireCnt) % entries.size.U
-    // }
+    cnt(0) := 0.U
+    cnt(1) := respValid(0).asUInt
+    cnt(2) := PopCount(VecInit(respValid(0), respValid(1)))
+    cnt(3) := PopCount(VecInit(respValid(0), respValid(1), respValid(2)))
+
+    for (i <- 0 until 4) {
+      allocIndexes(i) := (head +& cnt(i)) % entries.size.U
+    }
 
     // 并行分配逻辑
     val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
