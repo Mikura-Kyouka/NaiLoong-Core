@@ -266,6 +266,8 @@ class RegRenaming extends Module {
   val temp_jIsArf = Wire(Vec(4, Bool()))
   val temp_kIsArf = Wire(Vec(4, Bool()))
 
+  val allocated_preg = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
+
   // 寄存器重命名
   for (i <- 0 until 4) {
     val input = io.in.bits(i)
@@ -281,13 +283,13 @@ class RegRenaming extends Module {
     freeList.io.allocReq(i).bits := DontCare
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.ready
     
-    val allocated_preg = Mux(needAlloc && freeList.io.allocResp(i).valid,
+    allocated_preg(i) := Mux(needAlloc && freeList.io.allocResp(i).valid,
                            freeList.io.allocResp(i).bits,
                            0.U)
-    io.out.bits(i).preg := allocated_preg
+    io.out.bits(i).preg := allocated_preg(i)
 
     // 更新ROB条目中的物理寄存器信息
-    io.robAllocate.allocEntries(i).preg := allocated_preg
+    io.robAllocate.allocEntries(i).preg := allocated_preg(i)
     io.robAllocate.allocEntries(i).old_preg := Mux(rd.orR, rat(rd).robPointer, 0.U)
     // FIXME:
     io.robAllocate.allocEntries(i).valid := needAlloc && freeList.io.allocResp(i).valid
@@ -296,7 +298,7 @@ class RegRenaming extends Module {
     // 更新RAT
     when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid) {
       rat(rd).inARF := false.B
-      rat(rd).preg := allocated_preg
+      rat(rd).preg := allocated_preg(i)
       rat(rd).robPointer := freeList.io.allocResp(i).bits
     }
 
@@ -317,11 +319,6 @@ class RegRenaming extends Module {
     }
 
     // 检查点处理
-    // when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
-    //   checkpointRAT(input.checkpoint.id) := rat
-    //   checkpointFreelist(input.checkpoint.id).head := freeList.io.flHead +& 1.U % 64.U
-    //   checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
-    // }
     io.out.bits(i).checkpoint.valid := input.checkpoint.needSave
     io.out.bits(i).checkpoint.id := input.checkpoint.id
 
@@ -341,13 +338,21 @@ class RegRenaming extends Module {
     val input = io.in.bits(i)
     val rj = input.ctrl.rfSrc1
     val rk = input.ctrl.rfSrc2
-    val rd = input.ctrl.rfDest
+
+    io.out.bits(i).prj := temp_prj(i)
+    io.out.bits(i).prk := temp_prk(i)
+    io.out.bits(i).jIsArf := temp_jIsArf(i)
+    io.out.bits(i).kIsArf := temp_kIsArf(i)
 
     for (j <- 0 until i) {
-      io.out.bits(i).prj := Mux(rj === io.in.bits(j).ctrl.rfDest, io.out.bits(j).preg, temp_prj(i))
-      io.out.bits(i).jIsArf := Mux(rj === io.in.bits(j).ctrl.rfDest, false.B, temp_jIsArf(i))
-      io.out.bits(i).prk := Mux(rk === io.in.bits(j).ctrl.rfDest, io.out.bits(j).preg, temp_prk(i))
-      io.out.bits(i).kIsArf := Mux(rk === io.in.bits(j).ctrl.rfDest, false.B, temp_kIsArf(i))
+      when(rj.orR && rj === io.in.bits(j).ctrl.rfDest) {
+        io.out.bits(i).prj := allocated_preg(j)
+        io.out.bits(i).jIsArf := false.B
+      }
+      when(rk.orR && rk === io.in.bits(j).ctrl.rfDest) {
+        io.out.bits(i).prk := allocated_preg(j)
+        io.out.bits(i).kIsArf := false.B
+      }
     }
   }
 

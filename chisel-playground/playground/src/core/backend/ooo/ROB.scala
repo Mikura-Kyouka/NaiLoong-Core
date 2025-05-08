@@ -195,6 +195,7 @@ class Rob extends Module {
   val exception = hasException.reduce(_ || _)
   val exceptionIdx = PriorityEncoder(hasException)
 
+  hasBrMispred(3) := false.B  // FIXME: a workaround
   val brMisPred = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
 
@@ -219,7 +220,7 @@ class Rob extends Module {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
     val entry = robEntries(commitIdx)
     
-    // 在异常或分支预测错误情况下，只提交head位置的指令
+    // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
     val shouldCommit = Mux (
       exception || brMisPred,
       i.U <= brMisPredIdx && canCommit(brMisPredIdx),
