@@ -274,7 +274,8 @@ class RegRenaming extends Module {
     val rj = input.ctrl.rfSrc1
     val rk = input.ctrl.rfSrc2
     val rd = input.ctrl.rfDest
-    val rfWen = input.ctrl.rfWen // 0有效
+    val rfWen = input.ctrl.rfWen// 0有效
+    val instValid = input.inst_valid
     val isZeroReg = (rd === 0.U)
 
     // 目标寄存器分配
@@ -284,9 +285,9 @@ class RegRenaming extends Module {
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.ready
     
     allocated_preg(i) := Mux(needAlloc && freeList.io.allocResp(i).valid,
-                           freeList.io.allocResp(i).bits,
-                           0.U)
-    io.out.bits(i).preg := allocated_preg(i)
+                             freeList.io.allocResp(i).bits,
+                             0.U)
+    io.out.bits(i).preg := Mux(instValid, allocated_preg(i), 0.U)
 
     // 更新ROB条目中的物理寄存器信息
     io.robAllocate.allocEntries(i).preg := allocated_preg(i)

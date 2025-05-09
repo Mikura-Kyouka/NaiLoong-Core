@@ -179,7 +179,7 @@ class Rob extends Module {
                       canCommit(i-1) && !io.exception
     }
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).exception
-    hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).brMispredict && !hasException(i)
+    hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
   }
   
   // 判断在环形缓冲区中idx是否在start之后且在end之前
@@ -195,7 +195,6 @@ class Rob extends Module {
   val exception = hasException.reduce(_ || _)
   val exceptionIdx = PriorityEncoder(hasException)
 
-  // hasBrMispred(3) := false.B  // FIXME: a workaround
   val brMisPred = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
 
