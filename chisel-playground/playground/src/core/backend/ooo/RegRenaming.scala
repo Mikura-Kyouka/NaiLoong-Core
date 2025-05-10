@@ -430,7 +430,8 @@ class RegRenaming extends Module {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
       // rat update
-      when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg) {
+      // FIXME: 采用io.brMispredict.brMisPred.valid这么简单粗暴的方式大概率有错误
+      when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg || io.brMispredict.brMisPred.valid) {
         rat(io.rob.commit(i).bits.dest).inARF := true.B
       }
     }
