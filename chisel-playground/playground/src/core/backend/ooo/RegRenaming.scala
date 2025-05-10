@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import core.SrcType.reg
 import core.IssueConfig.PHYS_REG_NUM
+import os.makeDir.all
 
 object RegConfig {
   val ARCH_REG_NUM = 32
@@ -189,13 +190,33 @@ class RegRenaming extends Module {
       allocIndexes(i) := (head +& cnt(i)) % entries.size.U
     }
 
+    val finalAllocIndexes = WireInit(allocIndexes)
+
+    // 如果分配的索引为0，则将其和其后的加1
+    val allocIndexesHasZeroVec = VecInit(Seq.fill(4)(false.B))
+    val allocZeroIndex = WireInit(0.U(2.W))
+    for (i <- 0 until 4) {
+      allocIndexesHasZeroVec(i) := allocIndexes(i) === 0.U && respValid(i)
+    }
+    val allocIndexesHasZero = allocIndexesHasZeroVec.reduce(_ || _)
+    when(allocIndexesHasZero) {
+      allocZeroIndex := PriorityEncoder(allocIndexesHasZeroVec)
+    }
+    when(allocIndexesHasZero) {
+      for (i <- 0 until 4) {
+        when(respValid(i) && i.asUInt >= allocZeroIndex) {
+          finalAllocIndexes(i) := allocIndexes(i) +& 1.U
+        }
+      }
+    }
+
     // 并行分配逻辑
     val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
     
     // 响应生成
     for (i <- 0 until 4) {
       io.allocResp(i).valid := reqValid(i) && reqReady(i)
-      io.allocResp(i).bits := entries(allocIndexes(i))
+      io.allocResp(i).bits := entries(finalAllocIndexes(i))
     }
 
     // Head指针更新
@@ -346,11 +367,11 @@ class RegRenaming extends Module {
     io.out.bits(i).kIsArf := temp_kIsArf(i)
 
     for (j <- 0 until i) {
-      when(rj.orR && rj === io.in.bits(j).ctrl.rfDest) {
+      when(rj.orR && rj === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid) {
         io.out.bits(i).prj := allocated_preg(j)
         io.out.bits(i).jIsArf := false.B
       }
-      when(rk.orR && rk === io.in.bits(j).ctrl.rfDest) {
+      when(rk.orR && rk === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid) {
         io.out.bits(i).prk := allocated_preg(j)
         io.out.bits(i).kIsArf := false.B
       }
