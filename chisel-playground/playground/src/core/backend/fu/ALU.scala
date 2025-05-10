@@ -189,6 +189,6 @@ class AligendALU extends Module{
   
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready
-  io.out.valid := alu.io.out.valid
+  io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
 } 

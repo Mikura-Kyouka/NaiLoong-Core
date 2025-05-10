@@ -126,23 +126,30 @@ class Rob extends Module {
   // 分配逻辑
   val canAlloc = !full && (RobConfig.ROB_ENTRY_NUM.U - count >= io.allocate.allocCount)
   io.allocate.canAllocate := canAlloc
-  
+
   // 计算分配的索引
   for (i <- 0 until 4) {
-    val allocIdx = (tail +& i.U) % RobConfig.ROB_ENTRY_NUM.U
-    io.allocate.allocResp(i) := allocIdx
+    io.allocate.allocResp(i) := DontCare
   }
   
   // 处理分配请求
   when (io.allocate.allocReq && canAlloc) {
-    for (i <- 0 until 4) {
-      when (i.U < io.allocate.allocCount) {
-        // FIXME: [W004] Dynamic index with width 7 is too wide for Vec of size 64 (expected index width 6).
-        val allocIdx = ((tail +& i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
-        robEntries(allocIdx) := io.allocate.allocEntries(i)
+    val instValid = VecInit(io.allocate.allocEntries.map(_.inst_valid))
+
+    val prefixSum = Wire(Vec(4, UInt(3.W)))
+    prefixSum(0) := 0.U
+    for (j <- 1 until 4) {
+      prefixSum(j) := prefixSum(j-1) + instValid(j-1).asUInt
+    }
+
+    for (j <- 0 until 4) {
+      when (instValid(j) && (prefixSum(j) < io.allocate.allocCount)) {
+        val allocIdx = ((tail + prefixSum(j)) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
+        io.allocate.allocResp(j) := allocIdx
+        robEntries(allocIdx) := io.allocate.allocEntries(j)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
-        robEntries(allocIdx).use_preg := io.allocate.allocEntries(i).use_preg
+        robEntries(allocIdx).use_preg := io.allocate.allocEntries(j).use_preg
       }
     }
     tail := (tail + io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
@@ -238,11 +245,11 @@ class Rob extends Module {
     io.commit.commit(i).bits.use_preg := entry.use_preg
     
     // 提交PC信息
-    io.commitPC(i).valid := shouldCommit
+    io.commitPC(i).valid := shouldCommit && entry.inst_valid
     io.commitPC(i).bits := entry.pc
     
     // 提交指令信息
-    io.commitInstr(i).valid := shouldCommit
+    io.commitInstr(i).valid := shouldCommit && entry.inst_valid
     io.commitInstr(i).bits := entry.instr
     
     // 清除已提交的条目
