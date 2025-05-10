@@ -409,8 +409,9 @@ class RegRenaming extends Module {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
       // rat update
-      rat(io.rob.commit(i).bits.dest).inARF := true.B 
+      when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg) {
+        rat(io.rob.commit(i).bits.dest).inARF := true.B
+      }
     }
   }
-
 }
