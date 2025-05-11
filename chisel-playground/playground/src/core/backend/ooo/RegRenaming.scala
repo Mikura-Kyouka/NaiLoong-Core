@@ -329,14 +329,14 @@ class RegRenaming extends Module {
     temp_jIsArf(i) := rat(rj).inARF
     io.out.bits(i).dataj := arf(rj)
 
-    temp_prk(i) := Mux(input.ctrl.src2Type === SrcType.reg && rk.orR,
+    temp_prk(i) := Mux((input.ctrl.src2Type === SrcType.reg || input.ctrl.srcIsRd === SrcIsRd.y) && rk.orR,
                             rat(rk).preg, 
                             0.U)
     temp_kIsArf(i) := rat(rk).inARF
     io.out.bits(i).datak := arf(rk)
     
     // 立即数不需要物理寄存器
-    when(input.ctrl.src2Type === SrcType.imm) {
+    when(input.ctrl.src2Type === SrcType.imm && input.ctrl.srcIsRd === SrcIsRd.n) {
       temp_prk(i) := 0.U 
     }
 

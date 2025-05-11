@@ -50,6 +50,7 @@ class Decoder extends Module {
     ).otherwise (
         io.out.bits.ctrl.rfSrc2 := rfSrc2
     )
+    io.out.bits.ctrl.srcIsRd := srcIsRd
 
     io.out.bits.ctrl.rfWen := rfWen 
     io.out.bits.ctrl.rfDest := rfDest
