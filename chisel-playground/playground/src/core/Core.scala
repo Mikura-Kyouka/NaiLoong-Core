@@ -351,6 +351,11 @@ class Core extends Module {
 
     // 4) 其余接口
     DiffCommit.io.reg := Rn.io.arf
+
+    DiffCommit.io.store.valid := Mux(Ex.io.optype === "b0001010".U && Ex.io.pc === DiffCommit.io.instr(0).pc, 4.U, 0.U)
+    DiffCommit.io.store.paddr := Ex.io.paddr
+    DiffCommit.io.store.vaddr := Ex.io.paddr
+    DiffCommit.io.store.data  := Ex.io.wdata
   }
 }
 

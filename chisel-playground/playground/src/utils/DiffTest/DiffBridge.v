@@ -62,6 +62,12 @@ module DiffBridge(
   input        csr_rstat_3,
   input [31:0] csr_data_3,
 
+  input [ 7:0] storeIndex,
+  input [ 7:0] storeValid,
+  input [63:0] storePaddr,
+  input [63:0] storeVaddr,
+  input [63:0] storeData,
+
   input [63:0] REG_0,
   input [63:0] REG_1,
   input [63:0] REG_2,
@@ -170,6 +176,16 @@ DifftestInstrCommit DifftestInstrCommit_3(
   .wdata              (wdata_3        ),
   .csr_rstat          (csr_rstat_3    ),
   .csr_data           (csr_data_3     )
+);
+
+DifftestStoreEvent DifftestStoreEvent_1(
+  .clock              (clock          ),
+  .coreid             (0              ),
+  .index              (storeIndex   ),
+  .valid              (storeValid   ),
+  .storePAddr         (storePaddr   ),
+  .storeVAddr         (storeVaddr   ),
+  .storeData          (storeData    )
 );
 
 DifftestGRegState DifftestGRegState_0(

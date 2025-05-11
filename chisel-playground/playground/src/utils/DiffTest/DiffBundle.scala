@@ -17,3 +17,10 @@ class DiffInstrBundle extends Bundle{
   val csr_rstat = Bool()                          // 当提交指令为csrrd、csrwr、csrxchg，同时该指令对应的csr寄存器为estat寄存器时该位拉高
   val csr_data = UInt(32.W)                       // 当csr_rstat == 1时，当前指令读取到的csr寄存器(estat)的值
 }
+
+class DiffStoreBundle extends Bundle {
+  val valid = UInt(8.W)                          // 提交指令对应的store指令的有效信号
+  val paddr = UInt(32.W)                         // 提交指令对应的store指令的物理地址
+  val vaddr = UInt(32.W)                         // 提交指令对应的store指令的虚拟地址
+  val data = UInt(32.W)                          // 提交指令对应的store指令的数据
+}

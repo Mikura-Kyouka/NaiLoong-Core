@@ -13,6 +13,7 @@ class DiffCommit extends Module {
     // 空
 
     // DifftestStoreEvent
+    val store = Input(new DiffStoreBundle())
 
     // DifftestLoadEvent
 
@@ -90,6 +91,12 @@ class DiffCommit extends Module {
   DiffBridge.io.csr_rstat_3 := RegNext(io.instr(3).csr_rstat, 0.U)
   DiffBridge.io.csr_data_3 := RegNext(io.instr(3).csr_data, 0.U)
 
+  DiffBridge.io.storeValid := RegNext(io.store.valid, 0.U)
+  DiffBridge.io.storeIndex := 0.U
+  DiffBridge.io.storePaddr := RegNext(io.store.paddr, 0.U)
+  DiffBridge.io.storeVaddr := RegNext(io.store.vaddr, 0.U)
+  DiffBridge.io.storeData := RegNext(io.store.data, 0.U)
+
   DiffBridge.io.REG := io.reg
 }
 
@@ -157,6 +164,13 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val wdata_3 = Input(UInt(64.W))
     val csr_rstat_3 = Input(Bool())
     val csr_data_3 = Input(UInt(32.W))
+
+    //DifftestStoreEvent
+    val storeIndex = Input(UInt(8.W))
+    val storeValid = Input(UInt(8.W))
+    val storePaddr = Input(UInt(64.W))
+    val storeVaddr = Input(UInt(64.W))
+    val storeData = Input(UInt(64.W))
 
     val REG = Input(Vec(32, UInt(64.W)))
   })
