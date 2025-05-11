@@ -30,7 +30,7 @@ class Dispatch extends Module {
   }
 
   // FIXME: paramiterize FETCH_WITDTH
-  io.in.ready := !io.in.valid || (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready) 
+  io.in.ready := (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready) 
   for (i <- 0 until ISSUE_WIDTH) {
      io.out(i).valid := io.in.valid 
   } 

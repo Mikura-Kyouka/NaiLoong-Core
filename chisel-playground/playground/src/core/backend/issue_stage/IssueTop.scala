@@ -55,7 +55,7 @@ class IssueTop extends Module {
 
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
   for(i <- 0 until 4) {
-    when(io.in(0).valid && io.in(i).ready) {
+    when(io.in(i).valid && io.in(i).ready) {
       when(io.in(0).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(0).bits.inst_cnt) {
         busyreg(io.in(0).bits.inst_vec(i).preg) := true.B
       }

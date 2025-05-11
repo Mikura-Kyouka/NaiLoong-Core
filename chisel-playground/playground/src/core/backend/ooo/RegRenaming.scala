@@ -289,6 +289,8 @@ class RegRenaming extends Module {
 
   val allocated_preg = Wire(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W)))
 
+  val renameFired = Wire(Vec(4, Bool()))
+
   // 寄存器重命名
   for (i <- 0 until 4) {
     val input = io.in.bits(i)
@@ -323,6 +325,7 @@ class RegRenaming extends Module {
       rat(rd).preg := allocated_preg(i)
       rat(rd).robPointer := freeList.io.allocResp(i).bits
     }
+    renameFired(i) := io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid
 
     // 源寄存器映射
     temp_prj(i) := Mux(rj.orR, rat(rj).preg, 0.U)
@@ -432,7 +435,7 @@ class RegRenaming extends Module {
       // rat update
       // FIXME: 采用io.brMispredict.brMisPred.valid这么简单粗暴的方式大概率有错误
       when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg || io.brMispredict.brMisPred.valid) {
-        rat(io.rob.commit(i).bits.dest).inARF := true.B
+        rat(io.rob.commit(i).bits.dest).inARF := true.B && !renameFired(i)
       }
     }
   }
