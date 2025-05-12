@@ -61,10 +61,10 @@ class AlignedMDU extends Module{
   io.out.bits.robIdx := io.in.bits.robIdx
   
   mdu.io.in.valid := io.in.valid
-  io.in.ready := mdu.io.in.ready
-  io.out.valid := mdu.io.out.valid
   mdu.io.out.ready := io.out.ready
   io.out.bits.redirect := DontCare
+  io.in.ready := mdu.io.in.ready
+  io.out.valid := mdu.io.out.valid
 
   io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
     MDUOpType.div -> ((io.in.bits.src1.asSInt / io.in.bits.src2.asSInt).asUInt),
