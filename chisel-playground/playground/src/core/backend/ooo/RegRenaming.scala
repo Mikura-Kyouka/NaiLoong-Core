@@ -378,11 +378,11 @@ class RegRenaming extends Module {
     io.out.bits(i).kIsArf := temp_kIsArf(i)
 
     for (j <- 0 until i) {
-      when(rj.orR && rj === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid) {
+      when(rj.orR && rj === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid && io.in.bits(j).ctrl.rfWen === RfWen.y) {
         io.out.bits(i).prj := allocated_preg(j)
         io.out.bits(i).jIsArf := false.B
       }
-      when(rk.orR && rk === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid) {
+      when(rk.orR && rk === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid && io.in.bits(j).ctrl.rfWen === RfWen.y) {
         io.out.bits(i).prk := allocated_preg(j)
         io.out.bits(i).kIsArf := false.B
       }
