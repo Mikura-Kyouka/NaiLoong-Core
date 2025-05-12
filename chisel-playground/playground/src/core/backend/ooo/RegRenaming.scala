@@ -129,6 +129,14 @@ class RegRenaming extends Module {
     entry
   }))
 
+  var emptyRat = RegInit(VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
+    val entry = Wire(new aliasTableEntry)
+    entry.inARF := true.B
+    entry.preg := 0.U(RegConfig.PHYS_REG_BITS.W)
+    entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
+    entry
+  }))
+
   // Define a Vec type for the checkpoint RAT
   val checkpointRATEntryType = Vec(RegConfig.ARCH_REG_NUM, new aliasTableEntry)
   val checkpointRAT = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH) {
@@ -415,11 +423,12 @@ class RegRenaming extends Module {
 
   // 分支预测错误回滚
   when(io.brMispredict.brMisPred.valid) {
-    val checkpoint_id = io.brMispredict.brMisPredChkpt
-    val ratSnapshot = checkpointRAT(checkpoint_id)
-    rat := ratSnapshot
+    // val checkpoint_id = io.brMispredict.brMisPredChkpt
+    // val ratSnapshot = checkpointRAT(checkpoint_id)
+    // rat := ratSnapshot
+    rat := emptyRat
 
-    val freelistSnapshot = checkpointFreelist(checkpoint_id)
+    // val freelistSnapshot = checkpointFreelist(checkpoint_id)
     freeList.io.rollback.bits.head := 1.U
     freeList.io.rollback.bits.tail := 63.U
   }.otherwise {
@@ -434,8 +443,12 @@ class RegRenaming extends Module {
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data
       // rat update
       // FIXME: 采用io.brMispredict.brMisPred.valid这么简单粗暴的方式大概率有错误
-      when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg || io.brMispredict.brMisPred.valid) {
-        rat(io.rob.commit(i).bits.dest).inARF := true.B && !renameFired(i)
+      when (io.rob.commit(i).bits.preg === rat(io.rob.commit(i).bits.dest).preg && 
+            !(io.rob.commit(i).bits.dest === io.robAllocate.allocEntries(0).rd && renameFired(0)) &&
+            !(io.rob.commit(i).bits.dest === io.robAllocate.allocEntries(1).rd && renameFired(1)) &&
+            !(io.rob.commit(i).bits.dest === io.robAllocate.allocEntries(2).rd && renameFired(2)) &&
+            !(io.rob.commit(i).bits.dest === io.robAllocate.allocEntries(3).rd && renameFired(3))) {
+        rat(io.rob.commit(i).bits.dest).inARF := true.B
       }
     }
   }
