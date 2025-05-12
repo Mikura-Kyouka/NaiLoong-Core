@@ -102,7 +102,7 @@ object Inst {
         mulh_w          -> List(ImmType.nop     , FuType.mdu, MDUOpType.mulh,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         mulh_wu         -> List(ImmType.nop     , FuType.mdu, MDUOpType.mulhu, SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         div_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.div,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
-        mod_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.modu,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        mod_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.mod,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         div_wu          -> List(ImmType.nop     , FuType.mdu, MDUOpType.divu,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         mod_wu          -> List(ImmType.nop     , FuType.mdu, MDUOpType.modu,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sll_w           -> List(ImmType.nop     , FuType.alu, ALUOpType.sll,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
