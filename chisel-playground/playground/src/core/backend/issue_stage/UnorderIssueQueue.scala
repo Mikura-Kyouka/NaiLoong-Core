@@ -66,7 +66,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   val prk_0 = Fill(32, mem(first_can_issue_index).prk =/= 0.U)
   io.out.bits := out
   io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
-  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prj_0 & io.pram_read.pram_data2)
+  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
 
   // 压缩队列
   when(io.out.fire) {
