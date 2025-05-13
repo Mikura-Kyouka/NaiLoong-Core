@@ -19,7 +19,7 @@ object Inst {
     def div_w           = BitPat("b00000000001000000_?????_?????_?????")     // n30_div_w 
     def mod_w           = BitPat("b00000000001000001_?????_?????_?????")     // n35_mod_w 
     def div_wu          = BitPat("b00000000001000010_?????_?????_?????")     // n31_div_wu 
-    def mod_wu          = BitPat("b00000000001000010_?????_?????_?????")     // n36_mod_wu 
+    def mod_wu          = BitPat("b00000000001000011_?????_?????_?????")     // n36_mod_wu 
     
     def sll_w           = BitPat("b00000000000101110_?????_?????_?????")     // n27_sll_w 
     def srl_w           = BitPat("b00000000000101111_?????_?????_?????")     // n29_srl_w 
@@ -102,7 +102,7 @@ object Inst {
         mulh_w          -> List(ImmType.nop     , FuType.mdu, MDUOpType.mulh,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         mulh_wu         -> List(ImmType.nop     , FuType.mdu, MDUOpType.mulhu, SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         div_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.div,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
-        mod_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.mod,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
+        mod_w           -> List(ImmType.nop     , FuType.mdu, MDUOpType.mod,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         div_wu          -> List(ImmType.nop     , FuType.mdu, MDUOpType.divu,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         mod_wu          -> List(ImmType.nop     , FuType.mdu, MDUOpType.modu,  SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
         sll_w           -> List(ImmType.nop     , FuType.alu, ALUOpType.sll,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y), 
