@@ -151,19 +151,33 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray(addr.index)(0).dirty := false.B
     }
 
+    val offset = req.addr(1, 0) << 3
     // 将store指令携带的数据写道Cache中
     // 将这个Cache line标记为dirty状态
     when(state === s_write_cache) {
       // dataArray write
       when(req.wmask === "b1111".U) {
         dataArray(addr.index)(0)(0) := req.wdata
-      }.elsewhen(req.wmask === "b1111".U) {
-        dataArray(addr.index)(0)(0) := req.wdata
-      }.elsewhen(req.wmask === "b1111".U) {
-        dataArray(addr.index)(0)(0) := req.wdata
-      }.elsewhen(req.wmask === "b1111".U) {
-        dataArray(addr.index)(0)(0) := req.wdata
+      }.elsewhen(req.wmask === "b0011".U) {
+        when(req.addr(1, 0) === "b00".U) {
+          dataArray(addr.index)(0)(0)(15, 0) := req.wdata(15, 0)
+        }.elsewhen(req.addr(1, 0) === "b01".U) {
+          dataArray(addr.index)(0)(0)(23, 8) := req.wdata(15, 0)
+        }.elsewhen(req.addr(1, 0) === "b10".U) {
+          dataArray(addr.index)(0)(0)(31, 16) := req.wdata(15, 0)
+        }
+      }.elsewhen(req.wmask === "b0001".U) {
+        when(req.addr(1, 0) === "b00".U) {
+          dataArray(addr.index)(0)(0)(7, 0)   := req.wdata(7, 0)
+        }.elsewhen(req.addr(1, 0) === "b01".U) {
+          dataArray(addr.index)(0)(0)(15, 8)  := req.wdata(7, 0)
+        }.elsewhen(req.addr(1, 0) === "b10".U) {
+          dataArray(addr.index)(0)(0)(23, 16) := req.wdata(7, 0)
+        }.otherwise {
+          dataArray(addr.index)(0)(0)(31, 24) := req.wdata(7, 0)
+        }
       }
+
       // metaArray write
       metaArray(addr.index)(0).tag := addr.tag
       metaArray(addr.index)(0).valid := true.B
@@ -171,7 +185,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       io.resp.valid := true.B
     }
 
-    val offset = req.addr(1, 0) << 3
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
       resp.rdata := cacheData >> offset
