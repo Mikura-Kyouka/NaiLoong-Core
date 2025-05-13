@@ -84,18 +84,9 @@ class moqEntry extends Bundle{
   val storeAddrMisaligned = Bool()
 }
 
-class LSUIO extends FunctionUnitIO {
-  val wdata = Input(UInt(32.W))
-  val axi = new AXI
-  // tlb signals
-
-  val uopIn = Input(new RenamedDecodeIO)
-  val uopOut = Output(new RenamedDecodeIO)
-  val isMMIO = Output(Bool())
-}
-
 class UnpipeLSUIO extends FunctionUnitIO {
   val wdata = Input(UInt(32.W))
+  val diffData = Output(UInt(32.W))
   val dmem = new AXI
   val robRetire = Input(Bool()) // Store insts
   val complete = Output(Bool()) // tell ROB to commit inst
@@ -111,7 +102,8 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   val dcache = Module(new DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)))
   dcache.io.axi <> io.dmem
   dcache.io.req.valid := io.in.valid
-  dcache.io.req.bits.addr := io.in.bits.src1 + io.in.bits.src2
+  val addr =  io.in.bits.src1 + io.in.bits.src2
+  dcache.io.req.bits.addr := addr
   dcache.io.req.bits.wdata := io.wdata
   dcache.io.req.bits.wmask := MuxLookup(io.in.bits.func(1, 0), 0.U)(
     List(
@@ -120,6 +112,14 @@ class UnpipelinedLSU extends Module with HasLSUConst {
     "b10".U -> "b1111".U
     )
   )
+  val diffData = MuxLookup(io.in.bits.func(1, 0), io.wdata)(
+    List(
+    "b00".U -> ZeroExt(io.wdata(7, 0), 32),
+    "b01".U -> ZeroExt(io.wdata(15, 0), 32),
+    "b10".U -> io.wdata(31, 0)
+    )
+  )
+  io.diffData := diffData << (addr(1, 0) << 3)
   dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
   
   io.out.valid := dcache.io.resp.valid
@@ -171,7 +171,7 @@ class AligendUnpipelinedLSU extends Module{
 
   // for difftest
   io.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
-  io.wdata := lsu.io.wdata
+  io.wdata := lsu.io.diffData
   io.optype := io.in.bits.ctrl.fuOpType
   io.pc := io.in.bits.pc
 

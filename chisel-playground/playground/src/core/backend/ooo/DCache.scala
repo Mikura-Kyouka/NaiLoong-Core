@@ -152,36 +152,46 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     }
 
     val offset = req.addr(1, 0) << 3
-    // 将store指令携带的数据写道Cache中
-    // 将这个Cache line标记为dirty状态
+    // 读取当前字
+    val origWord = dataArray(addr.index)(0)(0)
+
+    // 新的数据寄存器
+    val newWord = Wire(UInt(32.W))
+    newWord := origWord // 默认保持原值
+
     when(state === s_write_cache) {
-      // dataArray write
       when(req.wmask === "b1111".U) {
-        dataArray(addr.index)(0)(0) := req.wdata
+        newWord := req.wdata
       }.elsewhen(req.wmask === "b0011".U) {
         when(req.addr(1, 0) === "b00".U) {
-          dataArray(addr.index)(0)(0)(15, 0) := req.wdata(15, 0)
+          // 更新低半字
+          newWord := Cat(origWord(31, 16), req.wdata(15, 0))
         }.elsewhen(req.addr(1, 0) === "b01".U) {
-          dataArray(addr.index)(0)(0)(23, 8) := req.wdata(15, 0)
+          // 假设此处的位拼接满足需求，请根据实际情况调整各个片段的宽度和位置
+          newWord := Cat(origWord(31, 24), req.wdata(15, 0), origWord(7, 0))
         }.elsewhen(req.addr(1, 0) === "b10".U) {
-          dataArray(addr.index)(0)(0)(31, 16) := req.wdata(15, 0)
+          // 更新高半字
+          newWord := Cat(req.wdata(15, 0), origWord(15, 0))
         }
       }.elsewhen(req.wmask === "b0001".U) {
         when(req.addr(1, 0) === "b00".U) {
-          dataArray(addr.index)(0)(0)(7, 0)   := req.wdata(7, 0)
+          newWord := Cat(origWord(31, 8), req.wdata(7, 0))
         }.elsewhen(req.addr(1, 0) === "b01".U) {
-          dataArray(addr.index)(0)(0)(15, 8)  := req.wdata(7, 0)
+          newWord := Cat(origWord(31, 16), req.wdata(7, 0), origWord(7, 0))
         }.elsewhen(req.addr(1, 0) === "b10".U) {
-          dataArray(addr.index)(0)(0)(23, 16) := req.wdata(7, 0)
+          newWord := Cat(origWord(31, 24), req.wdata(7, 0), origWord(15, 0))
         }.otherwise {
-          dataArray(addr.index)(0)(0)(31, 24) := req.wdata(7, 0)
+          newWord := Cat(req.wdata(7, 0), origWord(23, 0))
         }
       }
-
-      // metaArray write
+      // 完整写入更新后的数据
+      dataArray(addr.index)(0) := VecInit(Seq(newWord))
+      
+      // 同时更新metaArray
       metaArray(addr.index)(0).tag := addr.tag
       metaArray(addr.index)(0).valid := true.B
       metaArray(addr.index)(0).dirty := true.B
+
       io.resp.valid := true.B
     }
 
