@@ -66,13 +66,20 @@ class AlignedMDU extends Module{
   io.in.ready := mdu.io.in.ready
   io.out.valid := mdu.io.out.valid
 
+  def mod(dividend: SInt, divisor: SInt): SInt = {
+    // 计算向零取整的商
+    val quotient = dividend / divisor
+    // 按照硬件公式计算余数
+    dividend - divisor * quotient
+  }
+  
   io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
     MDUOpType.div -> ((io.in.bits.src1.asSInt / io.in.bits.src2.asSInt).asUInt),
     MDUOpType.divu -> io.in.bits.src1 / io.in.bits.src2,
     MDUOpType.mul -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt).asUInt),
     MDUOpType.mulh -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt) >> 32).asUInt,
     MDUOpType.mulhu -> ((io.in.bits.src1 * io.in.bits.src2) >> 32).asUInt,
-    MDUOpType.mod -> ((io.in.bits.src1.asSInt % io.in.bits.src2.asSInt).asUInt),
+    MDUOpType.mod -> mod(io.in.bits.src1.asSInt, io.in.bits.src2.asSInt).asUInt,
     MDUOpType.modu -> (io.in.bits.src1 % io.in.bits.src2)
   ))
 } 
