@@ -171,9 +171,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       io.resp.valid := true.B
     }
 
+    val offset = req.addr(1, 0) << 3
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := cacheData
+      resp.rdata := cacheData >> offset
       io.resp.valid := true.B
     }
 

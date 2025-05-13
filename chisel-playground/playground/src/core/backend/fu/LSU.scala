@@ -123,7 +123,23 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
   
   io.out.valid := dcache.io.resp.valid
-  io.out.bits := dcache.io.resp.bits.rdata
+  val rdata = dcache.io.resp.bits.rdata
+  /*
+    def lb   = "b0000000".U
+    def lh   = "b0000001".U
+    def lw   = "b0000010".U
+    def lbu  = "b0000100".U
+    def lhu  = "b0000101".U
+  */
+  io.out.bits := MuxLookup(io.in.bits.func(2, 0), 0.U)(
+    List(
+      "b000".U -> Cat(Fill(24, rdata(7)), rdata(7, 0)), // lb
+      "b001".U -> Cat(Fill(16, rdata(15)), rdata(15, 0)), // lh
+      "b010".U -> rdata(31, 0), // lw
+      "b100".U -> Cat(0.U(24.W), rdata(7, 0)), // lbu
+      "b101".U -> Cat(0.U(16.W), rdata(15, 0)), // lhu
+    )
+  )
 
   io.in.ready := dcache.io.req.ready && (!io.in.valid || io.out.fire)
 }
