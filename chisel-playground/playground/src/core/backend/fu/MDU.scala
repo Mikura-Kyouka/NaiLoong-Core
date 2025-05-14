@@ -55,7 +55,10 @@ class AlignedMDU extends Module{
   io.out.bits.redirect := DontCare
   
   val in_ready = RegInit(true.B)
-  val out_valid = RegInit(true.B)
+  val out_valid = RegInit(false.B)
+
+  io.in.ready := in_ready && (!io.in.valid || io.out.fire)
+  io.out.valid := out_valid && io.in.valid
 
   val idle :: put :: waiting :: Nil = Enum(3)
   val div = RegInit(0.U(32.W))
@@ -63,33 +66,43 @@ class AlignedMDU extends Module{
   val mod = RegInit(0.U(32.W))
   val modu = RegInit(0.U(32.W))
 
-  val sdiv = new SignedDivider()
+  val sdiv = Module(new SignedDivider)
   sdiv.io.aclk := clock
   sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
   sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
+  sdiv.io.s_axis_dividend_tvalid := false.B
+  sdiv.io.s_axis_divisor_tvalid  := false.B
+  sdiv.io.m_axis_dout_tready := false.B
 
-  val udiv = new UnsignedDivider()
+  val udiv = Module(new UnsignedDivider)
   udiv.io.aclk := clock
   udiv.io.s_axis_dividend_tdata := io.in.bits.src1
   udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
+  udiv.io.s_axis_dividend_tvalid := false.B
+  udiv.io.s_axis_divisor_tvalid  := false.B
+  udiv.io.m_axis_dout_tready := false.B
 
   val state_s = RegInit(idle)
+
+  val sdiv_dividend_tvalid = WireDefault(false.B)
+  val sdiv_divisor_tvalid = WireDefault(false.B)
+  val sdiv_dout_tready = WireDefault(false.B)
 
   switch(state_s) {
     is(idle) {
       when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
         out_valid := false.B
-        sdiv.io.s_axis_dividend_tvalid := true.B
-        sdiv.io.s_axis_divisor_tvalid := true.B
+        sdiv_dividend_tvalid := true.B
+        sdiv_divisor_tvalid := true.B
         in_ready := false.B
         state_s := put
       }
     }
     is(put) {
       when(sdiv.io.s_axis_dividend_tready && sdiv.io.s_axis_divisor_tready) {
-        sdiv.io.s_axis_dividend_tvalid := false.B
-        sdiv.io.s_axis_divisor_tvalid := false.B
-        sdiv.io.m_axis_dout_tready := true.B
+        sdiv_dividend_tvalid := false.B
+        sdiv_divisor_tvalid := false.B
+        sdiv_dout_tready := true.B
         state_s := waiting
       }
     }
@@ -97,7 +110,7 @@ class AlignedMDU extends Module{
       when(sdiv.io.m_axis_dout_tvalid) {
         div := sdiv.io.m_axis_dout_tdata(63, 32)
         mod := sdiv.io.m_axis_dout_tdata(31, 0)
-        sdiv.io.m_axis_dout_tready := false.B
+        sdiv_dout_tready := false.B
         out_valid := true.B
         in_ready := true.B
         state_s := idle
@@ -105,23 +118,31 @@ class AlignedMDU extends Module{
     }
   }
 
+  sdiv.io.s_axis_dividend_tvalid := sdiv_dividend_tvalid
+  sdiv.io.s_axis_divisor_tvalid := sdiv_divisor_tvalid
+  sdiv.io.m_axis_dout_tready := sdiv_dout_tready
+
   val state_u = RegInit(idle)
+
+  val udiv_dividend_tvalid = WireDefault(false.B)
+  val udiv_divisor_tvalid = WireDefault(false.B)
+  val udiv_dout_tready = WireDefault(false.B)
 
   switch(state_u) {
     is(idle) {
-      when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+      when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
         out_valid := false.B
-        udiv.io.s_axis_dividend_tvalid := true.B
-        udiv.io.s_axis_divisor_tvalid := true.B
+        udiv_dividend_tvalid := true.B
+        udiv_divisor_tvalid := true.B
         in_ready := false.B
         state_u := put
       }
     }
     is(put) {
       when(udiv.io.s_axis_dividend_tready && udiv.io.s_axis_divisor_tready) {
-        udiv.io.s_axis_dividend_tvalid := false.B
-        udiv.io.s_axis_divisor_tvalid := false.B
-        udiv.io.m_axis_dout_tready := true.B
+        udiv_dividend_tvalid := false.B
+        udiv_divisor_tvalid := false.B
+        udiv_dout_tready := true.B
         state_u := waiting
       }
     }
@@ -129,7 +150,7 @@ class AlignedMDU extends Module{
       when(udiv.io.m_axis_dout_tvalid) {
         divu := udiv.io.m_axis_dout_tdata(63, 32)
         modu := udiv.io.m_axis_dout_tdata(31, 0)
-        udiv.io.m_axis_dout_tready := false.B
+        udiv_dout_tready := false.B
         out_valid := true.B
         in_ready := true.B
         state_u := idle
@@ -137,8 +158,9 @@ class AlignedMDU extends Module{
     }
   }
 
-  io.in.ready := in_ready
-  io.out.valid := out_valid
+  udiv.io.s_axis_dividend_tvalid := udiv_dividend_tvalid
+  udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
+  udiv.io.m_axis_dout_tready := udiv_dout_tready
 
   io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
     MDUOpType.div -> div,
