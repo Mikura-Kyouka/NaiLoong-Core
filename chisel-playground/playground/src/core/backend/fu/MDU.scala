@@ -66,7 +66,18 @@ class AlignedMDU extends Module{
   val mod = RegInit(0.U(32.W))
   val modu = RegInit(0.U(32.W))
 
-  val sdiv = Module(new SignedDivider)
+  val sdiv = if (GenCtrl.USE_SIMU) {
+    Module(new SignedDivider)
+  } else {
+    Module(new SignedDividerBlackBox)
+  }
+
+  val udiv = if (GenCtrl.USE_SIMU) {
+    Module(new UnsignedDivider)
+  } else {
+    Module(new UnsignedDividerBlackBox)
+  }
+
   sdiv.io.aclk := clock
   sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
   sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
@@ -74,7 +85,6 @@ class AlignedMDU extends Module{
   sdiv.io.s_axis_divisor_tvalid  := false.B
   sdiv.io.m_axis_dout_tready := false.B
 
-  val udiv = Module(new UnsignedDivider)
   udiv.io.aclk := clock
   udiv.io.s_axis_dividend_tdata := io.in.bits.src1
   udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
