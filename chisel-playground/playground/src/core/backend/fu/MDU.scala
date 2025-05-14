@@ -66,119 +66,221 @@ class AlignedMDU extends Module{
   val mod = RegInit(0.U(32.W))
   val modu = RegInit(0.U(32.W))
 
-  val sdiv = if (GenCtrl.USE_SIMU) {
-    Module(new SignedDivider)
+  if (GenCtrl.USE_SIMU) {
+    val sdiv = Module(new SignedDivider)
+    val udiv = Module(new UnsignedDivider)
+
+    sdiv.io.aclk := clock
+    sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
+    sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
+    sdiv.io.s_axis_dividend_tvalid := false.B
+    sdiv.io.s_axis_divisor_tvalid  := false.B
+    sdiv.io.m_axis_dout_tready := false.B
+
+    udiv.io.aclk := clock
+    udiv.io.s_axis_dividend_tdata := io.in.bits.src1
+    udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
+    udiv.io.s_axis_dividend_tvalid := false.B
+    udiv.io.s_axis_divisor_tvalid  := false.B
+    udiv.io.m_axis_dout_tready := false.B
+
+    val state_s = RegInit(idle)
+
+    val sdiv_dividend_tvalid = WireDefault(false.B)
+    val sdiv_divisor_tvalid = WireDefault(false.B)
+    val sdiv_dout_tready = WireDefault(false.B)
+
+    switch(state_s) {
+      is(idle) {
+        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+          out_valid := false.B
+          sdiv_dividend_tvalid := true.B
+          sdiv_divisor_tvalid := true.B
+          in_ready := false.B
+          state_s := put
+        }
+      }
+      is(put) {
+        when(sdiv.io.s_axis_dividend_tready && sdiv.io.s_axis_divisor_tready) {
+          sdiv_dividend_tvalid := false.B
+          sdiv_divisor_tvalid := false.B
+          sdiv_dout_tready := true.B
+          state_s := waiting
+        }
+      }
+      is(waiting) {
+        when(sdiv.io.m_axis_dout_tvalid) {
+          div := sdiv.io.m_axis_dout_tdata(63, 32)
+          mod := sdiv.io.m_axis_dout_tdata(31, 0)
+          sdiv_dout_tready := false.B
+          out_valid := true.B
+          in_ready := true.B
+          state_s := idle
+        }
+      }
+    }
+
+    sdiv.io.s_axis_dividend_tvalid := sdiv_dividend_tvalid
+    sdiv.io.s_axis_divisor_tvalid := sdiv_divisor_tvalid
+    sdiv.io.m_axis_dout_tready := sdiv_dout_tready
+
+    val state_u = RegInit(idle)
+
+    val udiv_dividend_tvalid = WireDefault(false.B)
+    val udiv_divisor_tvalid = WireDefault(false.B)
+    val udiv_dout_tready = WireDefault(false.B)
+
+    switch(state_u) {
+      is(idle) {
+        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+          out_valid := false.B
+          udiv_dividend_tvalid := true.B
+          udiv_divisor_tvalid := true.B
+          in_ready := false.B
+          state_u := put
+        }
+      }
+      is(put) {
+        when(udiv.io.s_axis_dividend_tready && udiv.io.s_axis_divisor_tready) {
+          udiv_dividend_tvalid := false.B
+          udiv_divisor_tvalid := false.B
+          udiv_dout_tready := true.B
+          state_u := waiting
+        }
+      }
+      is(waiting) {
+        when(udiv.io.m_axis_dout_tvalid) {
+          divu := udiv.io.m_axis_dout_tdata(63, 32)
+          modu := udiv.io.m_axis_dout_tdata(31, 0)
+          udiv_dout_tready := false.B
+          out_valid := true.B
+          in_ready := true.B
+          state_u := idle
+        }
+      }
+    }
+
+    udiv.io.s_axis_dividend_tvalid := udiv_dividend_tvalid
+    udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
+    udiv.io.m_axis_dout_tready := udiv_dout_tready
+
+    io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
+      MDUOpType.div -> div,
+      MDUOpType.divu -> divu,
+      MDUOpType.mul -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt).asUInt),
+      MDUOpType.mulh -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt) >> 32).asUInt,
+      MDUOpType.mulhu -> ((io.in.bits.src1 * io.in.bits.src2) >> 32).asUInt,
+      MDUOpType.mod -> mod,
+      MDUOpType.modu -> modu
+    ))
+
   } else {
-    Module(new SignedDividerBlackBox)
+    
+    val sdiv = Module(new SignedDividerBlackBox)
+    val udiv = Module(new UnsignedDividerBlackBox)
+
+    sdiv.io.aclk := clock
+    sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
+    sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
+    sdiv.io.s_axis_dividend_tvalid := false.B
+    sdiv.io.s_axis_divisor_tvalid  := false.B
+    sdiv.io.m_axis_dout_tready := false.B
+
+    udiv.io.aclk := clock
+    udiv.io.s_axis_dividend_tdata := io.in.bits.src1
+    udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
+    udiv.io.s_axis_dividend_tvalid := false.B
+    udiv.io.s_axis_divisor_tvalid  := false.B
+    udiv.io.m_axis_dout_tready := false.B
+
+    val state_s = RegInit(idle)
+
+    val sdiv_dividend_tvalid = WireDefault(false.B)
+    val sdiv_divisor_tvalid = WireDefault(false.B)
+    val sdiv_dout_tready = WireDefault(false.B)
+
+    switch(state_s) {
+      is(idle) {
+        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+          out_valid := false.B
+          sdiv_dividend_tvalid := true.B
+          sdiv_divisor_tvalid := true.B
+          in_ready := false.B
+          state_s := put
+        }
+      }
+      is(put) {
+        when(sdiv.io.s_axis_dividend_tready && sdiv.io.s_axis_divisor_tready) {
+          sdiv_dividend_tvalid := false.B
+          sdiv_divisor_tvalid := false.B
+          sdiv_dout_tready := true.B
+          state_s := waiting
+        }
+      }
+      is(waiting) {
+        when(sdiv.io.m_axis_dout_tvalid) {
+          div := sdiv.io.m_axis_dout_tdata(63, 32)
+          mod := sdiv.io.m_axis_dout_tdata(31, 0)
+          sdiv_dout_tready := false.B
+          out_valid := true.B
+          in_ready := true.B
+          state_s := idle
+        }
+      }
+    }
+
+    sdiv.io.s_axis_dividend_tvalid := sdiv_dividend_tvalid
+    sdiv.io.s_axis_divisor_tvalid := sdiv_divisor_tvalid
+    sdiv.io.m_axis_dout_tready := sdiv_dout_tready
+
+    val state_u = RegInit(idle)
+
+    val udiv_dividend_tvalid = WireDefault(false.B)
+    val udiv_divisor_tvalid = WireDefault(false.B)
+    val udiv_dout_tready = WireDefault(false.B)
+
+    switch(state_u) {
+      is(idle) {
+        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+          out_valid := false.B
+          udiv_dividend_tvalid := true.B
+          udiv_divisor_tvalid := true.B
+          in_ready := false.B
+          state_u := put
+        }
+      }
+      is(put) {
+        when(udiv.io.s_axis_dividend_tready && udiv.io.s_axis_divisor_tready) {
+          udiv_dividend_tvalid := false.B
+          udiv_divisor_tvalid := false.B
+          udiv_dout_tready := true.B
+          state_u := waiting
+        }
+      }
+      is(waiting) {
+        when(udiv.io.m_axis_dout_tvalid) {
+          divu := udiv.io.m_axis_dout_tdata(63, 32)
+          modu := udiv.io.m_axis_dout_tdata(31, 0)
+          udiv_dout_tready := false.B
+          out_valid := true.B
+          in_ready := true.B
+          state_u := idle
+        }
+      }
+    }
+
+    udiv.io.s_axis_dividend_tvalid := udiv_dividend_tvalid
+    udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
+    udiv.io.m_axis_dout_tready := udiv_dout_tready
+
+    io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
+      MDUOpType.div -> div,
+      MDUOpType.divu -> divu,
+      MDUOpType.mul -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt).asUInt),
+      MDUOpType.mulh -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt) >> 32).asUInt,
+      MDUOpType.mulhu -> ((io.in.bits.src1 * io.in.bits.src2) >> 32).asUInt,
+      MDUOpType.mod -> mod,
+      MDUOpType.modu -> modu
+    ))
   }
-
-  val udiv = if (GenCtrl.USE_SIMU) {
-    Module(new UnsignedDivider)
-  } else {
-    Module(new UnsignedDividerBlackBox)
-  }
-
-  sdiv.io.aclk := clock
-  sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
-  sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
-  sdiv.io.s_axis_dividend_tvalid := false.B
-  sdiv.io.s_axis_divisor_tvalid  := false.B
-  sdiv.io.m_axis_dout_tready := false.B
-
-  udiv.io.aclk := clock
-  udiv.io.s_axis_dividend_tdata := io.in.bits.src1
-  udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
-  udiv.io.s_axis_dividend_tvalid := false.B
-  udiv.io.s_axis_divisor_tvalid  := false.B
-  udiv.io.m_axis_dout_tready := false.B
-
-  val state_s = RegInit(idle)
-
-  val sdiv_dividend_tvalid = WireDefault(false.B)
-  val sdiv_divisor_tvalid = WireDefault(false.B)
-  val sdiv_dout_tready = WireDefault(false.B)
-
-  switch(state_s) {
-    is(idle) {
-      when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
-        out_valid := false.B
-        sdiv_dividend_tvalid := true.B
-        sdiv_divisor_tvalid := true.B
-        in_ready := false.B
-        state_s := put
-      }
-    }
-    is(put) {
-      when(sdiv.io.s_axis_dividend_tready && sdiv.io.s_axis_divisor_tready) {
-        sdiv_dividend_tvalid := false.B
-        sdiv_divisor_tvalid := false.B
-        sdiv_dout_tready := true.B
-        state_s := waiting
-      }
-    }
-    is(waiting) {
-      when(sdiv.io.m_axis_dout_tvalid) {
-        div := sdiv.io.m_axis_dout_tdata(63, 32)
-        mod := sdiv.io.m_axis_dout_tdata(31, 0)
-        sdiv_dout_tready := false.B
-        out_valid := true.B
-        in_ready := true.B
-        state_s := idle
-      }
-    }
-  }
-
-  sdiv.io.s_axis_dividend_tvalid := sdiv_dividend_tvalid
-  sdiv.io.s_axis_divisor_tvalid := sdiv_divisor_tvalid
-  sdiv.io.m_axis_dout_tready := sdiv_dout_tready
-
-  val state_u = RegInit(idle)
-
-  val udiv_dividend_tvalid = WireDefault(false.B)
-  val udiv_divisor_tvalid = WireDefault(false.B)
-  val udiv_dout_tready = WireDefault(false.B)
-
-  switch(state_u) {
-    is(idle) {
-      when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
-        out_valid := false.B
-        udiv_dividend_tvalid := true.B
-        udiv_divisor_tvalid := true.B
-        in_ready := false.B
-        state_u := put
-      }
-    }
-    is(put) {
-      when(udiv.io.s_axis_dividend_tready && udiv.io.s_axis_divisor_tready) {
-        udiv_dividend_tvalid := false.B
-        udiv_divisor_tvalid := false.B
-        udiv_dout_tready := true.B
-        state_u := waiting
-      }
-    }
-    is(waiting) {
-      when(udiv.io.m_axis_dout_tvalid) {
-        divu := udiv.io.m_axis_dout_tdata(63, 32)
-        modu := udiv.io.m_axis_dout_tdata(31, 0)
-        udiv_dout_tready := false.B
-        out_valid := true.B
-        in_ready := true.B
-        state_u := idle
-      }
-    }
-  }
-
-  udiv.io.s_axis_dividend_tvalid := udiv_dividend_tvalid
-  udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
-  udiv.io.m_axis_dout_tready := udiv_dout_tready
-
-  io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
-    MDUOpType.div -> div,
-    MDUOpType.divu -> divu,
-    MDUOpType.mul -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt).asUInt),
-    MDUOpType.mulh -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt) >> 32).asUInt,
-    MDUOpType.mulhu -> ((io.in.bits.src1 * io.in.bits.src2) >> 32).asUInt,
-    MDUOpType.mod -> mod,
-    MDUOpType.modu -> modu
-  ))
 } 
