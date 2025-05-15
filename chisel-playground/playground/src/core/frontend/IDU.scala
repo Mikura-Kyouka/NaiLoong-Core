@@ -13,7 +13,7 @@ class Decoder extends Module {
 
     // val hasInstr = Wire(Bool())
     val instr = io.in.bits.instr
-    val immType :: fuType :: fuOpType :: src1Type :: src2Type :: srcIsRd :: dest :: rfWen :: isLegal :: Nil = 
+    val immType :: fuType :: fuOpType :: src1Type :: src2Type :: srcIsRd :: dest :: rfWen :: isLegal :: csrOp :: Nil = 
         ListLookup(instr, Instructions.DecodeDefault, Instructions.DecodeTable)
     io.out.bits := DontCare
 
@@ -76,6 +76,7 @@ class Decoder extends Module {
     // }
     io.out.bits.ctrl.src1Type := src1Type
     io.out.bits.ctrl.src2Type := src2Type
+    io.out.bits.ctrl.csrOp := csrOp
     
     //output signals 
     io.out.valid := io.in.valid
@@ -103,6 +104,7 @@ class IDU extends Module {
     val decoder2 = Module(new Decoder)
     val decoder3 = Module(new Decoder)
     val decoder4 = Module(new Decoder)
+    dontTouch(io.out)
 
 //   val instr = Output(UInt(32.W))
 //   val pc = Output(UInt(32.W)) // TODO:VAddrBits

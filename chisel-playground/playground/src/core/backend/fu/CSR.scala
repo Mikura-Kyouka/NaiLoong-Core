@@ -1,5 +1,5 @@
 package core
-
+import utils._
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
@@ -61,11 +61,8 @@ class CSR extends Module {
   val csr_eentry = RegInit(0.U.asTypeOf(new csr_eentry_bundle))
 
 
-  val selOH: Seq[Bool] = UIntToOH(io.read.csr_id).asBools
-  io.read.csr_data := Mux1H(
-    Seq(
-      selOH(CsrName.CRMD.litValue.toInt)   -> csr_crmd.asUInt,
-      selOH(CsrName.EENTRY.litValue.toInt) -> csr_eentry.asUInt
-    )
-  )
+  io.read.csr_data := LookupTree(io.read.csr_id, Seq(
+    CsrName.CRMD -> csr_crmd,
+    CsrName.EENTRY -> csr_eentry
+  ))
 }

@@ -18,6 +18,7 @@ class CtrlSignalIO extends Bundle {
   val noSpecExec = Output(Bool())  // This inst can not be speculated
   val isBlocked = Output(Bool())   // This inst requires pipeline to be blocked
   val srcIsRd = Output(Bool()) // src2 is rd
+  val csrOp = Output(UInt(3.W)) // csr operation
 }
 
 class DataSrcIO extends Bundle {

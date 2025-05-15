@@ -56,12 +56,18 @@ object FuType {
   def apply() = UInt(log2Up(num).W)
 }
 
+object CSROp {
+  def nop = "b000".U
+  def rd = "b001".U
+  def wr = "b010".U
+}
+
 object FuOpType {
   def apply() = UInt(7.W)
 }
 
 object Instructions {
   def NOP = 0x03400000.U   // andi r0, r0, 0
-  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n )  
+  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n, CSROp.nop)  
   def DecodeTable = Inst.table
 }
