@@ -98,6 +98,23 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
     val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
     
+    when(reset.asBool){
+      for (i <- 0 until Sets) {
+        for (j <- 0 until Ways) {
+          metaArray(i)(j).valid := false.B
+          metaArray(i)(j).dirty := false.B
+          metaArray(i)(j).tag := 0.U
+        }
+      }
+    }
+    when(reset.asBool){
+      for (i <- 0 until Sets) {
+        for (j <- 0 until Ways) {
+          dataArray(i)(j) := VecInit(Seq.fill(LineBeats)(0.U(32.W)))
+        }
+      }
+    }
+    
     val hitVec = VecInit(
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
