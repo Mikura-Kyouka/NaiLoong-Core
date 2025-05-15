@@ -82,4 +82,9 @@ class AlignedMDU extends Module{
     MDUOpType.mod -> mod(io.in.bits.src1.asSInt, io.in.bits.src2.asSInt).asUInt,
     MDUOpType.modu -> (io.in.bits.src1 % io.in.bits.src2)
   ))
+
+  // for difftest
+  io.out.bits.paddr := DontCare
+  io.out.bits.wdata := DontCare
+  io.out.bits.optype := DontCare
 } 

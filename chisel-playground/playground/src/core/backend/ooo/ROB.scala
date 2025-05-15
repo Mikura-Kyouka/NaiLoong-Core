@@ -32,6 +32,11 @@ class RobEntry extends Bundle {
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
   val inst_valid = Bool()
+
+  // for load/store difftest
+  val paddr      = UInt(32.W)
+  val wdata      = UInt(32.W)
+  val optype     = UInt(7.W)
 }
 
 // ROB分配接口
@@ -52,6 +57,11 @@ class RobWritebackInfo extends Bundle {
   val brMispredict = Bool()
   val brTarget     = UInt(32.W)
   val writeData    = UInt(32.W)
+
+  // for load/store difftest
+  val paddr       = UInt(32.W)
+  val wdata       = UInt(32.W)
+  val optype      = UInt(7.W)
 }
 
 class rtrBundle extends Bundle {
@@ -67,6 +77,12 @@ class BrMisPredInfo extends Bundle {
   val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
+}
+
+class LSCommitInfo extends Bundle {
+  val paddr = UInt(32.W) // 物理地址
+  val wdata = UInt(32.W) // 写入数据
+  val optype = UInt(7.W) // 操作类型
 }
 
 // 提交接口
@@ -85,6 +101,8 @@ class RobIO extends Bundle {
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
   val commitPC = Output(Vec(4, Valid(UInt(32.W))))         // 提交的PC
   val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
+  // for load/store difftest
+  val commitLS = Output(Vec(4, Valid(new LSCommitInfo))) // 提交的load/store信息
 
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
@@ -165,6 +183,10 @@ class Rob extends Module {
       robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
       robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
       robEntries(idx).result       := io.writeback(i).bits.writeData
+      // for load/store difftest
+      robEntries(idx).paddr        := io.writeback(i).bits.paddr
+      robEntries(idx).wdata        := io.writeback(i).bits.wdata
+      robEntries(idx).optype       := io.writeback(i).bits.optype
     }
   }
   
@@ -251,6 +273,12 @@ class Rob extends Module {
     // 提交指令信息
     io.commitInstr(i).valid := shouldCommit && entry.inst_valid
     io.commitInstr(i).bits := entry.instr
+
+    // for load/store difftest
+    io.commitLS(i).valid := shouldCommit && entry.inst_valid
+    io.commitLS(i).bits.paddr := entry.paddr
+    io.commitLS(i).bits.wdata := entry.wdata
+    io.commitLS(i).bits.optype := entry.optype
     
     // 清除已提交的条目
     when (shouldCommit) {
