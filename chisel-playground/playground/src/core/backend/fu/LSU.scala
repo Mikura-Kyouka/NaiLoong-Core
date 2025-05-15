@@ -150,12 +150,6 @@ class AligendUnpipelinedLSU extends Module{
     val out = Decoupled(new FuOut)
     val lsAXI = new AXI
     val robCommit = Input(new RobCommit)
-
-    // for difftest
-    val paddr = Output(UInt(32.W))
-    val wdata = Output(UInt(32.W))
-    val optype = Output(UInt(7.W))
-    val pc = Output(UInt(32.W))
   })
   val lsu = Module(new UnpipelinedLSU)
 
@@ -168,12 +162,6 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.robRetire := commitIdx.reduce(_ || _)
   // lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
   lsu.io.wdata := io.in.bits.src2
-
-  // for difftest
-  io.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
-  io.wdata := lsu.io.diffData
-  io.optype := io.in.bits.ctrl.fuOpType
-  io.pc := io.in.bits.pc
 
   lsu.io.dmem <> io.lsAXI
   lsu.io.dtlbPF := DontCare
@@ -195,5 +183,10 @@ class AligendUnpipelinedLSU extends Module{
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid
   lsu.io.out.ready := io.out.ready
+
+  // for difftest
+  io.out.bits.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  io.out.bits.wdata := lsu.io.diffData
+  io.out.bits.optype := io.in.bits.ctrl.fuOpType
 } 
 

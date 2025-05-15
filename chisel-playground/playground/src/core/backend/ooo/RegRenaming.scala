@@ -359,6 +359,11 @@ class RegRenaming extends Module {
     
     // 分配ROB索引
     io.out.bits(i).robIdx := io.robAllocate.allocResp(i)
+
+    // for load/store difftest
+    io.robAllocate.allocEntries(i).paddr := DontCare
+    io.robAllocate.allocEntries(i).wdata := DontCare
+    io.robAllocate.allocEntries(i).optype := DontCare
   }
 
   // 组内相关性处理

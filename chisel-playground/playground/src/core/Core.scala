@@ -283,6 +283,10 @@ class Core extends Module {
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
     rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid && Ex.io.in(i).bits.valid
     rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
+    // for load/store difftest
+    rob.io.writeback(i).bits.paddr := Ex.io.out(i).bits.paddr
+    rob.io.writeback(i).bits.wdata := Ex.io.out(i).bits.wdata
+    rob.io.writeback(i).bits.optype := Ex.io.out(i).bits.optype
 
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
@@ -352,21 +356,47 @@ class Core extends Module {
     // 4) 其余接口
     DiffCommit.io.reg := Rn.io.arf
     
-    val storeValid = LSUOpType.isStore(Ex.io.optype) && (Ex.io.pc === DiffCommit.io.instr(0).pc
-                                                      || Ex.io.pc === DiffCommit.io.instr(1).pc
-                                                      || Ex.io.pc === DiffCommit.io.instr(2).pc 
-                                                      || Ex.io.pc === DiffCommit.io.instr(3).pc)
-    val storeType = MuxLookup(Ex.io.optype, 0.U)(
+    // val storeValid = LSUOpType.isStore(Ex.io.optype) && (Ex.io.pc === DiffCommit.io.instr(0).pc
+    //                                                   || Ex.io.pc === DiffCommit.io.instr(1).pc
+    //                                                   || Ex.io.pc === DiffCommit.io.instr(2).pc 
+    //                                                   || Ex.io.pc === DiffCommit.io.instr(3).pc)
+    // val storeType = MuxLookup(Ex.io.optype, 0.U)(
+    //   List(
+    //     LSUOpType.sw -> "b00000100".U,
+    //     LSUOpType.sh -> "b00000010".U,
+    //     LSUOpType.sb -> "b00000001".U,
+    //   )
+    // )
+
+    val isSt = rob.io.commitLS.map { commit =>
+      commit.valid && (commit.bits.optype === LSUOpType.sw ||
+                       commit.bits.optype === LSUOpType.sh ||
+                       commit.bits.optype === LSUOpType.sb)
+    }
+    val stInfo = Wire(new LSCommitInfo)
+    when (isSt(0)) {
+      stInfo := rob.io.commitLS(0).bits
+    }.elsewhen (isSt(1)) {
+      stInfo := rob.io.commitLS(1).bits
+    }.elsewhen (isSt(2)) {
+      stInfo := rob.io.commitLS(2).bits
+    }.elsewhen (isSt(3)) {
+      stInfo := rob.io.commitLS(3).bits
+    }.otherwise {
+      stInfo := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val storeType = MuxLookup(stInfo.optype, 0.U)(
       List(
         LSUOpType.sw -> "b00000100".U,
         LSUOpType.sh -> "b00000010".U,
         LSUOpType.sb -> "b00000001".U,
       )
     )
-    DiffCommit.io.store.valid := Mux(storeValid, storeType, 0.U)
-    DiffCommit.io.store.paddr := Ex.io.paddr
-    DiffCommit.io.store.vaddr := Ex.io.paddr
-    DiffCommit.io.store.data  := Ex.io.wdata
+
+    DiffCommit.io.store.valid := Mux(isSt.reduce(_ || _), storeType, 0.U)
+    DiffCommit.io.store.paddr := stInfo.paddr
+    DiffCommit.io.store.vaddr := stInfo.paddr
+    DiffCommit.io.store.data  := stInfo.wdata
   }
 }
 

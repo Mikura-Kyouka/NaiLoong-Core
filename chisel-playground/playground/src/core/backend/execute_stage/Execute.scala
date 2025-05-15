@@ -12,12 +12,6 @@ class Execute extends Module {
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
     val robCommit = Input(new RobCommit)
-
-    // for difftest
-    val paddr = Output(UInt(32.W))
-    val wdata = Output(UInt(32.W))
-    val optype = Output(UInt(7.W))
-    val pc = Output(UInt(32.W))
   })
 
   val alu1 = Module(new AligendALU)
@@ -25,12 +19,6 @@ class Execute extends Module {
   val mdu  = Module(new AlignedMDU)
   val lsu  = Module(new AligendUnpipelinedLSU)
   val bru  = Module(new AligendALU) // TODO
-
-  // for difftest
-  io.paddr := lsu.io.paddr
-  io.wdata := lsu.io.wdata
-  io.optype := lsu.io.optype
-  io.pc := lsu.io.pc
 
   lsu.io.lsAXI <> io.lsAXI
   lsu.io.robCommit := io.robCommit

@@ -167,6 +167,11 @@ class FuOut extends Bundle {
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
   val redirect = Output(new RedirectIO)
+
+  // for load/store difftest
+  val paddr = Output(UInt(32.W))
+  val wdata = Output(UInt(32.W))
+  val optype = Output(UInt(7.W))
 }
 class AligendALU extends Module{
   val io = IO(new Bundle{
@@ -191,4 +196,9 @@ class AligendALU extends Module{
   io.in.ready := alu.io.in.ready
   io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
+
+  // for difftest
+  io.out.bits.paddr := DontCare
+  io.out.bits.wdata := DontCare
+  io.out.bits.optype := DontCare
 } 
