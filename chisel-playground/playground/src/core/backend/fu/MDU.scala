@@ -180,6 +180,7 @@ class AlignedMDU extends Module{
     val udiv = Module(new UnsignedDividerBlackBox)
 
     sdiv.io.aclk := clock
+    sdiv.io.aresetn := !reset.asBool
     sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
     sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
     sdiv.io.s_axis_dividend_tvalid := false.B
@@ -187,6 +188,7 @@ class AlignedMDU extends Module{
     sdiv.io.m_axis_dout_tready := false.B
 
     udiv.io.aclk := clock
+    udiv.io.aresetn := !reset.asBool
     udiv.io.s_axis_dividend_tdata := io.in.bits.src1
     udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
     udiv.io.s_axis_dividend_tvalid := false.B
@@ -195,9 +197,9 @@ class AlignedMDU extends Module{
 
     val state_s = RegInit(idle)
 
-    val sdiv_dividend_tvalid = WireDefault(false.B)
-    val sdiv_divisor_tvalid = WireDefault(false.B)
-    val sdiv_dout_tready = WireDefault(false.B)
+    val sdiv_dividend_tvalid = RegInit(false.B)
+    val sdiv_divisor_tvalid = RegInit(false.B)
+    val sdiv_dout_tready = RegInit(false.B)
 
     switch(state_s) {
       is(idle) {
@@ -235,9 +237,9 @@ class AlignedMDU extends Module{
 
     val state_u = RegInit(idle)
 
-    val udiv_dividend_tvalid = WireDefault(false.B)
-    val udiv_divisor_tvalid = WireDefault(false.B)
-    val udiv_dout_tready = WireDefault(false.B)
+    val udiv_dividend_tvalid = RegInit(false.B)
+    val udiv_divisor_tvalid = RegInit(false.B)
+    val udiv_dout_tready = RegInit(false.B)
 
     switch(state_u) {
       is(idle) {

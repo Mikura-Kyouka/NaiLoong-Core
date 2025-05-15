@@ -8,6 +8,7 @@ class SignedDividerBlackBox extends BlackBox {
   override val desiredName = "SignedDivider"
   val io = IO(new Bundle {
     val aclk = Input(Clock())
+    val aresetn = Input(Reset())
 
     val s_axis_divisor_tdata  = Input(SInt(32.W))
     val s_axis_divisor_tready = Output(Bool())
