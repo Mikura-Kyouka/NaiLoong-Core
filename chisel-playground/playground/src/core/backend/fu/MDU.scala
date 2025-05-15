@@ -74,13 +74,13 @@ class AlignedMDU extends Module{
   }
   
   io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
-    MDUOpType.div -> ((io.in.bits.src1.asSInt / io.in.bits.src2.asSInt).asUInt),
-    MDUOpType.divu -> io.in.bits.src1 / io.in.bits.src2,
+    MDUOpType.div -> 0.U,
+    MDUOpType.divu -> 0.U,
     MDUOpType.mul -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt).asUInt),
     MDUOpType.mulh -> ((io.in.bits.src1.asSInt * io.in.bits.src2.asSInt) >> 32).asUInt,
     MDUOpType.mulhu -> ((io.in.bits.src1 * io.in.bits.src2) >> 32).asUInt,
-    MDUOpType.mod -> mod(io.in.bits.src1.asSInt, io.in.bits.src2.asSInt).asUInt,
-    MDUOpType.modu -> (io.in.bits.src1 % io.in.bits.src2)
+    MDUOpType.mod -> 0.U,
+    MDUOpType.modu -> 0.U
   ))
 
   // for difftest
