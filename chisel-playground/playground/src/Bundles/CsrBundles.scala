@@ -1,6 +1,7 @@
+package core
 import chisel3._
 import chisel3.util._
-import MmuConfig._
+// import MmuConfig._
 
 class csr_tlbidx_bundle extends Bundle{
     val ne = UInt(1.W)              // 该位为1表示该TLB表项为空（无效TLB表项），为0表示该TLB表项非空（有效TLB表项）。
@@ -63,4 +64,14 @@ class csr_crmd_bundle extends Bundle{
     val da   = UInt(1.W)            // da：指示是否为直址 (Direct Address) 模式。如果 da = true，则不走分页，虚拟地址直接用做物理地址。
     val ie   = UInt(1.W)
     val plv  = UInt(2.W)            // plv：当前的特权级 (Privilege Level)。LoongArch 下有 PLV0 ~ PLV3，不同权限会影响 TLB 中的数据访问许可。
+}
+
+class csr_eentry_bundle extends Bundle {
+  val va  =UInt(26.W)
+  val zero=UInt(6.W)
+}
+
+class csr_read_bundle extends Bundle {
+  val csr_id = Input(UInt(14.W)) // csr寄存器的id
+  val csr_data = Output(UInt(32.W)) // csr寄存器的值  
 }
