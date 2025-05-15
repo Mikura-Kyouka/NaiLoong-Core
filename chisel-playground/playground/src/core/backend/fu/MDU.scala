@@ -283,4 +283,9 @@ class AlignedMDU extends Module{
       MDUOpType.modu -> modu
     ))
   }
+  
+  // for difftest
+  io.out.bits.paddr := DontCare
+  io.out.bits.wdata := DontCare
+  io.out.bits.optype := DontCare
 } 
