@@ -133,9 +133,9 @@ class AlignedMDU extends Module{
 
     val state_u = RegInit(idle)
 
-    val udiv_dividend_tvalid = WireDefault(false.B)
-    val udiv_divisor_tvalid = WireDefault(false.B)
-    val udiv_dout_tready = WireDefault(false.B)
+    val udiv_dividend_tvalid = RegInit(false.B)
+    val udiv_divisor_tvalid = RegInit(false.B)
+    val udiv_dout_tready = RegInit(false.B)
 
     switch(state_u) {
       is(idle) {
