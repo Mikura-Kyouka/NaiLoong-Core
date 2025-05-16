@@ -96,7 +96,7 @@ class TraceBridge extends Module {
   validatedOutItem.valid := current_valid
   validatedOutItem.seq_num := current_item.seq_num
 
-  io.out_item := validatedOutItem
+  io.out_item := Mux(current_deq_valid, validatedOutItem, 0.U.asTypeOf(validatedOutItem))
   
   for (i <- 0 until 4) {
     perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_deq_valid
