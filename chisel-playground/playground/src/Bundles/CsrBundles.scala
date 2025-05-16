@@ -72,6 +72,11 @@ class csr_eentry_bundle extends Bundle {
 }
 
 class csr_read_bundle extends Bundle {
-  val csr_id = Input(UInt(14.W)) // csr寄存器的id
+  val csr_num = Input(UInt(14.W)) // csr寄存器的id
   val csr_data = Output(UInt(32.W)) // csr寄存器的值  
+}
+
+class csr_write_bundle extends Bundle {
+  val csr_num = Input(UInt(14.W)) // csr寄存器的id
+  val csr_data = Input(UInt(32.W)) // csr寄存器的值  
 }

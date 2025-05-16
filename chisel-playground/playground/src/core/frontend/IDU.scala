@@ -76,7 +76,9 @@ class Decoder extends Module {
     // }
     io.out.bits.ctrl.src1Type := src1Type
     io.out.bits.ctrl.src2Type := src2Type
+    // for csr
     io.out.bits.ctrl.csrOp := csrOp
+    io.out.bits.ctrl.csrNum := instr(23, 10)
     
     //output signals 
     io.out.valid := io.in.valid

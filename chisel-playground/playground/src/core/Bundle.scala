@@ -19,6 +19,7 @@ class CtrlSignalIO extends Bundle {
   val isBlocked = Output(Bool())   // This inst requires pipeline to be blocked
   val srcIsRd = Output(Bool()) // src2 is rd
   val csrOp = Output(UInt(3.W)) // csr operation
+  val csrNum = Output(UInt(14.W))
 }
 
 class DataSrcIO extends Bundle {
