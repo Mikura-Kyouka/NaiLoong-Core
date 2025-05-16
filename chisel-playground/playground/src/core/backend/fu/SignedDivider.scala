@@ -84,8 +84,9 @@ class SignedDivider extends Module {
           quotient := -1.S
           remainder := dividend
         }.otherwise {
-          quotient := dividend / divisor
-          remainder := dividend - divisor * quotient
+          val quot = dividend / divisor
+          quotient := quot
+          remainder := dividend - divisor * quot
         }
         outputValid := true.B
         gapCounter := 8.U
