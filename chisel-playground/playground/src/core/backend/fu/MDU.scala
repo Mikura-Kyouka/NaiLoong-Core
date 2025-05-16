@@ -58,9 +58,9 @@ class AlignedMDU extends Module{
   val out_valid = RegInit(false.B)
 
   io.in.ready := in_ready && (!io.in.valid || io.out.fire)
-  io.out.valid := out_valid && io.in.valid
+  io.out.valid := out_valid
 
-  val idle :: put :: waiting :: Nil = Enum(3)
+  val idle :: put :: waiting :: get :: Nil = Enum(4)
   val div = RegInit(0.U(32.W))
   val divu = RegInit(0.U(32.W))
   val mod = RegInit(0.U(32.W))
@@ -86,9 +86,9 @@ class AlignedMDU extends Module{
 
     val state_s = RegInit(idle)
 
-    val sdiv_dividend_tvalid = WireDefault(false.B)
-    val sdiv_divisor_tvalid = WireDefault(false.B)
-    val sdiv_dout_tready = WireDefault(false.B)
+    val sdiv_dividend_tvalid = RegInit(false.B)
+    val sdiv_divisor_tvalid = RegInit(false.B)
+    val sdiv_dout_tready = RegInit(false.B)
 
     switch(state_s) {
       is(idle) {
@@ -114,6 +114,13 @@ class AlignedMDU extends Module{
           mod := sdiv.io.m_axis_dout_tdata(31, 0)
           sdiv_dout_tready := false.B
           out_valid := true.B
+          in_ready := true.B
+          state_s := get
+        }
+      }
+      is(get) {
+        when(io.out.fire) {
+          out_valid := false.B
           in_ready := true.B
           state_s := idle
         }
@@ -154,6 +161,12 @@ class AlignedMDU extends Module{
           modu := udiv.io.m_axis_dout_tdata(31, 0)
           udiv_dout_tready := false.B
           out_valid := true.B
+          state_u := get
+        }
+      }
+      is(get) {
+        when(io.out.fire) {
+          out_valid := false.B
           in_ready := true.B
           state_u := idle
         }
@@ -226,6 +239,13 @@ class AlignedMDU extends Module{
           sdiv_dout_tready := false.B
           out_valid := true.B
           in_ready := true.B
+          state_s := get
+        }
+      }
+      is(get) {
+        when(io.out.fire) {
+          out_valid := false.B
+          in_ready := true.B
           state_s := idle
         }
       }
@@ -265,6 +285,13 @@ class AlignedMDU extends Module{
           modu := udiv.io.m_axis_dout_tdata(31, 0)
           udiv_dout_tready := false.B
           out_valid := true.B
+          in_ready := true.B
+          state_u := get
+        }
+      }
+      is(get) {
+        when(io.out.fire) {
+          out_valid := false.B
           in_ready := true.B
           state_u := idle
         }
