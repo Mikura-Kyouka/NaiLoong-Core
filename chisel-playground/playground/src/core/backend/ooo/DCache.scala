@@ -114,7 +114,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         }
       }
     }
-    
+
+    val isMMIO = req.addr(31, 16) === "hbfaf".U
+    when(isMMIO){
+      printf("MMIO: %x, %x\n", req.addr, req.wdata)
+    }
+
     val hitVec = VecInit(
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
@@ -130,20 +135,21 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(8)
+    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: s_end :: Nil = Enum(9)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.valid, s_judge, s_idle),
+        s_idle -> Mux(io.req.valid, Mux(isMMIO, s_write_mem1, s_judge), s_idle),
         s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
-        s_write_mem1 -> Mux(io.axi.awready && io.axi.wready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.bvalid, s_idle, s_write_mem2),
+        s_write_mem1 -> Mux(io.axi.wready, s_write_mem2, s_write_mem1),
+        s_write_mem2 -> Mux(io.axi.bvalid, s_end, s_write_mem2),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(req.cmd, s_write_cache, s_read_cache), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
-        s_read_cache -> s_idle
+        s_read_cache -> s_idle,
+        s_end -> s_idle
     ))
     io.req.ready := state === s_idle
-    io.resp.valid := false.B
+    io.resp.valid := state === s_end
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
@@ -153,9 +159,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.araddr := req.addr
     io.axi.rready := true.B
     // axi write chanel
+    io.axi.awaddr := req.addr
     io.axi.awvalid := state === s_write_mem1
     io.axi.wvalid := state === s_write_mem1
-    io.axi.wdata := cacheData
+    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := true.B
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
