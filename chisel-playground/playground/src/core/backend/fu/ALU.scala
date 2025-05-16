@@ -184,7 +184,8 @@ class AligendALU extends Module{
   dontTouch(io.in.bits)
   io.csrRead.csr_num := io.in.bits.ctrl.csrNum
   val dest_is_csr = io.in.bits.ctrl.csrOp === CSROp.rd ||
-                    io.in.bits.ctrl.csrOp === CSROp.wr
+                    io.in.bits.ctrl.csrOp === CSROp.wr ||
+                    io.in.bits.ctrl.csrOp === CSROp.xchg
 
   val alu = Module(new ALU)
   alu.io := DontCare
@@ -197,7 +198,8 @@ class AligendALU extends Module{
   io.out.bits.data    := Mux(dest_is_csr, io.csrRead.csr_data, alu.io.out.bits)
   io.out.bits.robIdx  := io.in.bits.robIdx
   io.out.bits.redirect := alu.io.redirect
-  io.out.bits.csrNewData := io.in.bits.src2
+  io.out.bits.csrNewData := Mux(io.in.bits.ctrl.csrOp === CSROp.xchg, 
+              (io.in.bits.src1 & io.in.bits.src2) | (~io.in.bits.src1 & io.csrRead.csr_data), io.in.bits.src2)
   
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready

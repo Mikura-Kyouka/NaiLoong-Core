@@ -59,13 +59,126 @@ class CSR extends Module {
     val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
+  val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
+  val csr_ecfg = RegInit(0.U.asTypeOf(new csr_ecfg_bundle))
+  val csr_estat = RegInit(0.U.asTypeOf(new csr_estat_bundle))
+  val csr_era = RegInit(0.U(32.W))
+  val csr_badv = RegInit(0.U(32.W))
   val csr_eentry = RegInit(0.U.asTypeOf(new csr_eentry_bundle))
+  val csr_tlbidx = RegInit(0.U.asTypeOf(new csr_tlbidx_bundle))
+  val csr_tlbehi = RegInit(0.U.asTypeOf(new csr_tlbehi_bundle))
+  val csr_tlbel0 = RegInit(0.U.asTypeOf(new csr_tlbelo_bundle))
+  val csr_tlbel1 = RegInit(0.U.asTypeOf(new csr_tlbelo_bundle))
+  val csr_asid = RegInit(0.U.asTypeOf(new csr_asid_bundle))
+  val csr_pgdl = RegInit(0.U.asTypeOf(new csr_pgdx_bundle))
+  val csr_pgdh = RegInit(0.U.asTypeOf(new csr_pgdx_bundle))
+  val csr_pgd = RegInit(0.U.asTypeOf(new csr_pgdx_bundle))
+  val csr_save0 = RegInit(0.U(32.W))
+  val csr_save1 = RegInit(0.U(32.W))
+  val csr_save2 = RegInit(0.U(32.W))
+  val csr_save3 = RegInit(0.U(32.W))
+  val csr_tid = RegInit(0.U(32.W))
+  val csr_tcfg = RegInit(0.U.asTypeOf(new csr_tcfg_bundle))
+  val csr_tval = RegInit(0.U(32.W))
+  val csr_cntc = RegInit(0.U(32.W))
+  val csr_ticlr = RegInit(0.U(32.W))
+  val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
+  val csr_tlbrentry = RegInit(0.U.asTypeOf(new csr_tlbrentry_bundle))
+  val csr_dmw0 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
+  val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
+  val timer64 = RegInit(0.U(64.W))
+  timer64 := timer64 + 1.U
+  val debug_csr_crmd = csr_crmd.asUInt
+  val debug_csr_prmd = csr_prmd.asUInt
+  val debug_csr_ecfg = csr_ecfg.asUInt
+  val debug_csr_estat = csr_estat.asUInt
+  val debug_csr_era = csr_era.asUInt
+  val debug_csr_badv = csr_badv.asUInt
+  val debug_csr_eentry = csr_eentry.asUInt
+  val debug_csr_tlbidx = csr_tlbidx.asUInt
+  val debug_csr_tlbehi = csr_tlbehi.asUInt
+  val debug_csr_tlbel0 = csr_tlbel0.asUInt
+  val debug_csr_tlbel1 = csr_tlbel1.asUInt
+  val debug_csr_asid = csr_asid.asUInt
+  val debug_csr_pgdl = csr_pgdl.asUInt
+  val debug_csr_pgdh = csr_pgdh.asUInt
+  val debug_csr_pgd = csr_pgd.asUInt
+  val debug_csr_save0 = csr_save0.asUInt
+  val debug_csr_save1 = csr_save1.asUInt
+  val debug_csr_save2 = csr_save2.asUInt
+  val debug_csr_save3 = csr_save3.asUInt
+  val debug_csr_tid = csr_tid.asUInt
+  val debug_csr_tcfg = csr_tcfg.asUInt
+  val debug_csr_tval = csr_tval.asUInt
+  val debug_csr_cntc = csr_cntc.asUInt
+  val debug_csr_ticlr = csr_ticlr.asUInt
+  val debug_csr_llbctl = csr_llbctl.asUInt
+  val debug_csr_tlbrentry = csr_tlbrentry.asUInt
+  val debug_csr_dmw0 = csr_dmw0.asUInt
+  val debug_csr_dmw1 = csr_dmw1.asUInt
+  val debug_timer64 = timer64.asUInt
+
+  dontTouch(debug_csr_crmd)
+  dontTouch(debug_csr_prmd)
+  dontTouch(debug_csr_ecfg)
+  dontTouch(debug_csr_estat)
+  dontTouch(debug_csr_era)
+  dontTouch(debug_csr_badv)
+  dontTouch(debug_csr_eentry)
+  dontTouch(debug_csr_tlbidx)
+  dontTouch(debug_csr_tlbehi)
+  dontTouch(debug_csr_tlbel0)
+  dontTouch(debug_csr_tlbel1)
+  dontTouch(debug_csr_asid)
+  dontTouch(debug_csr_pgdl)
+  dontTouch(debug_csr_pgdh)
+  dontTouch(debug_csr_pgd)
+  dontTouch(debug_csr_save0)
+  dontTouch(debug_csr_save1)
+  dontTouch(debug_csr_save2)
+  dontTouch(debug_csr_save3)
+  dontTouch(debug_csr_tid)
+  dontTouch(debug_csr_tcfg)
+  dontTouch(debug_csr_tval)
+  dontTouch(debug_csr_cntc)
+  dontTouch(debug_csr_ticlr)
+  dontTouch(debug_csr_llbctl)
+  dontTouch(debug_csr_tlbrentry)
+  dontTouch(debug_csr_dmw0)
+  dontTouch(debug_csr_dmw1)
+  dontTouch(debug_timer64)
 
   // read
   for(i <- 0 until 2) {
     io.read(i).csr_data := LookupTree(io.read(i).csr_num, Seq(
-      CsrName.CRMD -> csr_crmd.asUInt,
-      CsrName.EENTRY -> csr_eentry.asUInt
+      CsrName.CRMD  -> csr_crmd.asUInt,
+      CsrName.PRMD  -> csr_prmd.asUInt,
+      CsrName.ECFG  -> csr_ecfg.asUInt,
+      CsrName.ESTAT -> csr_estat.asUInt,
+      CsrName.ERA   -> csr_era,
+      CsrName.BADV  -> csr_badv,
+      CsrName.EENTRY-> csr_eentry.asUInt,
+      CsrName.TLBIDX-> csr_tlbidx.asUInt,
+      CsrName.TLBEHI-> csr_tlbehi.asUInt,
+      CsrName.TLBELO0->csr_tlbel0.asUInt,
+      CsrName.TLBELO1->csr_tlbel1.asUInt,
+      CsrName.ASID  -> csr_asid.asUInt,
+      CsrName.PGDL  -> csr_pgdl.asUInt,
+      CsrName.PGDH  -> csr_pgdh.asUInt,
+      CsrName.PGD   -> csr_pgd.asUInt,
+      CsrName.SAVE0 -> csr_save0,
+      CsrName.SAVE1 -> csr_save1,
+      CsrName.SAVE2 -> csr_save2,
+      CsrName.SAVE3 -> csr_save3,
+      CsrName.TID   -> csr_tid,
+      CsrName.TCFG  -> csr_tcfg.asUInt,
+      CsrName.TVAL  -> csr_tval,
+      CsrName.CNTC  -> csr_cntc,
+      CsrName.TICLR -> csr_ticlr,
+      CsrName.LLBCTL->csr_llbctl.asUInt,
+      CsrName.TLBRENTRY->csr_tlbrentry.asUInt,
+      CsrName.DMW0  ->csr_dmw0.asUInt,
+      CsrName.DMW1  ->csr_dmw1.asUInt
     ))
   }
 

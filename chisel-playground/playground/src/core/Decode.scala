@@ -60,6 +60,7 @@ object CSROp {
   def nop = "b000".U
   def rd = "b001".U
   def wr = "b010".U
+  def xchg = "b011".U
 }
 
 object FuOpType {

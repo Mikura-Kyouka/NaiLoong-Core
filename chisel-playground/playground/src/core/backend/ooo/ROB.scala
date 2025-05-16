@@ -281,7 +281,7 @@ class Rob extends Module {
     io.commitInstr(i).bits := entry.instr
 
     // for csr
-    val csr_wen = entry.csrOp === CSROp.rd || entry.csrOp === CSROp.wr
+    val csr_wen = entry.csrOp === CSROp.rd || entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg
     io.commitCSR(i).valid := shouldCommit && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
