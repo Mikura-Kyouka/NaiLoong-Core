@@ -32,6 +32,9 @@ class RobEntry extends Bundle {
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
   val inst_valid = Bool()
+  val csrOp     = UInt(3.W)
+  val csrNum    = UInt(14.W)
+  val csrNewData = UInt(32.W)
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -57,6 +60,7 @@ class RobWritebackInfo extends Bundle {
   val brMispredict = Bool()
   val brTarget     = UInt(32.W)
   val writeData    = UInt(32.W)
+  val csrNewData   = UInt(32.W)
 
   // for load/store difftest
   val paddr       = UInt(32.W)
@@ -103,6 +107,7 @@ class RobIO extends Bundle {
   val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
   // for load/store difftest
   val commitLS = Output(Vec(4, Valid(new LSCommitInfo))) // 提交的load/store信息
+  val commitCSR = Vec(4, Valid(new csr_write_bundle))
 
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
@@ -183,6 +188,7 @@ class Rob extends Module {
       robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
       robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
       robEntries(idx).result       := io.writeback(i).bits.writeData
+      robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
       // for load/store difftest
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
@@ -273,6 +279,12 @@ class Rob extends Module {
     // 提交指令信息
     io.commitInstr(i).valid := shouldCommit && entry.inst_valid
     io.commitInstr(i).bits := entry.instr
+
+    // for csr
+    val csr_wen = entry.csrOp === CSROp.rd || entry.csrOp === CSROp.wr
+    io.commitCSR(i).valid := shouldCommit && entry.inst_valid && csr_wen
+    io.commitCSR(i).bits.csr_num := entry.csrNum
+    io.commitCSR(i).bits.csr_data := entry.csrNewData
 
     // for load/store difftest
     io.commitLS(i).valid := shouldCommit && entry.inst_valid

@@ -167,6 +167,7 @@ class FuOut extends Bundle {
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
   val redirect = Output(new RedirectIO)
+  val csrNewData = Output(UInt(32.W))
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
@@ -177,9 +178,14 @@ class AligendALU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
+    val csrRead = Flipped(new csr_read_bundle)
   })
   
   dontTouch(io.in.bits)
+  io.csrRead.csr_num := io.in.bits.ctrl.csrNum
+  val dest_is_csr = io.in.bits.ctrl.csrOp === CSROp.rd ||
+                    io.in.bits.ctrl.csrOp === CSROp.wr
+
   val alu = Module(new ALU)
   alu.io := DontCare
   alu.io.in.bits.src1 := io.in.bits.src1
@@ -188,9 +194,10 @@ class AligendALU extends Module{
   alu.io.offset       := io.in.bits.imm
   alu.io.pc           := io.in.bits.pc
   io.out.bits.pc      := io.in.bits.pc
-  io.out.bits.data    := alu.io.out.bits
+  io.out.bits.data    := Mux(dest_is_csr, io.csrRead.csr_data, alu.io.out.bits)
   io.out.bits.robIdx  := io.in.bits.robIdx
   io.out.bits.redirect := alu.io.redirect
+  io.out.bits.csrNewData := io.in.bits.src2
   
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready

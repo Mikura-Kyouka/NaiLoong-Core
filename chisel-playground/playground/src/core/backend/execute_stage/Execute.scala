@@ -12,6 +12,8 @@ class Execute extends Module {
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
     val robCommit = Input(new RobCommit)
+
+    val csrRead = Flipped(Vec(2, new csr_read_bundle))
   })
 
   val alu1 = Module(new AligendALU)
@@ -38,4 +40,7 @@ class Execute extends Module {
   io.out(2) <> mdu.io.out
   io.out(3) <> lsu.io.out
   io.out(4) <> bru.io.out
+  io.csrRead(0) <> alu1.io.csrRead
+  io.csrRead(1) <> alu2.io.csrRead 
+  bru.io.csrRead := DontCare
 }

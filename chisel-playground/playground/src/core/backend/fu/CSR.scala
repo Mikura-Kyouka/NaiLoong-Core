@@ -55,26 +55,30 @@ class CSR extends Module {
     // val (valid, src1, src2, func) = (io.in.valid, io.in.bits.src1, io.in.bits.src2, io.in.bits.func)
 
   val io = IO(new Bundle {
-    val read = new csr_read_bundle
-    val write = Valid(new csr_write_bundle)
+    val read = Vec(2, new csr_read_bundle)
+    val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
   val csr_eentry = RegInit(0.U.asTypeOf(new csr_eentry_bundle))
 
   // read
-  io.read.csr_data := LookupTree(io.read.csr_num, Seq(
-    CsrName.CRMD -> csr_crmd,
-    CsrName.EENTRY -> csr_eentry
-  ))
+  for(i <- 0 until 2) {
+    io.read(i).csr_data := LookupTree(io.read(i).csr_num, Seq(
+      CsrName.CRMD -> csr_crmd.asUInt,
+      CsrName.EENTRY -> csr_eentry.asUInt
+    ))
+  }
 
   // write
-  when(io.write.valid) {
-    switch(io.write.bits.csr_num) {
-      is(CsrName.CRMD) {
-        csr_crmd := io.write.bits.csr_data.asTypeOf(new csr_crmd_bundle)
-      }
-      is(CsrName.EENTRY) {
-        csr_eentry := io.write.bits.csr_data.asTypeOf(new csr_eentry_bundle)
+  for(i <- 0 until 4) {
+    when(io.write(i).valid) {
+      switch(io.write(i).bits.csr_num) {
+        is(CsrName.CRMD) {
+          csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
+        }
+        is(CsrName.EENTRY) {
+          csr_eentry := io.write(i).bits.csr_data.asTypeOf( new csr_eentry_bundle)
+        }
       }
     }
   }

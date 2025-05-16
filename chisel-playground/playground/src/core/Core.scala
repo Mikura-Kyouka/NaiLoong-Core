@@ -81,6 +81,8 @@ class Core extends Module {
 
   val arb = Module(new Arb)
 
+  val csr = Module(new CSR)
+
   PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
@@ -283,6 +285,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
     rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid && Ex.io.in(i).bits.valid
     rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
+    rob.io.writeback(i).bits.csrNewData := Ex.io.out(i).bits.csrNewData
     // for load/store difftest
     rob.io.writeback(i).bits.paddr := Ex.io.out(i).bits.paddr
     rob.io.writeback(i).bits.wdata := Ex.io.out(i).bits.wdata
@@ -305,6 +308,11 @@ class Core extends Module {
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
+
+  // rob <=> csr
+  csr.io.write <> rob.io.commitCSR
+  // ex <=> csr
+  csr.io.read <> Ex.io.csrRead
 
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)

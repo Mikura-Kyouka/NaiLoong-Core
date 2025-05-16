@@ -149,4 +149,5 @@ class PipelineConnectIO extends Bundle {
   // ROB
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
 
+  val csrNewData = Output(UInt(32.W))
 }

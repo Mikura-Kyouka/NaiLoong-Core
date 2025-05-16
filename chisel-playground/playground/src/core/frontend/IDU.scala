@@ -247,6 +247,7 @@ class IDU extends Module {
         io.out.bits(i).preg := DontCare
         io.out.bits(i).old_preg := DontCare
         io.out.bits(i).robIdx := DontCare
+        io.out.bits(i).csrNewData := DontCare
     }
     
 }

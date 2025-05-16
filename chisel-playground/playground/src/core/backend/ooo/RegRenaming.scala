@@ -69,6 +69,7 @@ class Rename extends Module {
     io.out.bits(i).imm := io.in.bits(i).imm
     io.out.bits(i).ctrl := io.in.bits(i).ctrl
     io.out.bits(i).valid := io.in.bits(i).valid
+    io.out.bits(i).csrNewData := io.in.bits(i).csrNewData
   }
 }
 
@@ -269,6 +270,8 @@ class RegRenaming extends Module {
     entry.checkpoint.id := input.checkpoint.id
     entry.fuType := input.ctrl.fuType
     entry.inst_valid := input.inst_valid
+    entry.csrOp := input.ctrl.csrOp
+    entry.csrNum := input.ctrl.csrNum
     
     // 这些字段在后面的指令执行阶段设置
     entry.finished := DontCare
@@ -278,6 +281,7 @@ class RegRenaming extends Module {
     entry.brMispredict := DontCare
     entry.brTarget := DontCare
     entry.result := DontCare
+    entry.csrNewData := DontCare
   }
 
   // 连接到ROB分配接口
