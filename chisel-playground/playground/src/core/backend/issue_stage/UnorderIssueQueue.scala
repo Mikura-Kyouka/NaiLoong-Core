@@ -30,7 +30,8 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   dontTouch(next_valid_vec)
 
   // 判断是否可以接受
-  val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
+  // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
+  val can_accept = valid_count === 0.U || valid_count < 7.U
   io.in.ready := can_accept
 
   // 计算下一拍的valid_count
