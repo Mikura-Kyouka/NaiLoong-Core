@@ -124,10 +124,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
     val hit = hitVec.orR
-    val dirtyHitVec = VecInit(
-      metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
-    ).asUInt
-    val dirty = dirtyHitVec.orR
+
+    // val dirtyHitVec = VecInit(
+    //   metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
+    // ).asUInt
+    // val dirty = dirtyHitVec.orR
+    val dirty = metaArray(addr.index)(0).dirty
+
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
     // !hit -> find one line -> dirty? --yes--> write this dirty cacheline to mem -> read from mem to cache -> read/write cache
@@ -135,21 +138,20 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: s_end :: Nil = Enum(9)
+    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(8)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.valid, Mux(isMMIO, s_write_mem1, s_judge), s_idle),
+        s_idle -> Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), s_idle),
         s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
         s_write_mem1 -> Mux(io.axi.wready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.bvalid, s_end, s_write_mem2),
+        s_write_mem2 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_idle), s_write_mem2),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, Mux(req.cmd, s_write_cache, s_read_cache), s_read_mem2), //FIXME
+        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
-        s_read_cache -> s_idle,
-        s_end -> s_idle
+        s_read_cache -> s_idle
     ))
     io.req.ready := state === s_idle
-    io.resp.valid := state === s_end
+    io.resp.valid := (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
