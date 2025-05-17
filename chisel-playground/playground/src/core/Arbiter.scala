@@ -49,7 +49,7 @@ class Arb extends Module {
 
   switch(state) {
     is(s_idle) {
-      when(io.lsu.awvalid && io.lsu.wvalid) {
+      when(io.lsu.awvalid) {
         state := s_lsu_write
       }.elsewhen(io.lsu.arvalid) {
         state := s_lsu_read
