@@ -62,8 +62,8 @@ object Inst {
     def ori             = BitPat("b0000001110_????????????_?????_?????")     // n25_ori 
     def xori            = BitPat("b0000001111_????????????_?????_?????")     // n26_xori 
     
-    def syscall         = BitPat("b00000000001010100_?????_?????_?????")     // n47_syscall_ex 
-    def break           = BitPat("b00000000001010110_?????_?????_?????")     // n48_brk_ex 
+    def syscall         = BitPat("b00000000001010110_?????_?????_?????")     // n47_syscall_ex 
+    def break           = BitPat("b00000000001010100_?????_?????_?????")     // n48_brk_ex 
     def csrrd           = BitPat("b00000100_??????????????_00000_?????")
     def csrwr           = BitPat("b00000100_??????????????_00001_?????")
     def csrxchg         = BitPat("b00000100_??????????????_?????_?????")     // n49_ti_ex 
@@ -139,7 +139,7 @@ object Inst {
         andi            -> List(ImmType.ui12    , FuType.alu, ALUOpType.and,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop), 
         ori             -> List(ImmType.ui12    , FuType.alu, ALUOpType.or,    SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop), 
         xori            -> List(ImmType.ui12    , FuType.alu, ALUOpType.xor,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop), 
-        syscall         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop), 
+        syscall         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.syscall), 
         break           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop), 
         csrrd           -> List(ImmType.nop     , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.rd), 
         csrwr           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y, CSROp.wr), 

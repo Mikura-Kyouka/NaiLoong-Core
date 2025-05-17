@@ -168,6 +168,7 @@ class FuOut extends Bundle {
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
+  val exceptionVec = UInt(16.W)
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
@@ -205,6 +206,7 @@ class AligendALU extends Module{
   io.in.ready := alu.io.in.ready
   io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
+  io.out.bits.exceptionVec := io.in.bits.exceptionVec.asUInt
 
   // for difftest
   io.out.bits.paddr := DontCare

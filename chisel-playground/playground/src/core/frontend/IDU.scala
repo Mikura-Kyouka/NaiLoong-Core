@@ -94,6 +94,7 @@ class Decoder extends Module {
     io.out.bits.cf.runahead_checkpoint_id := seed
 
     //excp_ine 
+    io.out.bits.cf.exceptionVec(5) := csrOp === CSROp.syscall
 }
 
 class IDU extends Module {

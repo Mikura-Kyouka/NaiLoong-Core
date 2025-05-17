@@ -88,4 +88,5 @@ class AlignedMDU extends Module{
   io.out.bits.wdata := DontCare
   io.out.bits.optype := DontCare
   io.out.bits.csrNewData := DontCare
+  io.out.bits.exceptionVec := DontCare
 } 

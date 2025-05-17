@@ -117,3 +117,9 @@ class csr_write_bundle extends Bundle {
   val csr_num = Input(UInt(14.W)) // csr寄存器的id
   val csr_data = Input(UInt(32.W)) // csr寄存器的值  
 }
+
+class csr_excp_bundle extends Bundle {
+  val valid = Input(Bool()) // 异常是否有效
+  val pc = Input(UInt(32.W)) // 异常发生时的pc
+  val new_pc = Output(UInt(32.W)) // 异常处理完成后返回的pc
+}

@@ -116,6 +116,8 @@ class RobIO extends Bundle {
   val exception = Output(Bool())                           // 异常信号
   val exceptionPC = Output(UInt(32.W))                     // 异常PC
   val exceptionInfo = Output(UInt(16.W))                   // 异常信息
+
+  val excp = Flipped(new csr_excp_bundle)
   
   // 调试接口
   // val debug = Output(new Bundle {
@@ -183,7 +185,8 @@ class Rob extends Module {
     when (io.writeback(i).valid) {
       val idx = io.writeback(i).bits.robIdx
       robEntries(idx).finished     := true.B
-      robEntries(idx).exception    := io.writeback(i).bits.exception
+      // robEntries(idx).exception    := io.writeback(i).bits.exception
+      robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
       robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
       robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
@@ -241,6 +244,10 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
+
+  // excp
+  io.excp.valid := exception
+  io.excp.pc := robEntries(head + exceptionIdx).pc
 
   // 提交逻辑
   // 生成提交信息

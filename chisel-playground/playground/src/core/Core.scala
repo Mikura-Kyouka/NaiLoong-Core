@@ -236,8 +236,8 @@ class Core extends Module {
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
-  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid
-  If.io.dnpc := rob.io.brMisPredInfo.brMisPredTarget
+  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.excp.valid
+  If.io.dnpc := Mux(rob.io.excp.valid, rob.io.excp.new_pc, rob.io.brMisPredInfo.brMisPredTarget)
   If.io.pcSel := rob.io.brMisPredInfo.brMisPred.valid
   
   dontTouch(Rn.io.robAllocate)
@@ -266,7 +266,7 @@ class Core extends Module {
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
   }
 
-  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid
+  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.excp.valid
   
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
@@ -286,6 +286,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid && Ex.io.in(i).bits.valid
     rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
     rob.io.writeback(i).bits.csrNewData := Ex.io.out(i).bits.csrNewData
+    rob.io.writeback(i).bits.exceptionVec := Ex.io.out(i).bits.exceptionVec
     // for load/store difftest
     rob.io.writeback(i).bits.paddr := Ex.io.out(i).bits.paddr
     rob.io.writeback(i).bits.wdata := Ex.io.out(i).bits.wdata
@@ -311,6 +312,7 @@ class Core extends Module {
 
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
+  csr.io.excp <> rob.io.excp
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
 
