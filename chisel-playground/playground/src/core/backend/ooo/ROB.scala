@@ -113,11 +113,11 @@ class RobIO extends Bundle {
   val brMisPredInfo = Output(new BrMisPredInfo)
 
   // 异常接口
-  val exception = Output(Bool())                           // 异常信号
-  val exceptionPC = Output(UInt(32.W))                     // 异常PC
-  val exceptionInfo = Output(UInt(16.W))                   // 异常信息
+  // val exception = Output(Bool())                           // 异常信号
+  // val exceptionPC = Output(UInt(32.W))                     // 异常PC
+  // val exceptionInfo = Output(UInt(16.W))                   // 异常信息
 
-  val excp = Flipped(new csr_excp_bundle)
+  val exceptionInfo = Flipped(new csr_excp_bundle)
   
   // 调试接口
   // val debug = Output(new Bundle {
@@ -211,10 +211,10 @@ class Rob extends Module {
     if (i == 0) {
       val preHasCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      preHasCommit && !io.exception
+                      preHasCommit && !io.exceptionInfo.valid
     } else {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      canCommit(i-1) && !io.exception
+                      canCommit(i-1) && !io.exceptionInfo.valid
     }
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).exception
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
@@ -236,18 +236,17 @@ class Rob extends Module {
   val brMisPred = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
 
-  io.exception := exception
-  io.exceptionPC := robEntries(head + exceptionIdx).pc
-  io.exceptionInfo := robEntries(head + exceptionIdx).exceptionVec
+  // io.exception := exception
+  // io.exceptionPC := robEntries(head + exceptionIdx).pc
+  // io.exceptionInfo := robEntries(head + exceptionIdx).exceptionVec
+  io.exceptionInfo.valid := exception
+  io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
+  io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
   io.brMisPredInfo.brMisPred.valid := brMisPred
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
-
-  // excp
-  io.excp.valid := exception
-  io.excp.pc := robEntries(head + exceptionIdx).pc
 
   // 提交逻辑
   // 生成提交信息

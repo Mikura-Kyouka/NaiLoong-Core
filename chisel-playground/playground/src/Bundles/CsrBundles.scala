@@ -119,7 +119,8 @@ class csr_write_bundle extends Bundle {
 }
 
 class csr_excp_bundle extends Bundle {
-  val valid = Input(Bool()) // 异常是否有效
-  val pc = Input(UInt(32.W)) // 异常发生时的pc
-  val new_pc = Output(UInt(32.W)) // 异常处理完成后返回的pc
+  val valid = Input(Bool()) // 异常有效
+  val exceptionPC = Input(UInt(32.W)) // 异常发生时的pc
+  val exceptionVec = Input(UInt(16.W)) // 异常向量
+  val exceptionNewPC = Output(UInt(32.W)) // 异常处理完成后返回的pc
 }

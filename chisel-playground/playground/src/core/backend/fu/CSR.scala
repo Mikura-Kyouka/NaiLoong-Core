@@ -57,7 +57,7 @@ class CSR extends Module {
   val io = IO(new Bundle {
     val read = Vec(2, new csr_read_bundle)
     val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
-    val excp = new csr_excp_bundle
+    val exceptionInfo = new csr_excp_bundle
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
   val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
@@ -198,13 +198,13 @@ class CSR extends Module {
   }
 
   // 异常处理
-  when(io.excp.valid) {
+  when(io.exceptionInfo.valid) {
     csr_prmd.pplv := csr_crmd.plv
     csr_prmd.pie := csr_crmd.ie
     csr_crmd.plv := 0.U
     csr_crmd.ie := 0.U
 
-    csr_era := io.excp.pc
+    csr_era := io.exceptionInfo.exceptionPC
   }
-  io.excp.new_pc := csr_eentry.asUInt
+  io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
 }

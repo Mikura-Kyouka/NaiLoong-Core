@@ -236,8 +236,8 @@ class Core extends Module {
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
-  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.excp.valid
-  If.io.dnpc := Mux(rob.io.excp.valid, rob.io.excp.new_pc, rob.io.brMisPredInfo.brMisPredTarget)
+  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
+  If.io.dnpc := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
   If.io.pcSel := rob.io.brMisPredInfo.brMisPred.valid
   
   dontTouch(Rn.io.robAllocate)
@@ -266,7 +266,7 @@ class Core extends Module {
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
   }
 
-  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.excp.valid
+  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
   
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
@@ -312,7 +312,7 @@ class Core extends Module {
 
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
-  csr.io.excp <> rob.io.excp
+  csr.io.exceptionInfo <> rob.io.exceptionInfo
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
 
