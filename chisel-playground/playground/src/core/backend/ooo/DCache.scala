@@ -129,7 +129,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
     // ).asUInt
     // val dirty = dirtyHitVec.orR
-    val dirty = metaArray(addr.index)(0).dirty
+    val dirty = metaArray(addr.index)(0).dirty.asBool
 
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
@@ -144,7 +144,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_idle -> Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), s_idle),
         s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
         s_write_mem1 -> Mux(io.axi.wready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_idle), s_write_mem2),
+        s_write_mem2 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem2),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
