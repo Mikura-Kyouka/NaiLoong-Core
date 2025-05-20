@@ -11,3 +11,10 @@ class BhtEntry extends Bundle {
 class BtbEntry extends Bundle {
   val target = UInt(32.W)
 }
+
+class BranchTrainInfo extends Bundle {
+  val pc = UInt(32.W)
+  val target = UInt(32.W)
+  val taken = Bool()
+  val valid = Bool()
+}
