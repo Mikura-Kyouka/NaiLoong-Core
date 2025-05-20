@@ -95,22 +95,22 @@ class Decoder extends Module {
 
     //excp_ine 
     /*
-    excp_num[0]  int
-            [1]  adef
-            [2]  tlbr    |inst tlb exceptions
-            [3]  pif     |
-            [4]  ppi     |
-            [5]  syscall
-            [6]  brk
-            [7]  ine
-            [8]  ipe
-            [9]  ale
-            [10] <null>
-            [11] tlbr    |
-            [12] pme     |data tlb exceptions
-            [13] ppi     |
-            [14] pis     |
-            [15] pil     |
+    exceptionVec[0]  int
+                [1]  adef
+                [2]  tlbr    |inst tlb exceptions
+                [3]  pif     |
+                [4]  ppi     |
+                [5]  syscall
+                [6]  brk
+                [7]  ine
+                [8]  ipe
+                [9]  ale
+                [10] <null>
+                [11] tlbr    |
+                [12] pme     |data tlb exceptions
+                [13] ppi     |
+                [14] pis     |
+                [15] pil     |
     */
     io.out.bits.cf.exceptionVec(5) := csrOp === CSROp.syscall
 }
