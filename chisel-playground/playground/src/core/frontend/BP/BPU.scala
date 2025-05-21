@@ -91,11 +91,12 @@ class BTBValid extends Module {
     val rdata3 = Output(Bool())
 
     val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
+    val wdata = Input(Bool())
     val wen = Input(Bool())
   })
   val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, Bool())
   when (io.wen) {
-    mem.write(io.waddr, true.B)
+    mem.write(io.waddr, io.wdata)
   }
   io.rdata0 := mem.read(io.raddr0, true.B)
   io.rdata1 := mem.read(io.raddr1, true.B)
@@ -112,9 +113,8 @@ class BTBValid extends Module {
 │         ┌─────────┐  index    ┌────┴────┐              
 PC───────>│   BHT   ├──────────>│   PHT   │              
           └─────────┘           └─────────┘     
-BTB和BHT是SyncReadMem，PHT是Reg，两拍出结果   
+BTB和BHT是SyncReadMem，PHT是Reg，第二拍出结果   
 */      
-
 
 class BPU extends Module {
   val io = IO(new Bundle {
@@ -140,6 +140,7 @@ class BPU extends Module {
   for(i <- 0 until ISSUE_WIDTH) {
     bhtIdx(i) := io.pc(i)(INDEX_WIDTH + 1, 2)
   }
+  bhtIdx(0) := Mux(io.train.valid, io.train.pc(INDEX_WIDTH + 1, 2), io.pc(0)(INDEX_WIDTH + 1, 2))  // FIXME: shoud not like this
   val phtIdx = Wire(Vec(ISSUE_WIDTH, UInt(HISTORY_WIDTH.W)))
   bht.io.raddr0 := bhtIdx(0)
   bht.io.raddr1 := bhtIdx(1)
@@ -150,7 +151,7 @@ class BPU extends Module {
   phtIdx(2) := bht.io.rdata2
   phtIdx(3) := bht.io.rdata3
 
-  // get btb data // 1st clock
+  // get btb tag/valid/data // 1st clock
   val btbIdx = Wire(Vec(ISSUE_WIDTH, UInt(BTB_INDEX_WIDTH.W)))
   for(i <- 0 until ISSUE_WIDTH) {
     btbIdx(i) := io.pc(i)(BTB_INDEX_WIDTH + 1, 2)
@@ -196,5 +197,40 @@ class BPU extends Module {
     btbHit(i) := btbValid(i) && (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2))
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
     io.target(i) := btbData(i)
+  }
+
+  // train
+  // 2nd clock: train btb、bht and pht
+
+  val trainValid    = RegNext(io.train.valid)
+  val trainPc       = RegNext(io.train.pc)
+  val trainTaken    = RegNext(io.train.taken)
+  val trainTarget   = RegNext(io.train.target)
+  val oldHistory = bht.io.rdata0 // attention! bht.io.rdata0 is valid after 2nd clock
+
+  btbdata.io.wen   := trainValid && trainTaken
+  btbdata.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
+  btbdata.io.wdata := trainTarget
+
+  btbtag.io.wen   := trainValid && trainTaken
+  btbtag.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
+  btbtag.io.wdata := trainPc(31, BTB_INDEX_WIDTH+2)
+
+  btbvalid.io.wen   := trainValid && trainTaken
+  btbvalid.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
+  btbvalid.io.wdata := trainTaken 
+
+  bht.io.wen   := trainValid
+  bht.io.waddr := trainPc(INDEX_WIDTH+1, 2)
+  bht.io.wdata := Cat(oldHistory(HISTORY_WIDTH-2,0), trainTaken)
+
+  when (trainValid) {
+    val idx = oldHistory
+    switch (pht(idx)) {
+      is(pff) { pht(idx) := Mux(trainTaken, pf, pff) }
+      is(pf)  { pht(idx) := Mux(trainTaken, pt, pff) }
+      is(pt)  { pht(idx) := Mux(trainTaken, ptt, pf) }
+      is(ptt) { pht(idx) := Mux(trainTaken, ptt, pt) }
+    }
   }
 }
