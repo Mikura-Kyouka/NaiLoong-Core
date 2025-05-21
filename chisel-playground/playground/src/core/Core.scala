@@ -83,6 +83,13 @@ class Core extends Module {
 
   val csr = Module(new CSR)
 
+  val bpu = Module(new BPU)
+  for(i <- 0 until 4) {
+    bpu.io.pc(i) := If.io.out.bits(i).pc
+  }
+  bpu.io.train := 0.U.asTypeOf(new BranchTrainInfo)
+  dontTouch(bpu.io)
+
   PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)

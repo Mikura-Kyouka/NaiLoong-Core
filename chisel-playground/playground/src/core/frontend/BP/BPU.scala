@@ -3,29 +3,104 @@ import chisel3._
 import chisel3.util._
 import core.BpuConfig._
 
-class BtbWay extends Module {
+class BHT extends Module {
   val io = IO(new Bundle {
-    val reqTag = Input(Vec(ISSUE_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W)))
-    val resp = Output(Vec(ISSUE_WIDTH, new BtbEntry))
-    val hit = Output(Vec(ISSUE_WIDTH, Bool()))
+    val raddr0 = Input(UInt(INDEX_WIDTH.W))
+    val rdata0 = Output(UInt(HISTORY_WIDTH.W))
+    val raddr1 = Input(UInt(INDEX_WIDTH.W))
+    val rdata1 = Output(UInt(HISTORY_WIDTH.W))
+    val raddr2 = Input(UInt(INDEX_WIDTH.W))
+    val rdata2 = Output(UInt(HISTORY_WIDTH.W))
+    val raddr3 = Input(UInt(INDEX_WIDTH.W))
+    val rdata3 = Output(UInt(HISTORY_WIDTH.W))
 
-    val train = Input(new BranchTrainInfo)
+    val waddr = Input(UInt(INDEX_WIDTH.W))
+    val wdata = Input(UInt(HISTORY_WIDTH.W))
+    val wen = Input(Bool())
   })
 
-  val data = RegInit(0.U.asTypeOf(new BtbEntry))
-  val tag = RegInit(0.U((32 - 2 - BTB_INDEX_WIDTH).W))
-  val valid = RegInit(false.B)
-
-  for(i <- 0 until ISSUE_WIDTH) {
-    io.resp(i) := data
-    io.hit(i) := tag === io.reqTag(i) && valid
+  val mem = SyncReadMem(1 << INDEX_WIDTH, UInt(HISTORY_WIDTH.W))
+  when (io.wen) {
+    mem.write(io.waddr, io.wdata)
   }
+  io.rdata0 := mem.read(io.raddr0, true.B)
+  io.rdata1 := mem.read(io.raddr1, true.B)
+  io.rdata2 := mem.read(io.raddr2, true.B)
+  io.rdata3 := mem.read(io.raddr3, true.B)
+}
 
-  when(io.train.valid) {
-    data.target := io.train.target
-    tag := io.train.pc(32 - 1, BTB_INDEX_WIDTH + 2)
-    valid := true.B
+class BTBData extends Module {
+  val io = IO(new Bundle {
+    val raddr0 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata0 = Output(UInt(32.W))
+    val raddr1 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata1 = Output(UInt(32.W))
+    val raddr2 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata2 = Output(UInt(32.W))
+    val raddr3 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata3 = Output(UInt(32.W))
+
+    val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
+    val wdata = Input(UInt(32.W))
+    val wen = Input(Bool())
+  })
+  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt(32.W))
+  when (io.wen) {
+    mem.write(io.waddr, io.wdata)
   }
+  io.rdata0 := mem.read(io.raddr0, true.B)
+  io.rdata1 := mem.read(io.raddr1, true.B)
+  io.rdata2 := mem.read(io.raddr2, true.B)
+  io.rdata3 := mem.read(io.raddr3, true.B)
+}
+
+class BTBTag extends Module {
+  val io = IO(new Bundle {
+    val raddr0 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata0 = Output(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+    val raddr1 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata1 = Output(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+    val raddr2 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata2 = Output(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+    val raddr3 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata3 = Output(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+
+    val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
+    val wdata = Input(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+    val wen = Input(Bool())
+  })
+  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+  when (io.wen) {
+    mem.write(io.waddr, io.wdata)
+  }
+  io.rdata0 := mem.read(io.raddr0, true.B)
+  io.rdata1 := mem.read(io.raddr1, true.B)
+  io.rdata2 := mem.read(io.raddr2, true.B)
+  io.rdata3 := mem.read(io.raddr3, true.B)
+}
+
+class BTBValid extends Module {
+  val io = IO(new Bundle {
+    val raddr0 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata0 = Output(Bool())
+    val raddr1 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata1 = Output(Bool())
+    val raddr2 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata2 = Output(Bool())
+    val raddr3 = Input(UInt(BTB_INDEX_WIDTH.W))
+    val rdata3 = Output(Bool())
+
+    val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
+    val wen = Input(Bool())
+  })
+  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, Bool())
+  when (io.wen) {
+    mem.write(io.waddr, true.B)
+  }
+  io.rdata0 := mem.read(io.raddr0, true.B)
+  io.rdata1 := mem.read(io.raddr1, true.B)
+  io.rdata2 := mem.read(io.raddr2, true.B)
+  io.rdata3 := mem.read(io.raddr3, true.B)
 }
 
 /*
@@ -36,15 +111,10 @@ class BtbWay extends Module {
 │                                    │                   
 │         ┌─────────┐  index    ┌────┴────┐              
 PC───────>│   BHT   ├──────────>│   PHT   │              
-          └─────────┘           └─────────┘        
+          └─────────┘           └─────────┘     
+BTB和BHT是SyncReadMem，PHT是Reg，两拍出结果   
 */      
 
-object PhrStatus {
-  val pff = "00b".U(2.W) // strongly not taken
-  val pf  = "01b".U(2.W) // weakly not taken
-  val pt  = "11b".U(2.W) // weakly taken
-  val ptt = "10b".U(2.W) // strongly taken
-}
 
 class BPU extends Module {
   val io = IO(new Bundle {
@@ -54,61 +124,77 @@ class BPU extends Module {
 
     val train = Input(new BranchTrainInfo)
   })
-  import PhrStatus._
+
+  //  00     01    10     11
+  val pff :: pf :: ptt :: pt :: Nil = Enum(4)
 
   // 三大表项
-  val bht = RegInit(VecInit(Seq.fill(1 << INDEX_WIDTH)(0.U.asTypeOf(new BhtEntry))))
+  val bht = Module(new BHT)
   val pht = RegInit(VecInit(Seq.fill(1 << HISTORY_WIDTH)(pf)))
-  val btb = VecInit.tabulate(1 << BTB_INDEX_WIDTH)(i => Module(new BtbWay).io)
+  val btbdata = Module(new BTBData)
+  val btbtag = Module(new BTBTag)
+  val btbvalid = Module(new BTBValid)
 
-  // predict
-  val phtIdx = Wire(Vec(ISSUE_WIDTH, UInt(INDEX_WIDTH.W)))
-  val isTaken = Wire(Vec(ISSUE_WIDTH, Bool()))
+  // get bht data(pht index) // 1st clock
+  val bhtIdx = Wire(Vec(ISSUE_WIDTH, UInt(INDEX_WIDTH.W)))
   for(i <- 0 until ISSUE_WIDTH) {
-    phtIdx(i) := io.pc(i)(INDEX_WIDTH + 1, 2)
+    bhtIdx(i) := io.pc(i)(INDEX_WIDTH + 1, 2)
   }
-  for(i <- 0 until ISSUE_WIDTH) {
-    isTaken(i) := pht(bht(phtIdx(i)).history)(1)
-  }
+  val phtIdx = Wire(Vec(ISSUE_WIDTH, UInt(HISTORY_WIDTH.W)))
+  bht.io.raddr0 := bhtIdx(0)
+  bht.io.raddr1 := bhtIdx(1)
+  bht.io.raddr2 := bhtIdx(2)
+  bht.io.raddr3 := bhtIdx(3)
+  phtIdx(0) := bht.io.rdata0
+  phtIdx(1) := bht.io.rdata1
+  phtIdx(2) := bht.io.rdata2
+  phtIdx(3) := bht.io.rdata3
 
+  // get btb data // 1st clock
   val btbIdx = Wire(Vec(ISSUE_WIDTH, UInt(BTB_INDEX_WIDTH.W)))
-  val btbResp = Wire(Vec(ISSUE_WIDTH, new BtbEntry))
-  val btbHit = Wire(Vec(ISSUE_WIDTH, Bool()))
   for(i <- 0 until ISSUE_WIDTH) {
     btbIdx(i) := io.pc(i)(BTB_INDEX_WIDTH + 1, 2)
   }
+  val btbTag = Wire(Vec(ISSUE_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W)))
+  val btbValid = Wire(Vec(ISSUE_WIDTH, Bool()))
+  val btbData = Wire(Vec(ISSUE_WIDTH, UInt(32.W)))
+  btbtag.io.raddr0 := btbIdx(0)
+  btbtag.io.raddr1 := btbIdx(1)
+  btbtag.io.raddr2 := btbIdx(2)
+  btbtag.io.raddr3 := btbIdx(3)
+  btbTag(0) := btbtag.io.rdata0
+  btbTag(1) := btbtag.io.rdata1
+  btbTag(2) := btbtag.io.rdata2
+  btbTag(3) := btbtag.io.rdata3
+  btbvalid.io.raddr0 := btbIdx(0)
+  btbvalid.io.raddr1 := btbIdx(1)
+  btbvalid.io.raddr2 := btbIdx(2)
+  btbvalid.io.raddr3 := btbIdx(3)
+  btbValid(0) := btbvalid.io.rdata0
+  btbValid(1) := btbvalid.io.rdata1
+  btbValid(2) := btbvalid.io.rdata2
+  btbValid(3) := btbvalid.io.rdata3
+  btbdata.io.raddr0 := btbIdx(0)
+  btbdata.io.raddr1 := btbIdx(1)
+  btbdata.io.raddr2 := btbIdx(2)
+  btbdata.io.raddr3 := btbIdx(3)
+  btbData(0) := btbdata.io.rdata0
+  btbData(1) := btbdata.io.rdata1
+  btbData(2) := btbdata.io.rdata2
+  btbData(3) := btbdata.io.rdata3
+
+  // get pht data // 2nd clock
+  val phtData = Wire(Vec(ISSUE_WIDTH, UInt(2.W)))
   for(i <- 0 until ISSUE_WIDTH) {
-    val set = btb(btbIdx(i))
-    set.reqTag(i) := io.pc(i)(32 - 1, BTB_INDEX_WIDTH + 2)
-    btbResp(i) := set.resp(i)
-    btbHit(i) := set.hit(i)
-  }
-  // 判断是否预测分支发生
-  for(i <- 0 until ISSUE_WIDTH) {
-    io.taken(i) := isTaken(i) && btbHit(i)
-    io.target(i) := btbResp(i).target
+    phtData(i) := pht(phtIdx(i))  // attention! phtData is valid after 2nd clock
   }
 
-  when(io.train.valid) {
-    val idx = io.train.pc(INDEX_WIDTH + 1, 2)
-    val bhtEntry = bht(idx)
-    val phtEntry = pht(bhtEntry.history)
-
-    switch(phtEntry) {
-      is(pff) {
-        pht(bhtEntry.history) := Mux(io.train.taken, pf, pff)
-      }
-      is(pf) {
-        pht(bhtEntry.history) := Mux(io.train.taken, pt, pff)
-      }
-      is(pt) {
-        pht(bhtEntry.history) := Mux(io.train.taken, ptt, pf)
-      }
-      is(ptt) {
-        pht(bhtEntry.history) := Mux(io.train.taken, ptt, pt)
-      }
-    }
-    bhtEntry.history := Cat(bhtEntry.history(HISTORY_WIDTH - 2, 0), io.train.taken)
+  // predict
+  val pcNext = RegNext(io.pc)
+  val btbHit = Wire(Vec(ISSUE_WIDTH, Bool()))
+  for(i <- 0 until ISSUE_WIDTH) {
+    btbHit(i) := btbValid(i) && (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2))
+    io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
+    io.target(i) := btbData(i)
   }
-  btb(io.train.pc(BTB_INDEX_WIDTH + 1, 2)).train := io.train
 }
