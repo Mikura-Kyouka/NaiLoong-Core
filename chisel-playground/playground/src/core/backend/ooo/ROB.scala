@@ -75,6 +75,9 @@ class rtrBundle extends Bundle {
   val data = UInt(32.W)
   val inst_valid = Bool()
   val use_preg = Bool()
+
+  // for bpu
+  val isBranch = Bool()
 }
 
 class BrMisPredInfo extends Bundle {
@@ -277,6 +280,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.data := entry.result
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
     io.commit.commit(i).bits.use_preg := entry.use_preg
+    io.commit.commit(i).bits.isBranch := entry.isBranch
     
     // 提交PC信息
     io.commitPC(i).valid := shouldCommit && entry.inst_valid

@@ -87,7 +87,10 @@ class Core extends Module {
   for(i <- 0 until 4) {
     bpu.io.pc(i) := If.io.out.bits(i).pc
   }
-  bpu.io.train := 0.U.asTypeOf(new BranchTrainInfo)
+  bpu.io.train.pc := rob.io.commit.commit(0).bits.pc
+  bpu.io.train.target := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
+  bpu.io.train.taken := rob.io.brMisPredInfo.brMisPred.valid
+  bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
   dontTouch(bpu.io)
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
