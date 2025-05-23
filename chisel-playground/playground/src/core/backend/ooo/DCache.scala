@@ -92,20 +92,46 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val axi = new AXI
     })
     val req = io.req.bits
-    val resp = io.resp.bits
+    val resp = Wire(new respBundle)
+    resp := DontCare
     val addr = req.addr.asTypeOf(addrBundle)
 
     val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
     val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
     
+    when(reset.asBool){
+      for (i <- 0 until Sets) {
+        for (j <- 0 until Ways) {
+          metaArray(i)(j).valid := false.B
+          metaArray(i)(j).dirty := false.B
+          metaArray(i)(j).tag := 0.U
+        }
+      }
+    }
+    when(reset.asBool){
+      for (i <- 0 until Sets) {
+        for (j <- 0 until Ways) {
+          dataArray(i)(j) := VecInit(Seq.fill(LineBeats)(0.U(32.W)))
+        }
+      }
+    }
+
+    val isMMIO = req.addr(31, 16) === "hbfaf".U
+    // when(isMMIO){
+    //   printf("MMIO: %x, %x\n", req.addr, req.wdata)
+    // }
+
     val hitVec = VecInit(
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
     val hit = hitVec.orR
-    val dirtyHitVec = VecInit(
-      metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
-    ).asUInt
-    val dirty = dirtyHitVec.orR
+
+    // val dirtyHitVec = VecInit(
+    //   metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
+    // ).asUInt
+    // val dirty = dirtyHitVec.orR
+    val dirty = metaArray(addr.index)(0).dirty.asBool
+
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
     // !hit -> find one line -> dirty? --yes--> write this dirty cacheline to mem -> read from mem to cache -> read/write cache
@@ -113,20 +139,21 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(8)
+    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.valid, s_judge, s_idle),
+        s_idle -> Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), s_idle),
         s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
-        s_write_mem1 -> Mux(io.axi.awready && io.axi.wready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.bvalid, s_idle, s_write_mem2),
+        s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
+        s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
+        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, Mux(req.cmd, s_write_cache, s_read_cache), s_read_mem2), //FIXME
+        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
     io.req.ready := state === s_idle
-    io.resp.valid := false.B
+    io.resp.valid := (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
@@ -136,9 +163,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.araddr := req.addr
     io.axi.rready := true.B
     // axi write chanel
+    io.axi.awaddr := req.addr
     io.axi.awvalid := state === s_write_mem1
-    io.axi.wvalid := state === s_write_mem1
-    io.axi.wdata := cacheData
+    io.axi.wvalid := state === s_write_mem2
+    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := true.B
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
@@ -197,11 +225,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := cacheData >> offset
+      resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
       io.resp.valid := true.B
     }
 
-    when(io.req.valid){
-      printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
-    }
+    io.resp.bits := resp
+
+    // when(io.req.valid){
+    //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
+    // }
 }

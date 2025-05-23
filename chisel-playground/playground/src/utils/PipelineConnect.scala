@@ -13,7 +13,10 @@ object PipelineConnect {
     val s_idle :: s_in  :: Nil = Enum(2)
     val state = RegInit(s_idle)
 
-    val reg = RegEnable(left.bits, left.valid && right.ready)
+    val reg = RegInit(0.U.asTypeOf(left.bits))
+    when(left.valid && right.ready) {
+      reg := left.bits
+    }
     state := MuxLookup(state, s_idle)(Seq(
       s_idle -> Mux(left.valid && right.ready, s_in, s_idle),
       s_in -> Mux(rightOutFire, Mux(left.valid && right.ready, s_in, s_idle), s_in)

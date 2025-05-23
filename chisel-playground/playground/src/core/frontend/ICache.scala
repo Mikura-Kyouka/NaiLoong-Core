@@ -77,7 +77,11 @@ object ICachePipelineConnect {
     val s_idle :: s_in  :: Nil = Enum(2)
     val state = RegInit(s_idle)
 
-    val reg = RegEnable(left.bits, left.valid && right.ready)
+    val reg = RegInit(0.U.asTypeOf(left.bits))
+    when(left.valid && right.ready) {
+      reg := left.bits
+    }
+    
     state := MuxLookup(state, s_idle)(Seq(
       s_idle -> Mux(left.valid && right.ready, s_in, s_idle),
       s_in -> Mux(rightOutFire, Mux(left.valid && right.ready, s_in, s_idle), s_in)
@@ -255,6 +259,13 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   val addr = io.in.addr.asTypeOf(addrBundle)
   val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
+  when(reset.asBool) {
+    for (i <- 0 until Sets)
+      for (j <- 0 until Ways) {
+        metaArray(i)(j).valid := false.B
+        metaArray(i)(j).tag := 0.U
+      }
+  }
   val index = addr.index 
   val tag = addr.tag 
   
@@ -284,6 +295,13 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   })
   io.axi := DontCare
   val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
+  when(reset.asBool) {
+    for (i <- 0 until Sets)
+      for (j <- 0 until Ways)
+        for (k <- 0 until LineBeats) {
+          dataArray(i)(j)(k) := 0.U
+        }
+  }
 
   val addr = io.in.bits.addr
   val wordIndex = io.in.bits.wordIndex

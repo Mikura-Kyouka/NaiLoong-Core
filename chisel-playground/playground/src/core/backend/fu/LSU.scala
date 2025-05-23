@@ -179,7 +179,7 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
   
-  lsu.io.in.valid := io.in.valid
+  lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid
   lsu.io.out.ready := io.out.ready

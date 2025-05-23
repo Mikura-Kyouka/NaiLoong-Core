@@ -1,6 +1,28 @@
 package core
+
 import chisel3._
 import chisel3.util._
+import chisel3.experimental._
+
+class UnsignedDividerBlackBox extends BlackBox {
+  override val desiredName = "UnsignedDivider"
+  val io = IO(new Bundle {
+    val aclk = Input(Clock())
+    val aresetn = Input(Reset())
+
+    val s_axis_divisor_tdata  = Input(UInt(32.W))
+    val s_axis_divisor_tready = Output(Bool())
+    val s_axis_divisor_tvalid = Input(Bool())
+
+    val s_axis_dividend_tdata  = Input(UInt(32.W))
+    val s_axis_dividend_tready = Output(Bool())
+    val s_axis_dividend_tvalid = Input(Bool())
+
+    val m_axis_dout_tdata  = Output(UInt(64.W))
+    val m_axis_dout_tready = Input(Bool())
+    val m_axis_dout_tvalid = Output(Bool())
+  })
+}
 
 class UnsignedDivider extends Module {
   val io = IO(new Bundle {

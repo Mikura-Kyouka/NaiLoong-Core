@@ -13,7 +13,7 @@ chiplab:
 	rm -rf $(BUILD_DIR)
 	mkdir -p $(CHIPLAB_HOME)/IP/myCPU
 	mkdir -p $(BUILD_DIR)
-	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
+	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR) --use-diff=true --use-simu=true
 	find $(CHIPLAB_HOME)/IP/myCPU/ -type f ! -name 'core_top.v' -delete
 	cp ./playground/src/utils/DiffTest/DiffBridge.v $(CHIPLAB_HOME)/IP/myCPU/
 	cp ./playground/src/core/backend/issue_stage/FileLoggerBlackBox.v $(CHIPLAB_HOME)/IP/myCPU/
@@ -21,9 +21,9 @@ chiplab:
 	find $(BUILD_DIR) -name "*.sv" -exec sh -c 'cp "$$1" "$(CHIPLAB_HOME)/IP/myCPU/$$(basename $$1 .sv).v"' sh {} \;
 
 vivado:
-	-rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)
-	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR) --use-diff=false
+	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR) --use-diff=false --use-simu=false
 	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_FUNC_SRC)/ \;
 	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_PERF_SRC)/ \;
 

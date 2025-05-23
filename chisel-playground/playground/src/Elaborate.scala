@@ -10,13 +10,18 @@ object Elaborate extends App {
     opt[Boolean]("use-diff")
       .action((x, c) => c.copy(useDiff = x))
       .text("是否启用 DiffTest")
+    opt[Boolean]("use-simu")
+      .action((x, c) => c.copy(useSimu = x))
+      .text("是否使用仿真用 IP")
   }
   case class Config(
     targetDir: String = "build",
-    useDiff: Boolean = true
+    useDiff: Boolean = true,
+    useSimu: Boolean = true
   )
   val config = parser.parse(args, Config()).getOrElse(Config())
   GenCtrl.USE_DIFF = config.useDiff
+  GenCtrl.USE_SIMU = config.useSimu
   
   val firtoolOptions = Array(
     "--lowering-options=" + List(

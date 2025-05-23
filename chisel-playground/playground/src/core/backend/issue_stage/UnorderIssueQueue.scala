@@ -24,7 +24,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
 
   val mem = RegInit(VecInit(Seq.fill(QUEUE_SIZE)(0.U.asTypeOf(new PipelineConnectIO))))
   val valid_vec = RegInit(VecInit(Seq.fill(QUEUE_SIZE.toInt)(false.B)))
-  val valid_count= RegInit(0.U(log2Ceil(QUEUE_SIZE.toInt).W))
+  val valid_count= RegInit(0.U((log2Ceil(QUEUE_SIZE.toInt) + 1).W))
   val next_mem = WireInit(mem)
   val next_valid_vec = WireInit(valid_vec)
   dontTouch(next_valid_vec)
@@ -84,6 +84,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   // write
   when(io.in.fire) {
     val base = valid_count - deq_count
+    dontTouch(base)
     when(io.in.bits.inst_cnt === 1.U) {
       next_mem(base) := io.in.bits.inst_vec(0)
       next_valid_vec(base) := true.B
