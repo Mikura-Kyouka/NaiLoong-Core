@@ -24,3 +24,12 @@ class DiffStoreBundle extends Bundle {
   val vaddr = UInt(32.W)                         // 提交指令对应的store指令的虚拟地址
   val data = UInt(32.W)                          // 提交指令对应的store指令的数据
 }
+
+class DiffExcpBundle extends Bundle {
+  val excp_valid = Bool()
+  val eret = Bool()
+  val intrNo = UInt(11.W)
+  val cause = UInt(6.W)
+  val exceptionPC = UInt(32.W)
+  val exceptionInst = UInt(32.W)
+}

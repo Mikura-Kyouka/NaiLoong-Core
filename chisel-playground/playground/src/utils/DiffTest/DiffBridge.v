@@ -62,6 +62,13 @@ module DiffBridge(
   input        csr_rstat_3,
   input [31:0] csr_data_3,
 
+  input        excp_valid,
+  input        eret,
+  input [10:0] intrNo,
+  input [ 5:0] cause,
+  input [31:0] exceptionPC,
+  input [31:0] exceptionInst,
+
   input [ 7:0] storeIndex,
   input [ 7:0] storeValid,
   input [63:0] storePaddr,

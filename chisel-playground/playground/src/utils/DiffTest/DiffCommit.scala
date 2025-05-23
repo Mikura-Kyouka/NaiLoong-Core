@@ -8,6 +8,7 @@ class DiffCommit extends Module {
     val instr = Input(Vec(4, new DiffInstrBundle()))
 
     // DifftestExcpEvent
+    val excp = Input(new DiffExcpBundle())
 
     // DifftestTrapEvent
     // 空
@@ -91,6 +92,13 @@ class DiffCommit extends Module {
   DiffBridge.io.csr_rstat_3 := RegNext(io.instr(3).csr_rstat, 0.U)
   DiffBridge.io.csr_data_3 := RegNext(io.instr(3).csr_data, 0.U)
 
+  DiffBridge.io.excp_valid := RegNext(io.excp.excp_valid, 0.U)
+  DiffBridge.io.eret := RegNext(io.excp.eret, 0.U)
+  DiffBridge.io.intrNo := RegNext(io.excp.intrNo, 0.U)
+  DiffBridge.io.cause := RegNext(io.excp.cause, 0.U)
+  DiffBridge.io.exceptionPC := RegNext(io.excp.exceptionPC, 0.U)
+  DiffBridge.io.exceptionInst := RegNext(io.excp.exceptionInst, 0.U)
+
   DiffBridge.io.storeValid := RegNext(io.store.valid, 0.U)
   DiffBridge.io.storeIndex := 0.U
   DiffBridge.io.storePaddr := RegNext(io.store.paddr, 0.U)
@@ -164,6 +172,13 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val wdata_3 = Input(UInt(64.W))
     val csr_rstat_3 = Input(Bool())
     val csr_data_3 = Input(UInt(32.W))
+
+    val excp_valid = Input(Bool())
+    val eret = Input(Bool())
+    val intrNo = Input(UInt(11.W))
+    val cause = Input(UInt(6.W))
+    val exceptionPC = Input(UInt(32.W))
+    val exceptionInst =Input(UInt(32.W))
 
     //DifftestStoreEvent
     val storeIndex = Input(UInt(8.W))
