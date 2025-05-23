@@ -214,10 +214,10 @@ class Rob extends Module {
     if (i == 0) {
       val preHasCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      preHasCommit && !io.exceptionInfo.valid
+                      preHasCommit
     } else {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
-                      canCommit(i-1) && !io.exceptionInfo.valid
+                      canCommit(i-1)
     }
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).exception
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
@@ -264,10 +264,13 @@ class Rob extends Module {
     val entry = robEntries(commitIdx)
     
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
-    val shouldCommit = Mux (
-      exception || brMisPred,
-      i.U <= brMisPredIdx && canCommit(brMisPredIdx),
-      canCommit(i)
+    val shouldCommit =  Mux(exception, 
+                            i.U <= exceptionIdx && canCommit(exceptionIdx),
+                        Mux(
+                          brMisPred,
+                          i.U <= brMisPredIdx && canCommit(brMisPredIdx),
+                          canCommit(i)
+                        )
     )
     
     // 物理寄存器回收信息
@@ -320,6 +323,20 @@ class Rob extends Module {
   when (brMisPred) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& brMisPredIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    tail := rollbackTail
+    // 清除所有在tail之后的条目
+    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
+      val idx = i.U
+      when (isAfter(idx, rollbackTail, nextHead)) {
+        robEntries(idx).valid := false.B
+      }
+    }
+  }
+
+  // 出现异常时，需要将tail回滚到head+x的位置
+  when (exception) {
+    // 回滚ROB尾指针
+    val rollbackTail = (head +& exceptionIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
     // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
