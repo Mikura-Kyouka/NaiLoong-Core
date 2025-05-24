@@ -19,6 +19,7 @@ class DiffCommit extends Module {
     // DifftestLoadEvent
 
     // DifftestCSRRegState
+    val csr = Input(new DiffCSRBundle)
 
     val reg = Input(Vec(32, UInt(32.W)))
   })
@@ -106,6 +107,34 @@ class DiffCommit extends Module {
   DiffBridge.io.storeData := RegNext(io.store.data, 0.U)
 
   DiffBridge.io.REG := io.reg
+  
+  DiffBridge.io.CSR(0) := io.csr.csr_crmd
+  DiffBridge.io.CSR(1) := io.csr.csr_prmd
+  DiffBridge.io.CSR(2) := 0.U       // TODO
+  DiffBridge.io.CSR(3) := io.csr.csr_ecfg
+  DiffBridge.io.CSR(4) := io.csr.csr_estat
+  DiffBridge.io.CSR(5) := io.csr.csr_era
+  DiffBridge.io.CSR(6) := io.csr.csr_badv
+  DiffBridge.io.CSR(7) := io.csr.csr_eentry
+  DiffBridge.io.CSR(8) := io.csr.csr_tlbidx
+  DiffBridge.io.CSR(9) := io.csr.csr_tlbehi
+  DiffBridge.io.CSR(10) := io.csr.csr_tlbel0
+  DiffBridge.io.CSR(11) := io.csr.csr_tlbel1
+  DiffBridge.io.CSR(12) := io.csr.csr_asid
+  DiffBridge.io.CSR(13) := io.csr.csr_pgdl
+  DiffBridge.io.CSR(14) := io.csr.csr_pgdh
+  DiffBridge.io.CSR(15) := io.csr.csr_save0
+  DiffBridge.io.CSR(16) := io.csr.csr_save1
+  DiffBridge.io.CSR(17) := io.csr.csr_save2
+  DiffBridge.io.CSR(18) := io.csr.csr_save3
+  DiffBridge.io.CSR(19) := io.csr.csr_tid
+  DiffBridge.io.CSR(20) := io.csr.csr_tcfg
+  DiffBridge.io.CSR(21) := io.csr.csr_tval
+  DiffBridge.io.CSR(22) := io.csr.csr_ticlr
+  DiffBridge.io.CSR(23) := io.csr.csr_llbctl
+  DiffBridge.io.CSR(24) := io.csr.csr_tlbrentry
+  DiffBridge.io.CSR(25) := io.csr.csr_dmw0
+  DiffBridge.io.CSR(26) := io.csr.csr_dmw1
 }
 
 class DiffBridge extends BlackBox with HasBlackBoxPath {
@@ -188,5 +217,7 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val storeData = Input(UInt(64.W))
 
     val REG = Input(Vec(32, UInt(64.W)))
+
+    val CSR = Input(Vec(27, UInt(64.W)))
   })
 }

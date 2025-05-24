@@ -372,10 +372,18 @@ class Core extends Module {
       DiffCommit.io.instr(k).timer_64_value:= DontCare
       DiffCommit.io.instr(k).csr_rstat     := DontCare
       DiffCommit.io.instr(k).csr_data      := DontCare
+
+      DiffCommit.io.excp.excp_valid := rob.io.exceptionInfo.valid
+      DiffCommit.io.excp.eret := csr.io.exceptionInfo.eret
+      DiffCommit.io.excp.intrNo := csr.io.exceptionInfo.intrNo
+      DiffCommit.io.excp.cause := csr.io.exceptionInfo.cause
+      DiffCommit.io.excp.exceptionPC := rob.io.exceptionInfo.exceptionPC
+      DiffCommit.io.excp.exceptionInst := rob.io.exceptionInfo.exceptionInst
     }
 
     // 4) 其余接口
     DiffCommit.io.reg := Rn.io.arf
+    DiffCommit.io.csr := csr.io.difftest
     
     // val storeValid = LSUOpType.isStore(Ex.io.optype) && (Ex.io.pc === DiffCommit.io.instr(0).pc
     //                                                   || Ex.io.pc === DiffCommit.io.instr(1).pc

@@ -106,7 +106,36 @@ module DiffBridge(
   input [63:0] REG_28,
   input [63:0] REG_29,
   input [63:0] REG_30,
-  input [63:0] REG_31
+  input [63:0] REG_31,
+
+  input [63:0] CSR_0,
+  input [63:0] CSR_1,
+  input [63:0] CSR_2,
+  input [63:0] CSR_3,
+  input [63:0] CSR_4,
+  input [63:0] CSR_5,
+  input [63:0] CSR_6,
+  input [63:0] CSR_7,
+  input [63:0] CSR_8,
+  input [63:0] CSR_9,
+  input [63:0] CSR_10,
+  input [63:0] CSR_11,
+  input [63:0] CSR_12,
+  input [63:0] CSR_13,
+  input [63:0] CSR_14,
+  input [63:0] CSR_15,
+  input [63:0] CSR_16,
+  input [63:0] CSR_17,
+  input [63:0] CSR_18,
+  input [63:0] CSR_19,
+  input [63:0] CSR_20,
+  input [63:0] CSR_21,
+  input [63:0] CSR_22,
+  input [63:0] CSR_23,
+  input [63:0] CSR_24,
+  input [63:0] CSR_25,
+  input [63:0] CSR_26,
+  input [63:0] CSR_27
 );
 
 DifftestInstrCommit DifftestInstrCommit_0(
@@ -230,6 +259,38 @@ DifftestGRegState DifftestGRegState_0(
   .gpr_29             (REG_29         ),
   .gpr_30             (REG_30         ),
   .gpr_31             (REG_31         )
+);
+
+DifftestCSRRegState DifftestCSRRegState_0(
+  .clock              (clock          ),
+  .coreid             (coreid         ),
+  .crmd               (CSR_0          ),
+  .prmd               (CSR_1          ),
+  .euen               (CSR_2          ),
+  .ecfg               (CSR_3          ),
+  .estat              (CSR_4          ),
+  .era                (CSR_5          ),
+  .badv               (CSR_6          ),
+  .eentry             (CSR_7          ),
+  .tlbidx             (CSR_8          ),
+  .tlbehi             (CSR_9          ),
+  .tlbelo0            (CSR_10         ),
+  .tlbelo1            (CSR_11         ),
+  .asid               (CSR_12         ),
+  .pgdl               (CSR_13         ),
+  .pgdh               (CSR_14         ),
+  .save0              (CSR_15         ),
+  .save1              (CSR_16         ),
+  .save2              (CSR_17         ),
+  .save3              (CSR_18         ),
+  .tid                (CSR_19         ),
+  .tcfg               (CSR_20         ),
+  .tval               (CSR_21         ),
+  .ticlr              (CSR_22         ),
+  .llbctl             (CSR_23         ),
+  .tlbrentry          (CSR_24         ),
+  .dmw0               (CSR_25         ),
+  .dmw1               (CSR_26         )
 );
 
 endmodule

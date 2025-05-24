@@ -121,6 +121,10 @@ class csr_write_bundle extends Bundle {
 class csr_excp_bundle extends Bundle {
   val valid = Input(Bool()) // 异常有效
   val exceptionPC = Input(UInt(32.W)) // 异常发生时的pc
+  val exceptionInst = Input(UInt(32.W)) // 异常发生时的指令
+  val eret = Input(Bool()) // 当前指令为eret指令时，该位为1
+  val intrNo = Output(UInt(11.W)) // csr寄存器中csr_estat[12:2]
+  val cause = Output(UInt(6.W)) // estat.ecode
   val exceptionVec = Input(UInt(16.W)) // 异常向量
   val exceptionNewPC = Output(UInt(32.W)) // 异常处理完成后返回的pc
 }

@@ -244,6 +244,8 @@ class Rob extends Module {
   // io.exceptionInfo := robEntries(head + exceptionIdx).exceptionVec
   io.exceptionInfo.valid := exception
   io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
+  io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
+  io.exceptionInfo.eret := false.B
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
   io.brMisPredInfo.brMisPred.valid := brMisPred

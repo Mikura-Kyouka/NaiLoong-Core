@@ -46,6 +46,37 @@ object CsrName {
   val DMW1  =385.U(14.W)
 }
 
+class DiffCSRBundle extends Bundle {
+  val csr_crmd = UInt(32.W)
+  val csr_prmd = UInt(32.W)
+  val csr_ecfg = UInt(32.W)
+  val csr_estat = UInt(32.W)
+  val csr_era = UInt(32.W)
+  val csr_badv = UInt(32.W)
+  val csr_eentry = UInt(32.W)
+  val csr_tlbidx = UInt(32.W)
+  val csr_tlbehi = UInt(32.W)
+  val csr_tlbel0 = UInt(32.W)
+  val csr_tlbel1 = UInt(32.W)
+  val csr_asid = UInt(32.W)
+  val csr_pgdl = UInt(32.W)
+  val csr_pgdh = UInt(32.W)
+  val csr_pgd = UInt(32.W)
+  val csr_save0 = UInt(32.W)
+  val csr_save1 = UInt(32.W)
+  val csr_save2 = UInt(32.W)
+  val csr_save3 = UInt(32.W)
+  val csr_tid = UInt(32.W)
+  val csr_tcfg = UInt(32.W)
+  val csr_tval = UInt(32.W)
+  val csr_cntc = UInt(32.W)
+  val csr_ticlr = UInt(32.W)
+  val csr_llbctl = UInt(32.W)
+  val csr_tlbrentry = UInt(32.W)
+  val csr_dmw0 = UInt(32.W)
+  val csr_dmw1 = UInt(32.W)
+}
+
 class CSRIO extends FunctionUnitIO {
 
 }
@@ -58,6 +89,7 @@ class CSR extends Module {
     val read = Vec(2, new csr_read_bundle)
     val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
+    val difftest = Output(new DiffCSRBundle)
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
   val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
@@ -149,6 +181,35 @@ class CSR extends Module {
   dontTouch(debug_csr_dmw1)
   dontTouch(debug_timer64)
 
+  io.difftest.csr_crmd := csr_crmd.asUInt
+  io.difftest.csr_prmd := csr_prmd.asUInt
+  io.difftest.csr_ecfg := csr_ecfg.asUInt
+  io.difftest.csr_estat := csr_estat.asUInt
+  io.difftest.csr_era := csr_era
+  io.difftest.csr_badv := csr_badv.asUInt
+  io.difftest.csr_eentry := csr_eentry.asUInt
+  io.difftest.csr_tlbidx := csr_tlbidx.asUInt
+  io.difftest.csr_tlbehi := csr_tlbehi.asUInt
+  io.difftest.csr_tlbel0 := csr_tlbel0.asUInt
+  io.difftest.csr_tlbel1 := csr_tlbel1.asUInt
+  io.difftest.csr_asid := csr_asid.asUInt
+  io.difftest.csr_pgdl := csr_pgdl.asUInt
+  io.difftest.csr_pgdh := csr_pgdh.asUInt
+  io.difftest.csr_pgd := csr_pgd.asUInt
+  io.difftest.csr_save0 := csr_save0
+  io.difftest.csr_save1 := csr_save1
+  io.difftest.csr_save2 := csr_save2
+  io.difftest.csr_save3 := csr_save3
+  io.difftest.csr_tid := csr_tid
+  io.difftest.csr_tcfg := csr_tcfg.asUInt
+  io.difftest.csr_tval := csr_tval
+  io.difftest.csr_cntc := csr_cntc
+  io.difftest.csr_ticlr := csr_ticlr
+  io.difftest.csr_llbctl := csr_llbctl.asUInt
+  io.difftest.csr_tlbrentry := csr_tlbrentry.asUInt
+  io.difftest.csr_dmw0 := csr_dmw0.asUInt
+  io.difftest.csr_dmw1 := csr_dmw1.asUInt
+
   // read
   for(i <- 0 until 2) {
     io.read(i).csr_data := LookupTree(io.read(i).csr_num, Seq(
@@ -207,4 +268,6 @@ class CSR extends Module {
     csr_era := io.exceptionInfo.exceptionPC
   }
   io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
+  io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
+  io.exceptionInfo.cause := csr_estat.ecode
 }
