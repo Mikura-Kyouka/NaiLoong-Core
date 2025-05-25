@@ -19,6 +19,7 @@ class Rename extends Module {
     val out = Decoupled(Vec(4, new PipelineConnectIO))
     val rob = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
+    val exception = Input(Bool())
     val robAllocate = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
   })
@@ -34,6 +35,7 @@ class Rename extends Module {
   regRenaming.io.out.ready := io.out.ready
   io.out.valid := regRenaming.io.out.valid
   regRenaming.io.brMispredict := io.brMispredict
+  regRenaming.io.exception := io.exception
 
   for (i <- 0 until 4) {
     regRenaming.io.in.bits(i).ctrl := io.in.bits(i).ctrl
@@ -113,6 +115,7 @@ class RegRenaming extends Module {
     val out          = Decoupled(Vec(4, new RenameOutput))
     val rob          = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
+    val exception    = Input(Bool())
     val robAllocate  = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
   })
@@ -430,8 +433,8 @@ class RegRenaming extends Module {
     free.bits  := commit.bits.preg
   }
 
-  // 分支预测错误回滚
-  when(io.brMispredict.brMisPred.valid) {
+  // 分支预测错误/异常回滚
+  when(io.brMispredict.brMisPred.valid || io.exception) {
     // val checkpoint_id = io.brMispredict.brMisPredChkpt
     // val ratSnapshot = checkpointRAT(checkpoint_id)
     // rat := ratSnapshot
@@ -443,7 +446,7 @@ class RegRenaming extends Module {
   }.otherwise {
     freeList.io.rollback.bits := DontCare
   }
-    freeList.io.rollback.valid := io.brMispredict.brMisPred.valid
+    freeList.io.rollback.valid := io.brMispredict.brMisPred.valid || io.exception
 
   // retire 
   for(i <- 0 until 4) {

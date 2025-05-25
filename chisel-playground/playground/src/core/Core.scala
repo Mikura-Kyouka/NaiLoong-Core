@@ -93,19 +93,21 @@ class Core extends Module {
   bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
   dontTouch(bpu.io)
 
-  PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.in(0).fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.in(1).fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.in(2).fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.in(3).fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.in(4).fire, rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), rob.io.brMisPredInfo.brMisPred.valid)
-  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), rob.io.brMisPredInfo.brMisPred.valid)
+  val flush = rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
+
+  PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, flush)
+  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, flush)
+  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, flush)
+  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.in(0).fire, flush)
+  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.in(1).fire, flush)
+  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.in(2).fire, flush)
+  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.in(3).fire, flush)
+  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.in(4).fire, flush)
+  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), flush)
+  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), flush)
+  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), flush)
+  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), flush)
+  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), flush)
 
   val ifAXI = Wire(new AXI)
 
@@ -247,7 +249,7 @@ class Core extends Module {
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
-  If.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
+  If.io.flush := flush
   If.io.dnpc := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
   If.io.pcSel := rob.io.brMisPredInfo.brMisPred.valid
   
@@ -277,7 +279,7 @@ class Core extends Module {
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
   }
 
-  Issue.io.flush := rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
+  Issue.io.flush := flush
   
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
@@ -320,6 +322,8 @@ class Core extends Module {
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
+
+  Rn.io.exception := rob.io.exceptionInfo.valid
 
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
