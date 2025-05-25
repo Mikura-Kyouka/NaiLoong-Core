@@ -3,6 +3,7 @@ import utils._
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
+import core.FuType.csr
 
 
 object CSROpType {
@@ -266,6 +267,8 @@ class CSR extends Module {
     csr_crmd.ie := 0.U
 
     csr_era := io.exceptionInfo.exceptionPC
+    csr_estat.ecode := 11.U                    // FIXME: workaround for syscall
+    csr_estat.esubcode := 0.U
   }
   io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
   io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)

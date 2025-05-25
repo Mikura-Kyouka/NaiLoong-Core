@@ -134,8 +134,7 @@ module DiffBridge(
   input [63:0] CSR_23,
   input [63:0] CSR_24,
   input [63:0] CSR_25,
-  input [63:0] CSR_26,
-  input [63:0] CSR_27
+  input [63:0] CSR_26
 );
 
 DifftestInstrCommit DifftestInstrCommit_0(

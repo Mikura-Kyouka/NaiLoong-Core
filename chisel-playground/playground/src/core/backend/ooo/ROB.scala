@@ -239,15 +239,6 @@ class Rob extends Module {
   val brMisPred = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
 
-  // io.exception := exception
-  // io.exceptionPC := robEntries(head + exceptionIdx).pc
-  // io.exceptionInfo := robEntries(head + exceptionIdx).exceptionVec
-  io.exceptionInfo.valid := exception
-  io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
-  io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
-  io.exceptionInfo.eret := false.B
-  io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
-
   io.brMisPredInfo.brMisPred.valid := brMisPred
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
@@ -312,6 +303,13 @@ class Rob extends Module {
       robEntries(commitIdx).valid := false.B
     }
   }
+
+  // 提交异常信息
+  io.exceptionInfo.valid := exception && io.commitInstr(exceptionIdx).valid
+  io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
+  io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
+  io.exceptionInfo.eret := io.exceptionInfo.exceptionInst(31, 10) === "b0000011001001000001110".U
+  io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
   val commitNum = PopCount(io.commitInstr.map(_.valid))
 
