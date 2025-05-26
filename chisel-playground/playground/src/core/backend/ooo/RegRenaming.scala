@@ -446,7 +446,7 @@ class RegRenaming extends Module {
   }.otherwise {
     freeList.io.rollback.bits := DontCare
   }
-    freeList.io.rollback.valid := io.brMispredict.brMisPred.valid || io.exception
+  freeList.io.rollback.valid := io.brMispredict.brMisPred.valid || io.exception
 
   // retire 
   for(i <- 0 until 4) {

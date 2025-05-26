@@ -251,7 +251,7 @@ class Core extends Module {
 
   If.io.flush := flush
   If.io.dnpc := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
-  If.io.pcSel := rob.io.brMisPredInfo.brMisPred.valid
+  If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)
 

@@ -255,6 +255,9 @@ class CSR extends Module {
         is(CsrName.EENTRY) {
           csr_eentry := io.write(i).bits.csr_data.asTypeOf(new csr_eentry_bundle)
         }
+        is(CsrName.ERA) {
+          csr_era := io.write(i).bits.csr_data
+        }
       }
     }
   }
