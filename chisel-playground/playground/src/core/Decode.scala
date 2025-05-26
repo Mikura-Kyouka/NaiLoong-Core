@@ -62,6 +62,7 @@ object CSROp {
   def wr = "b010".U
   def xchg = "b011".U
   def syscall = "b100".U
+  def ertn = "b101".U
 }
 
 object FuOpType {

@@ -2,6 +2,7 @@ package core
 
 import chisel3._
 import chisel3.util._
+import core.LSUOpType.sh
 
 object RobConfig {
   val ROB_ENTRY_NUM = 64
@@ -257,15 +258,26 @@ class Rob extends Module {
     val entry = robEntries(commitIdx)
     
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
-    val shouldCommit =  Mux(exception, 
-                            i.U <= exceptionIdx && canCommit(exceptionIdx),
-                        Mux(
-                          brMisPred,
-                          i.U <= brMisPredIdx && canCommit(brMisPredIdx),
-                          canCommit(i)
-                        )
-    )
-    
+    // val shouldCommit =  Mux(exception, 
+    //                         i.U <= exceptionIdx && canCommit(exceptionIdx),
+    //                     Mux(
+    //                       brMisPred,
+    //                       i.U <= brMisPredIdx && canCommit(brMisPredIdx),
+    //                       canCommit(i)
+    //                     )
+    // )
+    val shouldCommit = Wire(Bool())
+    when (exception && brMisPred) {
+      val exceptionOrBrMisPredIdx = Mux(exceptionIdx < brMisPredIdx, exceptionIdx, brMisPredIdx)
+      shouldCommit := i.U <= exceptionOrBrMisPredIdx && canCommit(exceptionOrBrMisPredIdx)
+    } .elsewhen (exception) {
+      shouldCommit := i.U <= exceptionIdx && canCommit(exceptionIdx)
+    } .elsewhen (brMisPred) {
+      shouldCommit := i.U <= brMisPredIdx && canCommit(brMisPredIdx)
+    } .otherwise {
+      shouldCommit := canCommit(i)
+    }
+
     // 物理寄存器回收信息
     io.commit.commit(i).valid := shouldCommit && !entry.rfWen && entry.rd =/= 0.U
     // FIXME: Why old_preg?
@@ -287,7 +299,7 @@ class Rob extends Module {
     io.commitInstr(i).bits := entry.instr
 
     // for csr
-    val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg
+    val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn
     io.commitCSR(i).valid := shouldCommit && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
@@ -308,7 +320,8 @@ class Rob extends Module {
   io.exceptionInfo.valid := exception && io.commitInstr(exceptionIdx).valid
   io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
   io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
-  io.exceptionInfo.eret := io.exceptionInfo.exceptionInst(31, 10) === "b0000011001001000001110".U
+  io.exceptionInfo.eret := io.exceptionInfo.valid && 
+                           io.exceptionInfo.exceptionInst === "b00000110010010000011100000000000".U  // FIXME: ugly hardcode
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
   val commitNum = PopCount(io.commitInstr.map(_.valid))
@@ -320,7 +333,7 @@ class Rob extends Module {
   }
 
   // 分支预测错误时，需要将tail回滚到head+x的位置
-  when (brMisPred) {
+  when (brMisPred && exception && brMisPredIdx < exceptionIdx || brMisPred && !exception) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& brMisPredIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
@@ -334,7 +347,7 @@ class Rob extends Module {
   }
 
   // 出现异常时，需要将tail回滚到head+x的位置
-  when (exception) {
+  when (exception && brMisPred && exceptionIdx < brMisPredIdx || exception && !brMisPred) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& exceptionIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail

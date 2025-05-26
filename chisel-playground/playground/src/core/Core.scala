@@ -250,7 +250,7 @@ class Core extends Module {
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
   If.io.flush := flush
-  If.io.dnpc := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
+  If.io.dnpc := Mux(rob.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
   If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)

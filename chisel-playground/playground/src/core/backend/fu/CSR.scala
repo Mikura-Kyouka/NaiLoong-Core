@@ -263,7 +263,7 @@ class CSR extends Module {
   }
 
   // 异常处理
-  when(io.exceptionInfo.valid) {
+  when(io.exceptionInfo.valid && !io.exceptionInfo.eret) {
     csr_prmd.pplv := csr_crmd.plv
     csr_prmd.pie := csr_crmd.ie
     csr_crmd.plv := 0.U
@@ -276,4 +276,13 @@ class CSR extends Module {
   io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
   io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
   io.exceptionInfo.cause := csr_estat.ecode
+
+  when(io.exceptionInfo.eret) {
+    csr_crmd.plv := csr_prmd.pplv
+    csr_crmd.ie := csr_prmd.pie
+    io.exceptionInfo.exceptionNewPC := csr_era
+    when(csr_llbctl.klo =/= 1.U) {
+      csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
+    }
+  }
 }
