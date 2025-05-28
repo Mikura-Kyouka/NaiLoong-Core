@@ -280,7 +280,7 @@ class CSR extends Module {
   when(io.exceptionInfo.eret) {
     csr_crmd.plv := csr_prmd.pplv
     csr_crmd.ie := csr_prmd.pie
-    io.exceptionInfo.exceptionNewPC := csr_era
+    io.exceptionInfo.exceptionNewPC := csr_era // or csr_era + 4.U ？
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }

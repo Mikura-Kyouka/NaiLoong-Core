@@ -271,9 +271,9 @@ class Rob extends Module {
       val exceptionOrBrMisPredIdx = Mux(exceptionIdx < brMisPredIdx, exceptionIdx, brMisPredIdx)
       shouldCommit := i.U <= exceptionOrBrMisPredIdx && canCommit(exceptionOrBrMisPredIdx)
     } .elsewhen (exception) {
-      shouldCommit := i.U <= exceptionIdx && canCommit(exceptionIdx)
+      shouldCommit := i.U <= exceptionIdx && canCommit(i.U)
     } .elsewhen (brMisPred) {
-      shouldCommit := i.U <= brMisPredIdx && canCommit(brMisPredIdx)
+      shouldCommit := i.U <= brMisPredIdx && canCommit(i.U)
     } .otherwise {
       shouldCommit := canCommit(i)
     }
