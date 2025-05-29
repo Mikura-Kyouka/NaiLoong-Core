@@ -331,6 +331,8 @@ class Core extends Module {
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
 
+  rob.io.plv := csr.io.plv
+
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 

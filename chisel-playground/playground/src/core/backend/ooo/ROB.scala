@@ -3,6 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 import core.LSUOpType.sh
+import chisel3.util.experimental.decode.Minimizer
 
 object RobConfig {
   val ROB_ENTRY_NUM = 64
@@ -122,6 +123,8 @@ class RobIO extends Bundle {
   // val exceptionInfo = Output(UInt(16.W))                   // 异常信息
 
   val exceptionInfo = Flipped(new csr_excp_bundle)
+
+  val plv = Input(UInt(2.W)) // 当前特权级
   
   // 调试接口
   // val debug = Output(new Bundle {
@@ -205,6 +208,7 @@ class Rob extends Module {
   
   // 判断是否可以提交
   val canCommit = Wire(Vec(4, Bool()))
+  val hasCsrRW = Wire(Vec(4, Bool()))
   val hasBrMispred = Wire(Vec(4, Bool()))
   val hasException = Wire(Vec(4, Bool()))
 
@@ -220,7 +224,10 @@ class Rob extends Module {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
                       canCommit(i-1)
     }
-    hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).exception
+    hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).inst_valid &&
+                    robEntries(commitIdx).csrOp =/= CSROp.nop
+    hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
+                      robEntries(commitIdx).finished && robEntries(commitIdx).exception
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
   }
   
@@ -233,6 +240,9 @@ class Rob extends Module {
     )
     isAfterStart
   }
+
+  val csrWrite = hasCsrRW.reduce(_ || _)
+  val csrWriteIdx = PriorityEncoder(hasCsrRW)
 
   val exception = hasException.reduce(_ || _)
   val exceptionIdx = PriorityEncoder(hasException)
@@ -258,25 +268,40 @@ class Rob extends Module {
     val entry = robEntries(commitIdx)
     
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
-    // val shouldCommit =  Mux(exception, 
-    //                         i.U <= exceptionIdx && canCommit(exceptionIdx),
-    //                     Mux(
-    //                       brMisPred,
-    //                       i.U <= brMisPredIdx && canCommit(brMisPredIdx),
-    //                       canCommit(i)
-    //                     )
-    // )
+
+    // 构造候选列表，只加入有效的事件及其下标
+    val candidates = Wire(Vec(3, UInt(2.W)))
+    val valids = Wire(Vec(3, Bool()))
+
+    candidates(0) := exceptionIdx
+    valids(0) := exception
+    candidates(1) := brMisPredIdx
+    valids(1) := brMisPred
+    candidates(2) := csrWriteIdx
+    valids(2) := csrWrite
+
+    val temp0 = Mux(valids(0), candidates(0), 3.U)
+    val temp1 = Mux(valids(1) && candidates(1) < temp0, candidates(1), temp0)
+    val temp2 = Mux(valids(2) && candidates(2) < temp1, candidates(2), temp1)
+    val minIdx = temp2
+
+    // 是否存在至少一个特殊 commit
+    val hasSpecialCommit = valids.reduce(_ || _)
+
+    // 最终是否应该提交
     val shouldCommit = Wire(Bool())
-    when (exception && brMisPred) {
-      val exceptionOrBrMisPredIdx = Mux(exceptionIdx < brMisPredIdx, exceptionIdx, brMisPredIdx)
-      shouldCommit := i.U <= exceptionOrBrMisPredIdx && canCommit(exceptionOrBrMisPredIdx)
-    } .elsewhen (exception) {
-      shouldCommit := i.U <= exceptionIdx && canCommit(i.U)
-    } .elsewhen (brMisPred) {
-      shouldCommit := i.U <= brMisPredIdx && canCommit(i.U)
-    } .otherwise {
-      shouldCommit := canCommit(i)
-    }
+    shouldCommit := Mux(hasSpecialCommit, i.U <= minIdx && canCommit(i), canCommit(i))
+
+    // when (exception && brMisPred) {
+    //   val exceptionOrBrMisPredIdx = Mux(exceptionIdx < brMisPredIdx, exceptionIdx, brMisPredIdx)
+    //   shouldCommit := i.U <= exceptionOrBrMisPredIdx && canCommit(exceptionOrBrMisPredIdx)
+    // } .elsewhen (exception) {
+    //   shouldCommit := i.U <= exceptionIdx && canCommit(i.U)
+    // } .elsewhen (brMisPred) {
+    //   shouldCommit := i.U <= brMisPredIdx && canCommit(i.U)
+    // } .otherwise {
+    //   shouldCommit := canCommit(i)
+    // }
 
     // 物理寄存器回收信息
     io.commit.commit(i).valid := shouldCommit && !entry.rfWen && entry.rd =/= 0.U
@@ -285,7 +310,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.pc   := entry.pc
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
-    io.commit.commit(i).bits.data := entry.result
+    io.commit.commit(i).bits.data := Mux(entry.csrOp =/= CSROp.nop && io.plv === 3.U, 0.U, entry.result)
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
     io.commit.commit(i).bits.use_preg := entry.use_preg
     io.commit.commit(i).bits.isBranch := entry.isBranch

@@ -90,6 +90,7 @@ class CSR extends Module {
     val read = Vec(2, new csr_read_bundle)
     val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
+    val plv = Output(UInt(2.W))
     val difftest = Output(new DiffCSRBundle)
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
@@ -182,6 +183,8 @@ class CSR extends Module {
   dontTouch(debug_csr_dmw1)
   dontTouch(debug_timer64)
 
+  io.plv := csr_crmd.plv
+
   io.difftest.csr_crmd := csr_crmd.asUInt
   io.difftest.csr_prmd := csr_prmd.asUInt
   io.difftest.csr_ecfg := csr_ecfg.asUInt
@@ -247,16 +250,40 @@ class CSR extends Module {
 
   // write
   for(i <- 0 until 4) {
-    when(io.write(i).valid) {
+    when(io.write(i).valid && csr_crmd.plv === 0.U) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
           csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
+        }
+        is(CsrName.PRMD) {
+          csr_prmd := io.write(i).bits.csr_data.asTypeOf(new csr_prmd_bundle)
+        }
+        is(CsrName.ECFG) {
+          csr_ecfg := io.write(i).bits.csr_data.asTypeOf(new csr_ecfg_bundle)
+        }
+        is(CsrName.ESTAT) {
+          csr_estat.is1_0 := io.write(i).bits.csr_data(1, 0)
         }
         is(CsrName.EENTRY) {
           csr_eentry := io.write(i).bits.csr_data.asTypeOf(new csr_eentry_bundle)
         }
         is(CsrName.ERA) {
           csr_era := io.write(i).bits.csr_data
+        }
+        is(CsrName.BADV) {
+          csr_badv := io.write(i).bits.csr_data
+        }
+        is(CsrName.SAVE0) {
+          csr_save0 := io.write(i).bits.csr_data
+        }
+        is(CsrName.SAVE1) {
+          csr_save1 := io.write(i).bits.csr_data
+        }
+        is(CsrName.SAVE2) {
+          csr_save2 := io.write(i).bits.csr_data
+        }
+        is(CsrName.SAVE3) {
+          csr_save3 := io.write(i).bits.csr_data
         }
       }
     }
@@ -280,7 +307,7 @@ class CSR extends Module {
   when(io.exceptionInfo.eret) {
     csr_crmd.plv := csr_prmd.pplv
     csr_crmd.ie := csr_prmd.pie
-    io.exceptionInfo.exceptionNewPC := csr_era // or csr_era + 4.U ？
+    io.exceptionInfo.exceptionNewPC := csr_era // or csr_era + 4.U ?
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }
