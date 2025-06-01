@@ -65,6 +65,15 @@ object CSROp {
   def ertn = "b101".U
 }
 
+object TlbOp {
+  def rd = "b000".U
+  def wr = "b001".U
+  def srch = "b010".U
+  def fill = "b011".U
+  def inv = "b100".U
+  def apply() = UInt(3.W)
+}
+
 object FuOpType {
   def apply() = UInt(7.W)
 }

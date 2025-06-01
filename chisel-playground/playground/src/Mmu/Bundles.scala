@@ -46,6 +46,16 @@ class CsrToMmuBundle extends Bundle {
   val crmd = Input(new csr_crmd_bundle)
   val dmw0 = Input(new csr_dmw_bundle)
   val dmw1 = Input(new csr_dmw_bundle)
+  val tlbehi = Input(new csr_tlbehi_bundle)
+  val tlbidx = Input(new csr_tlbidx_bundle)
+}
+
+class MmuToCsrBundle extends Bundle {
+  val wen = Output(Bool())
+  val inst_type = Output(TlbOp())
+  val tlb_entry = Output(new TlbBundle)
+  val tlb_hit = Output(Bool())
+  val tlb_idx = Output(UInt(log2Ceil(TLB_NUM).W))
 }
 
 class TlbBundle extends Bundle {
@@ -66,4 +76,11 @@ class TlbBundle extends Bundle {
   val mat1 = UInt(2.W)
   val d1 = UInt(1.W)
   val v1 = UInt(1.W)
+}
+
+class TlbInstBundle extends Bundle {
+  val en = Bool()
+  val asid = UInt(10.W)
+  val vppn = UInt((ADDR_WIDTH - PAGE_WIDTH - 1).W)
+  val inst_type = UInt(3.W)
 }

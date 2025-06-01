@@ -144,7 +144,8 @@ class TLB extends Module {
     val s2_interface0 = Flipped(new Stage2Interface)
     val s2_interface1 = Flipped(new Stage2Interface)
 
-    val csr = new CsrToMmuBundle
+    val from_csr = new CsrToMmuBundle
+    val to_csr = new MmuToCsrBundle
 
     val wen = Input(Bool())
     val w_index = Input(UInt(log2Ceil(TLB_NUM).W))
@@ -152,9 +153,12 @@ class TLB extends Module {
 
     val r_index = Input(UInt(log2Ceil(TLB_NUM).W))
     val r = Output(new TlbBundle)
+
+    val tlb_inst = Input(new TlbInstBundle)
   })
 
   val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
+  io.to_csr := DontCare
 
 // 处理 Stage 1 : 判断是否命中 TLB
   val hit0 = Wire(Vec(TLB_NUM, Bool()))
@@ -163,12 +167,12 @@ class TLB extends Module {
   // 设计实战 P51
   for (i <- 0 until TLB_NUM) {
     hit0(i) := (tlb(i).e.asBool) && 
-               ((tlb(i).g.asBool) || (tlb(i).asid === io.csr.asid.asid)) &&
+               ((tlb(i).g.asBool) || (tlb(i).asid === io.from_csr.asid.asid)) &&
                (tlb(i).vppn === io.s1_interface0.vppn)
   }
   for (i <- 0 until TLB_NUM) {
     hit1(i) := (tlb(i).e.asBool) && 
-               ((tlb(i).g.asBool) || (tlb(i).asid === io.csr.asid.asid)) &&
+               ((tlb(i).g.asBool) || (tlb(i).asid === io.from_csr.asid.asid)) &&
                (tlb(i).vppn === io.s1_interface1.vppn)
   }
 
@@ -204,6 +208,31 @@ class TLB extends Module {
   }
 // tlb read
   io.r := tlb(io.r_index)
+
+// 处理tlb指令
+  when(io.tlb_inst.en) {
+    switch(io.tlb_inst.inst_type) {
+      is(TlbOp.srch) {  // 暂时写死4kb
+        val temp_hit_vec = Wire(Vec(TLB_NUM, Bool()))
+        for (i <- 0 until TLB_NUM) {
+          temp_hit_vec(i) := (tlb(i).e.asBool) && 
+                             ((tlb(i).g.asBool) || (tlb(i).asid === io.from_csr.asid.asid)) &&
+                             (tlb(i).vppn === io.from_csr.tlbehi.vppn)
+        }
+        val temp_hit_index = OHToUInt(temp_hit_vec.asUInt)
+        io.to_csr.wen := true.B
+        io.to_csr.inst_type := TlbOp.srch
+        io.to_csr.tlb_hit := temp_hit_vec.asUInt.orR
+        io.to_csr.tlb_idx := temp_hit_index
+        io.to_csr.tlb_entry := tlb(temp_hit_index)
+      }
+      is(TlbOp.rd) {
+        io.to_csr.wen := true.B
+        io.to_csr.inst_type := TlbOp.rd
+        io.to_csr.tlb_entry := tlb(io.from_csr.tlbidx.idx)
+      }
+    }
+  }
 }
 
 class MMU extends Module {
@@ -214,7 +243,7 @@ class MMU extends Module {
     val out0 = Decoupled(new AddrTrans)
     val out1 = Decoupled(new AddrTrans)
     val flush = Input(Bool())
-    val csr_in = new CsrToMmuBundle
+    val from_csr = new CsrToMmuBundle
 
     val w = Input(new TlbBundle)
     val wen = Input(Bool())
@@ -227,6 +256,8 @@ class MMU extends Module {
   val s2 = Module(new MMUStage2)
   val tlb = Module(new TLB)
 
+  tlb.io.tlb_inst := DontCare
+
 // tlb 读写
   tlb.io.w := io.w
   tlb.io.wen := io.wen
@@ -237,7 +268,7 @@ class MMU extends Module {
 // 处理地址翻译逻辑
   s1.io.in0 := io.in0
   s1.io.in1 := io.in1
-  tlb.io.csr := io.csr_in
+  tlb.io.from_csr := io.from_csr
   io.out0 <> s2.io.out0
   io.out1 <> s2.io.out1
   s1.io.tlb_interface0 <> tlb.io.s1_interface0
@@ -246,33 +277,33 @@ class MMU extends Module {
   s2.io.tlb_interface1 <> tlb.io.s2_interface1
   // 拼接物理地址
   val vseg_0 = s2.io.out0.bits.vaddr(31, 29)
-  assert(!(io.csr_in.crmd.pg === 1.U && io.csr_in.crmd.da === 1.U))
-  val pg_mode_0 = io.csr_in.crmd.pg & ~io.csr_in.crmd.da
-  val da_mode_0 = ~io.csr_in.crmd.pg & io.csr_in.crmd.da
+  assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
+  val pg_mode_0 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
+  val da_mode_0 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
 
-  val dmw0_hit_0 = io.csr_in.dmw0.vseg === vseg_0
-  val dmw1_hit_0 = io.csr_in.dmw1.vseg === vseg_0
+  val dmw0_hit_0 = io.from_csr.dmw0.vseg === vseg_0
+  val dmw1_hit_0 = io.from_csr.dmw1.vseg === vseg_0
   val direct_map_0 = pg_mode_0 & (dmw0_hit_0 | dmw1_hit_0)
   val tlb_map_0 = pg_mode_0 & (~dmw0_hit_0 & ~dmw1_hit_0)
   io.out0.bits.paddr := (
     (Fill(ADDR_WIDTH, da_mode_0) & s2.io.out0.bits.vaddr) |
-    (Fill(ADDR_WIDTH, dmw0_hit_0) & Cat(io.csr_in.dmw0.pseg, s2.io.out0.bits.vaddr(28, 0))) |
-    (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.csr_in.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
+    (Fill(ADDR_WIDTH, dmw0_hit_0) & Cat(io.from_csr.dmw0.pseg, s2.io.out0.bits.vaddr(28, 0))) |
+    (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
 
   val vseg_1 = s2.io.out1.bits.vaddr(31, 29)
-  assert(!(io.csr_in.crmd.pg === 1.U && io.csr_in.crmd.da === 1.U))
-  val pg_mode_1 = io.csr_in.crmd.pg & ~io.csr_in.crmd.da
-  val da_mode_1 = ~io.csr_in.crmd.pg & io.csr_in.crmd.da
-  val dmw0_hit_1 = io.csr_in.dmw0.vseg === vseg_1
-  val dmw1_hit_1 = io.csr_in.dmw1.vseg === vseg_1
+  assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
+  val pg_mode_1 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
+  val da_mode_1 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
+  val dmw0_hit_1 = io.from_csr.dmw0.vseg === vseg_1
+  val dmw1_hit_1 = io.from_csr.dmw1.vseg === vseg_1
   val direct_map_1 = pg_mode_1 & (dmw0_hit_1 | dmw1_hit_1)
   val tlb_map_1 = pg_mode_1 & (~dmw0_hit_1 & ~dmw1_hit_1)
   io.out1.bits.paddr := (
     (Fill(ADDR_WIDTH, da_mode_1) & s2.io.out1.bits.vaddr) |
-    (Fill(ADDR_WIDTH, dmw0_hit_1) & Cat(io.csr_in.dmw0.pseg, s2.io.out1.bits.vaddr(28, 0))) |
-    (Fill(ADDR_WIDTH, dmw1_hit_1) & Cat(io.csr_in.dmw1.pseg, s2.io.out1.bits.vaddr(28, 0))) |
+    (Fill(ADDR_WIDTH, dmw0_hit_1) & Cat(io.from_csr.dmw0.pseg, s2.io.out1.bits.vaddr(28, 0))) |
+    (Fill(ADDR_WIDTH, dmw1_hit_1) & Cat(io.from_csr.dmw1.pseg, s2.io.out1.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_1) & Cat(s2.io.out1.bits.ppn, s2.io.out1.bits.vaddr(11, 0)))
   )
 
