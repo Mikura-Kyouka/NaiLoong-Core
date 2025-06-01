@@ -210,6 +210,8 @@ class TLB extends Module {
   io.r := tlb(io.r_index)
 
 // 处理tlb指令
+  val is_tlb_refill = io.from_csr.estat.ecode === "h3F".U // TLB refill exception code
+  val tlb_refill_idx = RegInit(0.U(log2Ceil(TLB_NUM).W))
   when(io.tlb_inst.en) {
     switch(io.tlb_inst.inst_type) {
       is(TlbOp.srch) {  // 暂时写死4kb
@@ -230,6 +232,46 @@ class TLB extends Module {
         io.to_csr.wen := true.B
         io.to_csr.inst_type := TlbOp.rd
         io.to_csr.tlb_entry := tlb(io.from_csr.tlbidx.idx)
+      }
+      is(TlbOp.wr) {
+        tlb(io.from_csr.tlbidx.idx).ps := io.from_csr.tlbidx.ps
+        tlb(io.from_csr.tlbidx.idx).e := !io.from_csr.tlbidx.ne.asBool || is_tlb_refill
+        tlb(io.from_csr.tlbidx.idx).vppn := io.from_csr.tlbehi.vppn
+        tlb(io.from_csr.tlbidx.idx).g := io.from_csr.tlbelo0.g.asBool && io.from_csr.tlbelo1.g.asBool
+        tlb(io.from_csr.tlbidx.idx).asid := io.from_csr.asid.asid
+
+        tlb(io.from_csr.tlbidx.idx).ppn0 := io.from_csr.tlbelo0.ppn
+        tlb(io.from_csr.tlbidx.idx).plv0 := io.from_csr.tlbelo0.plv
+        tlb(io.from_csr.tlbidx.idx).mat0 := io.from_csr.tlbelo0.mat
+        tlb(io.from_csr.tlbidx.idx).d0 := io.from_csr.tlbelo0.d
+        tlb(io.from_csr.tlbidx.idx).v0 := io.from_csr.tlbelo0.v
+
+        tlb(io.from_csr.tlbidx.idx).ppn1 := io.from_csr.tlbelo1.ppn
+        tlb(io.from_csr.tlbidx.idx).plv1 := io.from_csr.tlbelo1.plv
+        tlb(io.from_csr.tlbidx.idx).mat1 := io.from_csr.tlbelo1.mat
+        tlb(io.from_csr.tlbidx.idx).d1 := io.from_csr.tlbelo1.d
+        tlb(io.from_csr.tlbidx.idx).v1 := io.from_csr.tlbelo1.v
+      }
+      is(TlbOp.fill) {
+        tlb_refill_idx := tlb_refill_idx + 1.U
+
+        tlb(tlb_refill_idx).ps := io.from_csr.tlbidx.ps
+        tlb(tlb_refill_idx).e := !io.from_csr.tlbidx.ne.asBool || is_tlb_refill
+        tlb(tlb_refill_idx).vppn := io.from_csr.tlbehi.vppn
+        tlb(tlb_refill_idx).g := io.from_csr.tlbelo0.g.asBool && io.from_csr.tlbelo1.g.asBool
+        tlb(tlb_refill_idx).asid := io.from_csr.asid.asid
+
+        tlb(tlb_refill_idx).ppn0 := io.from_csr.tlbelo0.ppn
+        tlb(tlb_refill_idx).plv0 := io.from_csr.tlbelo0.plv
+        tlb(tlb_refill_idx).mat0 := io.from_csr.tlbelo0.mat
+        tlb(tlb_refill_idx).d0 := io.from_csr.tlbelo0.d
+        tlb(tlb_refill_idx).v0 := io.from_csr.tlbelo0.v
+
+        tlb(tlb_refill_idx).ppn1 := io.from_csr.tlbelo1.ppn
+        tlb(tlb_refill_idx).plv1 := io.from_csr.tlbelo1.plv
+        tlb(tlb_refill_idx).mat1 := io.from_csr.tlbelo1.mat
+        tlb(tlb_refill_idx).d1 := io.from_csr.tlbelo1.d
+        tlb(tlb_refill_idx).v1 := io.from_csr.tlbelo1.v
       }
     }
   }

@@ -48,6 +48,9 @@ class CsrToMmuBundle extends Bundle {
   val dmw1 = Input(new csr_dmw_bundle)
   val tlbehi = Input(new csr_tlbehi_bundle)
   val tlbidx = Input(new csr_tlbidx_bundle)
+  val tlbelo0 = Input(new csr_tlbelo_bundle)
+  val tlbelo1 = Input(new csr_tlbelo_bundle)
+  val estat = Input(new csr_estat_bundle)
 }
 
 class MmuToCsrBundle extends Bundle {
