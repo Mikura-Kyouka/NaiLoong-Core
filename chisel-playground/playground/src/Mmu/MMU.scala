@@ -273,6 +273,29 @@ class TLB extends Module {
         tlb(tlb_refill_idx).d1 := io.from_csr.tlbelo1.d
         tlb(tlb_refill_idx).v1 := io.from_csr.tlbelo1.v
       }
+      is(TlbOp.inv) {
+        for(i <- 0 until TLB_NUM) {
+          switch(io.tlb_inst.op) {
+            is(0.U) { tlb(i).e := 0.U } // 全部清除
+            is(1.U) { tlb(i).e := 0.U } // 全部清除
+            is(2.U) { // 全局清除
+              when(tlb(i).g === 1.U) { tlb(i).e := 0.U }
+            }
+            is(3.U) { // 非全局清除
+              when(tlb(i).g === 0.U) { tlb(i).e := 0.U }
+            }
+            is(4.U) { // 按 ASID 清除
+              when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid) { tlb(i).e := 0.U }
+            }
+            is(5.U) {
+              when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
+            }
+            is(6.U) {
+              when((tlb(i).g === 0.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
+            }
+          }
+        }
+      }
     }
   }
 }
