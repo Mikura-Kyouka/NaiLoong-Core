@@ -55,26 +55,16 @@ object MMUPipelineConnect {
   }
 }
 
-/* 
-  val s1 = Module(new MMUStage1)
-  val s2 = Module(new MMUStage2)
-  val tlb = RegInit(***)
-
-  s1.tlb <> tlb
-  s2.tlb <> tlb
-
-  MMUPipelineConnect(s1.io.in, s2.io.in, s2.io.out.fire, io.isFlush)
- */
-
 class MMUStage1 extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
+    // in0为ifu的地址转换，in1为lsu的地址转换
     val in0 = Input(new AddrTrans)
     val in1 = Input(new AddrTrans)
-
+    // 与tlb的交互，功能为：输入vaddr，读出hit_vec，然后把hit_vec加入流水线
     val tlb_interface0 = new Stage1Interface
     val tlb_interface1 = new Stage1Interface
-
+    // 输出到下一个流水级
     val out0 = Decoupled(new AddrTrans)
     val out1 = Decoupled(new AddrTrans)
   })
@@ -97,7 +87,7 @@ class MMUStage2 extends Module {
   val io = IO(new Bundle {
     val in0 = Flipped(Decoupled(new AddrTrans))
     val in1 = Flipped(Decoupled(new AddrTrans))
-
+    // 输入vaddr以及hit_vec，输出地址转换结果以及tlb的内容
     val tlb_interface0 = new Stage2Interface
     val tlb_interface1 = new Stage2Interface
 
@@ -109,59 +99,60 @@ class MMUStage2 extends Module {
   io.out1.bits := io.in1.bits
 
   io.tlb_interface0.vppn := io.in0.bits.vaddr(ADDR_WIDTH - 1, PAGE_WIDTH + 1)
-  io.tlb_interface1.vppn := io.in1.bits.vaddr(ADDR_WIDTH - 1, PAGE_WIDTH + 1)
   io.tlb_interface0.va_bit12 := io.in0.bits.vaddr(12)
-  io.tlb_interface1.va_bit12 := io.in1.bits.vaddr(12)
   io.tlb_interface0.hit_vec := io.in0.bits.hit_vec
+  io.tlb_interface1.vppn := io.in1.bits.vaddr(ADDR_WIDTH - 1, PAGE_WIDTH + 1)
+  io.tlb_interface1.va_bit12 := io.in1.bits.vaddr(12)
   io.tlb_interface1.hit_vec := io.in1.bits.hit_vec
 
   io.out0.bits.found := io.tlb_interface0.found
-  io.out1.bits.found := io.tlb_interface1.found
   io.out0.bits.index := io.tlb_interface0.index
-  io.out1.bits.index := io.tlb_interface1.index
   io.out0.bits.ppn := io.tlb_interface0.ppn
-  io.out1.bits.ppn := io.tlb_interface1.ppn
   io.out0.bits.ps := io.tlb_interface0.ps
-  io.out1.bits.ps := io.tlb_interface1.ps
   io.out0.bits.plv := io.tlb_interface0.plv
-  io.out1.bits.plv := io.tlb_interface1.plv
   io.out0.bits.mat := io.tlb_interface0.mat
-  io.out1.bits.mat := io.tlb_interface1.mat
   io.out0.bits.d := io.tlb_interface0.d
+  io.out1.bits.found := io.tlb_interface1.found
+  io.out1.bits.index := io.tlb_interface1.index
+  io.out1.bits.ppn := io.tlb_interface1.ppn
+  io.out1.bits.ps := io.tlb_interface1.ps
+  io.out1.bits.plv := io.tlb_interface1.plv
+  io.out1.bits.mat := io.tlb_interface1.mat
   io.out1.bits.d := io.tlb_interface1.d
 
-  io.out0.valid := io.in0.valid
-  io.out1.valid := io.in1.valid
   io.in0.ready := io.out0.ready
+  io.out0.valid := io.in0.valid
   io.in1.ready := io.out1.ready
+  io.out1.valid := io.in1.valid
 }
 
 class TLB extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
+    // 与s1（即根据vaddr获得hit_vec阶段）的交互
     val s1_interface0 = Flipped(new Stage1Interface)
     val s1_interface1 = Flipped(new Stage1Interface)
-
+    // 与s2（即根据hit_vec获得物理地址阶段）的交互
     val s2_interface0 = Flipped(new Stage2Interface)
     val s2_interface1 = Flipped(new Stage2Interface)
-
+    // 和csr的交互
     val from_csr = new CsrToMmuBundle
     val to_csr = new MmuToCsrBundle
-
+    // 写逻辑
     val wen = Input(Bool())
     val w_index = Input(UInt(log2Ceil(TLB_NUM).W))
     val w = Input(new TlbBundle)
-
+    // 读逻辑
     val r_index = Input(UInt(log2Ceil(TLB_NUM).W))
     val r = Output(new TlbBundle)
-
+    // tlb指令接口
     val tlb_inst = Input(new TlbInstBundle)
   })
 
   val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
   io.to_csr := DontCare
 
-// 处理 Stage 1 : 判断是否命中 TLB
+// 处理 Stage 1 : 判断是否命中 TLB，返回 hit_vec
   val hit0 = Wire(Vec(TLB_NUM, Bool()))
   val hit1 = Wire(Vec(TLB_NUM, Bool()))
 
@@ -301,34 +292,70 @@ class TLB extends Module {
   }
 }
 
+/* 
+    ┌──────────────────────────────┐     
+    │                              │     
+    │           ┌───────┐          │     
+    │┌──────────►       │◄───────┐ │     
+    ││          │  TLB  │        │ │     
+    ││ ┌────────┼       ┼───────┐│ │     
+    ││ │        └──▲─┬──┘       ││ │     
+    ││ │           │ │          ││ │     
+┌───┼┼─▼─┐         │ │         ┌▼┼─▼────┐
+│ stage1 │         │ │         │ stage2 │
+└───▲────┘         │ │         └───┬────┘
+    │              │ │             │     
+    │              │ │             │     
+    │              │ │             │     
+    │              │ │             │     
+    │           ┌──┴─▼──┐          │     
+    └───────────┤  MMU  ◄──────────┘     
+                └───────┘                
+ */
+
 class MMU extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
+    // MMU的输入，in0来自ifu，in1来自lsu
     val in0 = Input(new AddrTrans)
     val in1 = Input(new AddrTrans)
+    // MMU的输出，out0给ifu，out1给lsu
     val out0 = Decoupled(new AddrTrans)
     val out1 = Decoupled(new AddrTrans)
+    // 例外信息，返回给谁呢？
     val excp0 = Output(new ExceptionBundle)
     val excp1 = Output(new ExceptionBundle)
-    val flush = Input(Bool())
 
+    val flush = Input(Bool())
+    // mmu和csr的交互
     val from_csr = new CsrToMmuBundle
     val to_csr = new MmuToCsrBundle
-
+    // 写逻辑
     val w = Input(new TlbBundle)
     val wen = Input(Bool())
     val w_index = Input(UInt(log2Ceil(TLB_NUM).W))
+    // 读逻辑
     val r_index = Input(UInt(log2Ceil(TLB_NUM).W))
     val r = Output(new TlbBundle)
-    
+    // tlb指令信息
     val tlb_inst = Input(new TlbInstBundle)
   })
   
+  // 实例化阶段1和阶段2以及tlb
   val s1 = Module(new MMUStage1)
   val s2 = Module(new MMUStage2)
   val tlb = Module(new TLB)
-
+  // 连接输入输出
+  s1.io.in0 <> io.in0
+  s1.io.in1 <> io.in1
+  io.out0 <> s2.io.out0
+  io.out1 <> s2.io.out1
+  s1.io.tlb_interface0 <> tlb.io.s1_interface0
+  s1.io.tlb_interface1 <> tlb.io.s1_interface1
+  s2.io.tlb_interface0 <> tlb.io.s2_interface0
+  s2.io.tlb_interface1 <> tlb.io.s2_interface1
   tlb.io.tlb_inst <> io.tlb_inst
+  tlb.io.from_csr <> io.from_csr
   tlb.io.to_csr <> io.to_csr
 
 // tlb 读写
@@ -339,16 +366,8 @@ class MMU extends Module {
   io.r := tlb.io.r
 
 // 处理地址翻译逻辑
-  s1.io.in0 := io.in0
-  s1.io.in1 := io.in1
-  tlb.io.from_csr := io.from_csr
-  io.out0 <> s2.io.out0
-  io.out1 <> s2.io.out1
-  s1.io.tlb_interface0 <> tlb.io.s1_interface0
-  s1.io.tlb_interface1 <> tlb.io.s1_interface1
-  s2.io.tlb_interface0 <> tlb.io.s2_interface0
-  s2.io.tlb_interface1 <> tlb.io.s2_interface1
-  // 拼接物理地址
+  // 拼接物理地址，根据阶段2的输出得到物理地址。
+  // 命名方式（以pg_mode_0为例），最后的0表示s2.io.out0，即ifu的地址转换
   val vseg_0 = s2.io.out0.bits.vaddr(31, 29)
   assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
   val pg_mode_0 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
@@ -358,13 +377,14 @@ class MMU extends Module {
   val dmw1_hit_0 = io.from_csr.dmw1.vseg === vseg_0
   val direct_map_0 = pg_mode_0 & (dmw0_hit_0 | dmw1_hit_0)
   val tlb_map_0 = pg_mode_0 & (~dmw0_hit_0 & ~dmw1_hit_0)
+  // 并行逻辑
   io.out0.bits.paddr := (
     (Fill(ADDR_WIDTH, da_mode_0) & s2.io.out0.bits.vaddr) |
     (Fill(ADDR_WIDTH, dmw0_hit_0) & Cat(io.from_csr.dmw0.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
-
+  // 与上面逻辑一样
   val vseg_1 = s2.io.out1.bits.vaddr(31, 29)
   assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
   val pg_mode_1 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
@@ -403,7 +423,7 @@ class MMU extends Module {
     io.excp0.en := true.B
     io.excp0.ecode := Ecode.pme
   }
-
+  // 与上面逻辑一样
   when(!io.out1.bits.found.asBool) {
     io.excp1.en := true.B
     io.excp1.ecode := Ecode.tlbr
