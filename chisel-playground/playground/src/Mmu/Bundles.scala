@@ -8,6 +8,7 @@ class AddrTrans extends Bundle {
   val trans_en = Bool()
   val vaddr = UInt(32.W)
   val paddr = UInt(32.W)
+  val mem_type = MemType()
 
   val hit_vec = Vec(TLB_NUM, Bool())
   val found = UInt(1.W)
@@ -88,4 +89,9 @@ class TlbInstBundle extends Bundle {
   val vppn = UInt((ADDR_WIDTH - PAGE_WIDTH - 1).W)
   val va = UInt(ADDR_WIDTH.W)
   val inst_type = UInt(3.W)
+}
+
+class ExceptionBundle extends Bundle {
+  val en = Bool()
+  val ecode = Ecode()
 }

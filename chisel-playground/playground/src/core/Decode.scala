@@ -74,6 +74,24 @@ object TlbOp {
   def apply() = UInt(3.W)
 }
 
+object Ecode {
+  def int = 0.U(6.W)
+  def pil = 1.U(6.W)
+  def pis = 2.U(6.W)
+  def pif = 3.U(6.W)
+  def pme = 4.U(6.W)
+  def ppi = 7.U(6.W)
+  def adef = 8.U(6.W)
+  def ale = 9.U(6.W)
+  def sys = 11.U(6.W)
+  def brk = 12.U(6.W)
+  def ine = 13.U(6.W)
+  def ipe = 14.U(6.W)
+  def fpd = 15.U(6.W)
+  def tlbr = 63.U(6.W)
+  def apply() = UInt(6.W)
+}
+
 object FuOpType {
   def apply() = UInt(7.W)
 }
