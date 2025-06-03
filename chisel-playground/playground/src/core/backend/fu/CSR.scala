@@ -92,6 +92,8 @@ class CSR extends Module {
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
     val difftest = Output(new DiffCSRBundle)
+
+    val to_mmu = Flipped(new CsrToMmuBundle)
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
   val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
@@ -312,4 +314,14 @@ class CSR extends Module {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }
   }
+
+  io.to_mmu.asid := csr_asid
+  io.to_mmu.crmd := csr_crmd
+  io.to_mmu.dmw0 := csr_dmw0
+  io.to_mmu.dmw1 := csr_dmw1
+  io.to_mmu.tlbidx := csr_tlbidx
+  io.to_mmu.tlbehi := csr_tlbehi
+  io.to_mmu.tlbelo0 := csr_tlbel0
+  io.to_mmu.tlbelo1 := csr_tlbel1
+  io.to_mmu.estat := csr_estat
 }
