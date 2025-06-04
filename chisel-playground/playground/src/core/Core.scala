@@ -84,6 +84,8 @@ class Core extends Module {
   val csr = Module(new CSR)
 
   val bpu = Module(new BPU)
+
+  val mmu = Module(new MMU)
   for(i <- 0 until 4) {
     bpu.io.pc(i) := If.io.out.bits(i).pc
   }
@@ -330,6 +332,21 @@ class Core extends Module {
   csr.io.exceptionInfo <> rob.io.exceptionInfo
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
+  // mmu <=> csr
+  csr.io.from_mmu <> mmu.io.to_csr
+  csr.io.to_mmu <> mmu.io.from_csr
+
+// FIXME: mmu io is empty!
+  mmu.io.in0 := DontCare
+  mmu.io.in1 := DontCare
+  mmu.io.flush := DontCare
+  mmu.io.w := DontCare
+  mmu.io.wen := DontCare
+  mmu.io.w_index := DontCare
+  mmu.io.r_index := DontCare
+  mmu.io.tlb_inst := DontCare
+  mmu.io.out0.ready := true.B
+  mmu.io.out1.ready := true.B
 
   rob.io.plv := csr.io.plv
 

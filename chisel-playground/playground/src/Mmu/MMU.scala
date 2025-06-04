@@ -218,7 +218,6 @@ class TLB extends Module {
         io.to_csr.inst_type := TlbOp.srch
         io.to_csr.tlb_hit := temp_hit_vec.asUInt.orR
         io.to_csr.tlb_idx := temp_hit_index
-        io.to_csr.tlb_entry := tlb(temp_hit_index)
       }
       is(TlbOp.rd) {
         io.to_csr.wen := true.B

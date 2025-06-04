@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 import core.FuType.csr
+import java.awt.BufferCapabilities.FlipContents
 
 
 object CSROpType {
@@ -94,6 +95,7 @@ class CSR extends Module {
     val difftest = Output(new DiffCSRBundle)
 
     val to_mmu = Flipped(new CsrToMmuBundle)
+    val from_mmu = Flipped(new MmuToCsrBundle)
   })
   val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
   val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
@@ -315,6 +317,7 @@ class CSR extends Module {
     }
   }
 
+// to mmu
   io.to_mmu.asid := csr_asid
   io.to_mmu.crmd := csr_crmd
   io.to_mmu.dmw0 := csr_dmw0
@@ -324,4 +327,52 @@ class CSR extends Module {
   io.to_mmu.tlbelo0 := csr_tlbel0
   io.to_mmu.tlbelo1 := csr_tlbel1
   io.to_mmu.estat := csr_estat
+// from mmu
+  when(io.from_mmu.wen) {
+    switch(io.from_mmu.inst_type) {
+      is(TlbOp.srch) {
+        when(io.from_mmu.tlb_hit) {
+          csr_tlbidx.ne := 0.U
+          csr_tlbidx.idx := io.from_mmu.tlb_idx
+        }.otherwise {
+          csr_tlbidx.ne := 1.U
+        }
+      }
+      is(TlbOp.rd) {
+        when(io.from_mmu.tlb_entry.e.asBool) {
+          csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
+
+          csr_tlbel0.ppn := io.from_mmu.tlb_entry.ppn0
+          csr_tlbel0.g := io.from_mmu.tlb_entry.g
+          csr_tlbel0.mat := io.from_mmu.tlb_entry.mat0
+          csr_tlbel0.plv := io.from_mmu.tlb_entry.plv0
+          csr_tlbel0.d := io.from_mmu.tlb_entry.d0
+          csr_tlbel0.v := io.from_mmu.tlb_entry.v0
+
+          csr_tlbel1.ppn := io.from_mmu.tlb_entry.ppn1
+          csr_tlbel1.g := io.from_mmu.tlb_entry.g
+          csr_tlbel1.mat := io.from_mmu.tlb_entry.mat1
+          csr_tlbel1.plv := io.from_mmu.tlb_entry.plv1
+          csr_tlbel1.d := io.from_mmu.tlb_entry.d1
+          csr_tlbel1.v := io.from_mmu.tlb_entry.v1
+        }.otherwise {
+          csr_tlbidx.ne := 1.U
+          csr_tlbehi.vppn := 0.U
+          csr_tlbel0.ppn := 0.U
+          csr_tlbel0.g := 0.U
+          csr_tlbel0.mat := 0.U
+          csr_tlbel0.plv := 0.U
+          csr_tlbel0.d := 0.U
+          csr_tlbel0.v := 0.U
+
+          csr_tlbel1.ppn := 0.U
+          csr_tlbel1.g := 0.U
+          csr_tlbel1.mat := 0.U
+          csr_tlbel1.plv := 0.U
+          csr_tlbel1.d := 0.U
+          csr_tlbel1.v := 0.U
+        }
+      }
+    }
+  }
 }
