@@ -13,7 +13,7 @@ class Decoder extends Module {
 
     // val hasInstr = Wire(Bool())
     val instr = io.in.bits.instr
-    val immType :: fuType :: fuOpType :: src1Type :: src2Type :: srcIsRd :: dest :: rfWen :: isLegal :: csrOp :: Nil = 
+    val immType :: fuType :: fuOpType :: src1Type :: src2Type :: srcIsRd :: dest :: rfWen :: isLegal :: csrOp :: tlbOp :: Nil = 
         ListLookup(instr, Instructions.DecodeDefault, Instructions.DecodeTable)
     io.out.bits := DontCare
 
@@ -79,6 +79,8 @@ class Decoder extends Module {
     // for csr
     io.out.bits.ctrl.csrOp := csrOp
     io.out.bits.ctrl.csrNum := instr(23, 10)
+
+    io.out.bits.ctrl.tlbOp := tlbOp
     
     //output signals 
     io.out.valid := io.in.valid

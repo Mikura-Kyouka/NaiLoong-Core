@@ -66,11 +66,12 @@ object CSROp {
 }
 
 object TlbOp {
-  def rd = "b000".U
-  def wr = "b001".U
-  def srch = "b010".U
-  def fill = "b011".U
-  def inv = "b100".U
+  def nop = "b000".U
+  def rd = "b001".U
+  def wr = "b010".U
+  def srch = "b011".U
+  def fill = "b100".U
+  def inv = "b101".U
   def apply() = UInt(3.W)
 }
 
@@ -98,6 +99,6 @@ object FuOpType {
 
 object Instructions {
   def NOP = 0x03400000.U   // andi r0, r0, 0
-  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n, CSROp.nop)  
+  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n, CSROp.nop, TlbOp.nop)  
   def DecodeTable = Inst.table
 }

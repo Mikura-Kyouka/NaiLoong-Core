@@ -20,6 +20,7 @@ class CtrlSignalIO extends Bundle {
   val srcIsRd = Output(Bool()) // src2 is rd
   val csrOp = Output(UInt(3.W)) // csr operation
   val csrNum = Output(UInt(14.W))
+  val tlbOp = Output(TlbOp()) // TLB operation
 }
 
 class DataSrcIO extends Bundle {
