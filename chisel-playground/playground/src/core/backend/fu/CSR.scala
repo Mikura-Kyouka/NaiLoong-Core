@@ -301,17 +301,38 @@ class CSR extends Module {
     csr_crmd.ie := 0.U
 
     csr_era := io.exceptionInfo.exceptionPC
-    csr_estat.ecode := 11.U                    // FIXME: workaround for syscall
+    csr_estat.ecode := io.exceptionInfo.cause
     csr_estat.esubcode := 0.U
   }
   io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
   io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
-  io.exceptionInfo.cause := csr_estat.ecode
+  io.exceptionInfo.cause := MuxLookup(
+    io.exceptionInfo.exceptionVec.asUInt,
+    60.U) {                         // 60 无效                  
+    Seq(
+      "b0000000000000001".U -> 0.U, // 中断             0
+      "b0000000000000010".U -> 8.U, // 取指地址错        1
+      "b0000000000000100".U -> 63.U, // TLB 重填        2
+      "b0000000000001000".U -> 3.U, // 取指操作页无效     3
+      "b0000000000010000".U -> 7.U, // 页特权等级不合规   4      
+      "b0000000000100000".U -> 11.U, // 系统调用         5
+      "b0000000001000000".U -> 12.U, // 断点            6
+      "b0000000010000000".U -> 13.U, // 指令不存在       7
+      "b0000000100000000".U -> 14.U, // 指令特权等级错    8
+      "b0000001000000000".U -> 9.U, // 地址非对齐        9
+      "b0000010000000000".U -> 60.U, // ERET           10
+      "b0000100000000000".U -> 63.U, // TLB 重填       11
+      "b0001000000000000".U -> 4.U, // 页修改          12
+      "b0010000000000000".U -> 7.U, // 页特权等级不合规  13
+      "b0100000000000000".U -> 2.U, // store 操作页无效 14
+      "b1000000000000000".U -> 1.U  // load 操作页无效  15
+    )
+  }
 
   when(io.exceptionInfo.eret) {
     csr_crmd.plv := csr_prmd.pplv
     csr_crmd.ie := csr_prmd.pie
-    io.exceptionInfo.exceptionNewPC := csr_era // or csr_era + 4.U ?
+    io.exceptionInfo.exceptionNewPC := csr_era
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }

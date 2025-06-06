@@ -354,6 +354,26 @@ class Rob extends Module {
                            io.exceptionInfo.exceptionInst === "b00000110010010000011100000000000".U  // FIXME: ugly hardcode
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
+  //excp_ine 
+    /*
+    exceptionVec[0]  int
+                [1]  adef
+                [2]  tlbr    |inst tlb exceptions
+                [3]  pif     |
+                [4]  ppi     |
+                [5]  syscall
+                [6]  brk
+                [7]  ine
+                [8]  ipe
+                [9]  ale
+                [10] ertn
+                [11] tlbr    |
+                [12] pme     |data tlb exceptions
+                [13] ppi     |
+                [14] pis     |
+                [15] pil     |
+    */
+
   val commitNum = PopCount(io.commitInstr.map(_.valid))
 
   // 更新头指针

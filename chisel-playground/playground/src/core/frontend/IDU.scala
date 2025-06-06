@@ -115,6 +115,7 @@ class Decoder extends Module {
                 [15] pil     |
     */
     io.out.bits.cf.exceptionVec(5) := csrOp === CSROp.syscall
+    io.out.bits.cf.exceptionVec(6) := instr(31, 15) === "b00000000001010100".U  // brk
     io.out.bits.cf.exceptionVec(10) := csrOp === CSROp.ertn
 }
 
