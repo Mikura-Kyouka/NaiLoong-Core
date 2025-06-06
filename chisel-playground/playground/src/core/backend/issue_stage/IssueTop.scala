@@ -73,12 +73,15 @@ class IssueTop extends Module {
       }
     }
   }
+  
+  when(io.flush) {
+    for(i <- 0 until PHYS_REG_NUM) {
+      busyreg(i) := false.B
+    }
+  }
 
   // retire inst
   for(i <- 0 until 4) { // busyreg update
-    // when(io.out(i).valid && io.out(i).ready && io.out(i).bits.preg =/= 0.U) {
-    //   busyreg(io.out(i).bits.preg) := true.B
-    // }
     // fu output update
     when(io.rtrInstr(i).valid) {
       busyreg(io.rtrInstr(i).bits.preg) := false.B

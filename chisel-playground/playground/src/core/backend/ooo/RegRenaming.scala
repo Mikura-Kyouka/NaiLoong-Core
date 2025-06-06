@@ -22,6 +22,7 @@ class Rename extends Module {
     val exception = Input(Bool())
     val robAllocate = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
+    val flush = Input(Bool())
   })
   
   val regRenaming = Module(new RegRenaming)
@@ -36,6 +37,7 @@ class Rename extends Module {
   io.out.valid := regRenaming.io.out.valid
   regRenaming.io.brMispredict := io.brMispredict
   regRenaming.io.exception := io.exception
+  regRenaming.io.flush := io.flush
 
   for (i <- 0 until 4) {
     regRenaming.io.in.bits(i).ctrl := io.in.bits(i).ctrl
@@ -118,6 +120,7 @@ class RegRenaming extends Module {
     val exception    = Input(Bool())
     val robAllocate  = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
+    val flush = Input(Bool())
   })
 
   val arf = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
@@ -434,7 +437,7 @@ class RegRenaming extends Module {
   }
 
   // 分支预测错误/异常回滚
-  when(io.brMispredict.brMisPred.valid || io.exception) {
+  when(io.flush) {
     // val checkpoint_id = io.brMispredict.brMisPredChkpt
     // val ratSnapshot = checkpointRAT(checkpoint_id)
     // rat := ratSnapshot

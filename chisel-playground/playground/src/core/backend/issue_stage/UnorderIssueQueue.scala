@@ -100,6 +100,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   when(io.flush) {
     for (i <- 0 until QUEUE_SIZE.toInt) {
       next_valid_vec(i) := false.B
+      next_mem(i).valid := false.B
     }
   }
 

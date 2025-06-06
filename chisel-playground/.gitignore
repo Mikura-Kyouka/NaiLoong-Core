@@ -4,3 +4,4 @@ out/
 .bloop/
 build/
 !./
+.mill-version

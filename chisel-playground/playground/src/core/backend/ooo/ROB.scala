@@ -125,6 +125,9 @@ class RobIO extends Bundle {
   val exceptionInfo = Flipped(new csr_excp_bundle)
 
   val plv = Input(UInt(2.W)) // 当前特权级
+
+  val flush = Output(Bool())
+  val newPC = Output(UInt(32.W))
   
   // 调试接口
   // val debug = Output(new Bundle {
@@ -224,10 +227,10 @@ class Rob extends Module {
       canCommit(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished &&
                       canCommit(i-1)
     }
-    hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).finished && robEntries(commitIdx).inst_valid &&
-                    robEntries(commitIdx).csrOp =/= CSROp.nop
+    hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
+                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
-                      robEntries(commitIdx).finished && robEntries(commitIdx).exception
+                       canCommit(i) && robEntries(commitIdx).exception
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
   }
   
@@ -249,6 +252,8 @@ class Rob extends Module {
 
   val brMisPred = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
+
+  val minIdx = Wire(UInt(2.W))
 
   io.brMisPredInfo.brMisPred.valid := brMisPred
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
@@ -283,7 +288,7 @@ class Rob extends Module {
     val temp0 = Mux(valids(0), candidates(0), 3.U)
     val temp1 = Mux(valids(1) && candidates(1) < temp0, candidates(1), temp0)
     val temp2 = Mux(valids(2) && candidates(2) < temp1, candidates(2), temp1)
-    val minIdx = temp2
+    minIdx := temp2
 
     // 是否存在至少一个特殊 commit
     val hasSpecialCommit = valids.reduce(_ || _)
@@ -357,10 +362,9 @@ class Rob extends Module {
     head := nextHead
   }
 
-  // 分支预测错误时，需要将tail回滚到head+x的位置
-  when (brMisPred && exception && brMisPredIdx < exceptionIdx || brMisPred && !exception) {
+  when (exception || brMisPred || csrWrite) {
     // 回滚ROB尾指针
-    val rollbackTail = (head +& brMisPredIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
     // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
@@ -371,17 +375,9 @@ class Rob extends Module {
     }
   }
 
-  // 出现异常时，需要将tail回滚到head+x的位置
-  when (exception && brMisPred && exceptionIdx < brMisPredIdx || exception && !brMisPred) {
-    // 回滚ROB尾指针
-    val rollbackTail = (head +& exceptionIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
-    tail := rollbackTail
-    // 清除所有在tail之后的条目
-    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
-      val idx = i.U
-      when (isAfter(idx, rollbackTail, nextHead)) {
-        robEntries(idx).valid := false.B
-      }
-    }
-  }
+  io.flush := exception || brMisPred || csrWrite
+  val flushEntry = robEntries(head +& minIdx)
+  io.newPC := Mux(flushEntry.exception, io.exceptionInfo.exceptionNewPC, 
+                  Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
+                      flushEntry.pc + 4.U))
 }

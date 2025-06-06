@@ -86,6 +86,7 @@ class Core extends Module {
   val bpu = Module(new BPU)
 
   val mmu = Module(new MMU)
+  
   for(i <- 0 until 4) {
     bpu.io.pc(i) := If.io.out.bits(i).pc
   }
@@ -95,7 +96,7 @@ class Core extends Module {
   bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
   dontTouch(bpu.io)
 
-  val flush = rob.io.brMisPredInfo.brMisPred.valid || rob.io.exceptionInfo.valid
+  val flush = rob.io.flush
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, flush)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, flush)
@@ -252,7 +253,7 @@ class Core extends Module {
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
   If.io.flush := flush
-  If.io.dnpc := Mux(rob.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
+  If.io.dnpc := rob.io.newPC
   If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)
@@ -324,8 +325,9 @@ class Core extends Module {
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
-
   Rn.io.exception := rob.io.exceptionInfo.valid
+
+  Rn.io.flush := flush
 
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
@@ -336,7 +338,7 @@ class Core extends Module {
   csr.io.from_mmu <> mmu.io.to_csr
   csr.io.to_mmu <> mmu.io.from_csr
 
-// FIXME: mmu io is empty!
+  // FIXME: mmu io is empty!
   mmu.io.in0 := DontCare
   mmu.io.in1 := DontCare
   mmu.io.flush := DontCare
