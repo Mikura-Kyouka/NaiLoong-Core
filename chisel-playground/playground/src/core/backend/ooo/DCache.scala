@@ -90,6 +90,9 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val req = Flipped(Decoupled(new reqBundle))
         val resp = Valid(new respBundle)
         val axi = new AXI
+        val RobLsuIn  = Flipped(DecoupledIO())
+        val RobLsuOut = DecoupledIO()
+        val flush = Input(Bool())
     })
     val req = io.req.bits
     val resp = Wire(new respBundle)
@@ -139,11 +142,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), s_idle),
-        s_judge -> Mux(hit, Mux(req.cmd, s_write_cache, s_read_cache), Mux(dirty, s_write_mem1, s_read_mem1)),
+        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge), s_idle)),
+        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), s_wait_rob)),
+        s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
@@ -157,6 +161,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
+    // 通知 ROB: Store 指令已经退休
+    io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
+    io.RobLsuIn.ready := state === s_wait_rob
+
     val cacheData = dataArray(addr.index)(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1

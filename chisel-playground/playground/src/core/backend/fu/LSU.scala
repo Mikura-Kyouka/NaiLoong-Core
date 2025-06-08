@@ -88,12 +88,14 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val wdata = Input(UInt(32.W))
   val diffData = Output(UInt(32.W))
   val dmem = new AXI
-  val robRetire = Input(Bool()) // Store insts
+  val RobLsuIn  = Flipped(DecoupledIO())
+  val RobLsuOut = DecoupledIO()
   val complete = Output(Bool()) // tell ROB to commit inst
   val isMMIO = Output(Bool())
   val dtlbPF = Output(Bool()) // TODO: refactor it for new backend
   val loadAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
   val storeAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
+  val flush = Input(Bool())
 }
 
 class UnpipelinedLSU extends Module with HasLSUConst {
@@ -102,6 +104,9 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   val dcache = Module(new DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)))
   dcache.io.axi <> io.dmem
   dcache.io.req.valid := io.in.valid
+  dcache.io.RobLsuIn <> io.RobLsuIn
+  dcache.io.RobLsuOut <> io.RobLsuOut
+  dcache.io.flush := io.flush
   val addr =  io.in.bits.src1 + io.in.bits.src2
   dcache.io.req.bits.addr := addr
   dcache.io.req.bits.wdata := io.wdata
@@ -149,23 +154,25 @@ class AligendUnpipelinedLSU extends Module{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
     val lsAXI = new AXI
-    val robCommit = Input(new RobCommit)
+    // val robCommit = Input(Vec(4, Valid(new LSCommitInfo)))
+    val RobLsuIn  = Flipped(DecoupledIO())
+    val RobLsuOut = DecoupledIO()
+    val flush = Input(Bool())
   })
   val lsu = Module(new UnpipelinedLSU)
-
   // load
   io.out.valid := lsu.io.complete
 
   // store
-  val commitIdx = io.robCommit.commit.map(_.valid)
-  val commitDatas = io.robCommit.commit.map(_.bits)
-  lsu.io.robRetire := commitIdx.reduce(_ || _)
-  // lsu.io.wdata := PriorityMux(commitIdx, commitDatas).data
+  lsu.io.RobLsuIn <> io.RobLsuIn
+  lsu.io.RobLsuOut <> io.RobLsuOut
+
   lsu.io.wdata := io.in.bits.src2
 
   lsu.io.dmem <> io.lsAXI
   lsu.io.dtlbPF := DontCare
   lsu.io.isMMIO := DontCare
+  lsu.io.flush := io.flush
 
   lsu.io.loadAddrMisaligned := DontCare
   lsu.io.storeAddrMisaligned := DontCare

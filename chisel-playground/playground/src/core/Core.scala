@@ -317,9 +317,11 @@ class Core extends Module {
   Rn.io.robAllocate <> rob.io.allocate
 
   // lsu <=> rob
-  Ex.io.robCommit := rob.io.commit
-  // lsu <=> rob
-  Ex.io.robCommit := rob.io.commit
+  Ex.io.robCommit := rob.io.commitLS
+  Ex.io.RobLsuIn <> rob.io.RobLsuOut
+  Ex.io.RobLsuOut <> rob.io.RobLsuIn
+  Ex.io.flush := flush
+
   // arf and rat update
   Rn.io.rob <> rob.io.commit
 

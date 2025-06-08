@@ -272,6 +272,7 @@ class RegRenaming extends Module {
     entry.rd := rd
     entry.rfWen := rfWen
     entry.isBranch := input.isBranch
+    entry.isStore := (input.ctrl.fuType === FuType.lsu && LSUOpType.isStore(input.ctrl.fuOpType))
     entry.checkpoint.valid := input.checkpoint.needSave
     entry.checkpoint.id := input.checkpoint.id
     entry.fuType := input.ctrl.fuType
