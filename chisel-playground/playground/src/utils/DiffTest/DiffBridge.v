@@ -137,6 +137,17 @@ module DiffBridge(
   input [63:0] CSR_26
 );
 
+DifftestExcpEvent DifftestExcpEvent(
+  .clock              (clock          ),
+  .coreid             (coreid         ),
+  .excp_valid         (excp_valid     ),
+  .eret               (eret           ),
+  .intrNo             (intrNo         ),
+  .cause              (cause          ),
+  .exceptionPC        (exceptionPC    ),
+  .exceptionInst      (exceptionInst  )
+);
+
 DifftestInstrCommit DifftestInstrCommit_0(
   .clock              (clock          ),
   .coreid             (coreid         ),
