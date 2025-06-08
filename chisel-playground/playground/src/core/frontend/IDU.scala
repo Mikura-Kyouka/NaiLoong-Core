@@ -107,7 +107,7 @@ class Decoder extends Module {
                 [7]  ine
                 [8]  ipe
                 [9]  ale
-                [10] ertn
+                [10] 
                 [11] tlbr    |
                 [12] pme     |data tlb exceptions
                 [13] ppi     |
@@ -116,7 +116,6 @@ class Decoder extends Module {
     */
     io.out.bits.cf.exceptionVec(5) := csrOp === CSROp.syscall
     io.out.bits.cf.exceptionVec(6) := instr(31, 15) === "b00000000001010100".U  // brk
-    io.out.bits.cf.exceptionVec(10) := csrOp === CSROp.ertn
 }
 
 class IDU extends Module {

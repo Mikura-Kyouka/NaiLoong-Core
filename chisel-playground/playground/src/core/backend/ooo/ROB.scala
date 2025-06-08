@@ -405,7 +405,7 @@ class Rob extends Module {
                 [15] pil     |
     */
 
-  val commitNum = PopCount(io.commitInstr.map(_.valid))
+  val commitNum = PopCount(hasCommit)
 
   // 更新头指针
   val nextHead = (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
