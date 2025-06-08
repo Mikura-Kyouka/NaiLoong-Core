@@ -180,6 +180,7 @@ class AligendALU extends Module{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
     val csrRead = Flipped(new csr_read_bundle)
+    val markIntrpt = Input(Bool())
   })
   
   dontTouch(io.in.bits)
@@ -206,7 +207,7 @@ class AligendALU extends Module{
   io.in.ready := alu.io.in.ready
   io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
-  io.out.bits.exceptionVec := io.in.bits.exceptionVec.asUInt
+  io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
 
   // for difftest
   io.out.bits.paddr := DontCare

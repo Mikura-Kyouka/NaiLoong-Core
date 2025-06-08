@@ -336,6 +336,7 @@ class Core extends Module {
   csr.io.exceptionInfo <> rob.io.exceptionInfo
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
+  Ex.io.markIntrpt := csr.io.markIntrpt
   // mmu <=> csr
   csr.io.from_mmu <> mmu.io.to_csr
   csr.io.to_mmu <> mmu.io.from_csr
@@ -361,11 +362,13 @@ class Core extends Module {
     val diffValids = VecInit((0 until 4).map { i =>
       rob.io.commitInstr(i).valid && rob.io.commit.commit(i).bits.inst_valid
     })
-    val diffPCs    = VecInit((0 until 4).map(i => rob.io.commitPC(i).bits))
-    val diffInsts  = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits))
-    val diffDests  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.dest))
-    val diffDatas  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.data))
-    val diffWens   = diffDests.map(_ =/= 0.U)
+    val diffPCs       = VecInit((0 until 4).map(i => rob.io.commitPC(i).bits))
+    val diffInsts     = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits))
+    val diffDests     = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.dest))
+    val diffDatas     = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.data))
+    val diffcsr_rstat = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_rstat))
+    val diffcsr_data  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_data))
+    val diffWens      = diffDests.map(_ =/= 0.U)
 
     // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
     //    prefixSum(0)=0, prefixSum(1)=valid(0), prefixSum(2)=valid(0)+valid(1), ...
@@ -387,18 +390,17 @@ class Core extends Module {
       // 用 Mux1H 实现 one-hot 选择
       DiffCommit.io.instr(k).pc    := Mux1H(sel.zip(diffPCs))
       DiffCommit.io.instr(k).instr := Mux1H(sel.zip(diffInsts))
-      DiffCommit.io.instr(k).wdest  := Mux1H(sel.zip(diffDests))
-      DiffCommit.io.instr(k).wdata  := Mux1H(sel.zip(diffDatas))
-      DiffCommit.io.instr(k).wen    := Mux1H(sel.zip(diffWens))
+      DiffCommit.io.instr(k).wdest := Mux1H(sel.zip(diffDests))
+      DiffCommit.io.instr(k).wdata := Mux1H(sel.zip(diffDatas))
+      DiffCommit.io.instr(k).wen   := Mux1H(sel.zip(diffWens))
 
-      // 其它字段保持 DontCare（或你原来写的那套赋值）
       DiffCommit.io.instr(k).skip          := DontCare
       DiffCommit.io.instr(k).is_TLBFILL    := DontCare
       DiffCommit.io.instr(k).TLBFILL_index := DontCare
       DiffCommit.io.instr(k).is_CNTinst    := DontCare
       DiffCommit.io.instr(k).timer_64_value:= DontCare
-      DiffCommit.io.instr(k).csr_rstat     := DontCare
-      DiffCommit.io.instr(k).csr_data      := DontCare
+      DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
+      DiffCommit.io.instr(k).csr_data      := Mux1H(sel.zip(diffcsr_data))
 
       DiffCommit.io.excp.excp_valid := rob.io.exceptionInfo.valid
       DiffCommit.io.excp.eret := csr.io.exceptionInfo.eret

@@ -95,7 +95,7 @@ class DiffCommit extends Module {
 
   DiffBridge.io.excp_valid := RegNext(io.excp.excp_valid, 0.U)
   DiffBridge.io.eret := RegNext(io.excp.eret, 0.U)
-  DiffBridge.io.intrNo := io.excp.intrNo
+  DiffBridge.io.intrNo := io.csr.csr_estat(12, 2) // csr_estat[12:2] -> intrNo
   DiffBridge.io.cause := RegNext(io.excp.cause, 0.U)
   DiffBridge.io.exceptionPC := RegNext(io.excp.exceptionPC, 0.U)
   DiffBridge.io.exceptionInst := RegNext(io.excp.exceptionInst, 0.U)

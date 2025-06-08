@@ -17,6 +17,7 @@ class Execute extends Module {
     val flush = Input(Bool())
 
     val csrRead = Flipped(Vec(2, new csr_read_bundle))
+    val markIntrpt = Input(Bool())
   })
 
   val alu1 = Module(new AligendALU)
@@ -48,4 +49,8 @@ class Execute extends Module {
   io.csrRead(0) <> alu1.io.csrRead
   io.csrRead(1) <> alu2.io.csrRead 
   bru.io.csrRead := DontCare
+  // FIXME: mdu and lsu
+  bru.io.markIntrpt := io.markIntrpt
+  alu1.io.markIntrpt := io.markIntrpt
+  alu2.io.markIntrpt := io.markIntrpt
 }

@@ -92,6 +92,7 @@ class CSR extends Module {
     val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
+    val markIntrpt = Output(Bool())
     val difftest = Output(new DiffCSRBundle)
 
     val to_mmu = Flipped(new CsrToMmuBundle)
@@ -120,13 +121,29 @@ class CSR extends Module {
   val csr_tcfg = RegInit(0.U.asTypeOf(new csr_tcfg_bundle))
   val csr_tval = RegInit(0.U(32.W))
   val csr_cntc = RegInit(0.U(32.W))
-  val csr_ticlr = RegInit(0.U(32.W))
+  val csr_ticlr = RegInit(0.U(1.W))
   val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
   val csr_tlbrentry = RegInit(0.U.asTypeOf(new csr_tlbrentry_bundle))
   val csr_dmw0 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val timer64 = RegInit(0.U(64.W))
   timer64 := timer64 + 1.U
+
+  val ti_en = RegInit(0.U(1.W)) // 真正的定时器使能标志
+
+  when(ti_en === 1.U) {
+    when(csr_tval === 0.U) {
+      when(csr_tcfg.periodic === 1.U) {
+        csr_tval := Cat(csr_tcfg.initval, 0.U(2.W)) // 重新加载定时器值
+      }.otherwise {
+        ti_en := 0.U
+      }
+      csr_estat.is11 := 1.U // 设置定时器中断标志
+    }.otherwise {
+      csr_tval := csr_tval - 1.U
+    }
+  }
+
   val debug_csr_crmd = csr_crmd.asUInt
   val debug_csr_prmd = csr_prmd.asUInt
   val debug_csr_ecfg = csr_ecfg.asUInt
@@ -244,7 +261,7 @@ class CSR extends Module {
       CsrName.TCFG  -> csr_tcfg.asUInt,
       CsrName.TVAL  -> csr_tval,
       CsrName.CNTC  -> csr_cntc,
-      CsrName.TICLR -> csr_ticlr,
+      CsrName.TICLR -> 0.U,
       CsrName.LLBCTL->csr_llbctl.asUInt,
       CsrName.TLBRENTRY->csr_tlbrentry.asUInt,
       CsrName.DMW0  ->csr_dmw0.asUInt,
@@ -264,6 +281,8 @@ class CSR extends Module {
         }
         is(CsrName.ECFG) {
           csr_ecfg := io.write(i).bits.csr_data.asTypeOf(new csr_ecfg_bundle)
+          csr_ecfg.zero10 := 0.U
+          csr_ecfg.zero31_13 := 0.U
         }
         is(CsrName.ESTAT) {
           csr_estat.is1_0 := io.write(i).bits.csr_data(1, 0)
@@ -289,23 +308,29 @@ class CSR extends Module {
         is(CsrName.SAVE3) {
           csr_save3 := io.write(i).bits.csr_data
         }
+        is(CsrName.TID) {
+          csr_tid := io.write(i).bits.csr_data
+        }
+        is(CsrName.TCFG) {
+          csr_tcfg := io.write(i).bits.csr_data.asTypeOf(new csr_tcfg_bundle)
+          when(io.write(i).bits.csr_data(0) === 1.U) {
+            ti_en := 1.U // 开启定时器
+            csr_tval := Cat(io.write(i).bits.csr_data(31, 2), 0.U(2.W))   // 初始化定时器值
+          }
+        }
+        is(CsrName.TICLR) {
+          csr_ticlr := io.write(i).bits.csr_data(0)
+          csr_estat.is12 := 0.U   // 清除定时器中断标志
+        }
       }
     }
   }
 
-  // 异常处理
-  when(io.exceptionInfo.valid && !io.exceptionInfo.eret) {
-    csr_prmd.pplv := csr_crmd.plv
-    csr_prmd.pie := csr_crmd.ie
-    csr_crmd.plv := 0.U
-    csr_crmd.ie := 0.U
+  // 中断处理
+  val int_vec = csr_ecfg.asUInt & csr_estat.asUInt
+  io.markIntrpt := csr_crmd.ie === 1.U && int_vec =/= 0.U
 
-    csr_era := io.exceptionInfo.exceptionPC
-    csr_estat.ecode := io.exceptionInfo.cause
-    csr_estat.esubcode := 0.U
-  }
-  io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
-  io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
+  // 异常处理
   io.exceptionInfo.cause := MuxLookup(
     io.exceptionInfo.exceptionVec.asUInt,
     60.U) {                         // 60 无效                  
@@ -328,6 +353,18 @@ class CSR extends Module {
       "b1000000000000000".U -> 1.U  // load 操作页无效  15
     )
   }
+  when(io.exceptionInfo.valid && !io.exceptionInfo.eret) {
+    csr_prmd.pplv := csr_crmd.plv
+    csr_prmd.pie := csr_crmd.ie
+    csr_crmd.plv := 0.U
+    csr_crmd.ie := 0.U
+
+    csr_era := io.exceptionInfo.exceptionPC
+    csr_estat.ecode := io.exceptionInfo.cause
+    csr_estat.esubcode := 0.U             // TODO: 异常子码
+  }
+  io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
+  io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
 
   when(io.exceptionInfo.eret) {
     csr_crmd.plv := csr_prmd.pplv

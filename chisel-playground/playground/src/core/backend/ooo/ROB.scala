@@ -81,6 +81,8 @@ class rtrBundle extends Bundle {
   val data = UInt(32.W)
   val inst_valid = Bool()
   val use_preg = Bool()
+  val csr_rstat = Bool()
+  val csr_data = UInt(32.W)
 
   // for bpu
   val isBranch = Bool()
@@ -303,6 +305,8 @@ class Rob extends Module {
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
     io.commit.commit(i).bits.use_preg := entry.use_preg
     io.commit.commit(i).bits.isBranch := entry.isBranch
+    io.commit.commit(i).bits.csr_rstat := (entry.csrOp === CSROp.rd || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.wr) && entry.csrNum === 5.U
+    io.commit.commit(i).bits.csr_data := entry.result
     
     // 提交PC信息
     io.commitPC(i).valid := hasCommit(i) && entry.inst_valid
