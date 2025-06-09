@@ -102,12 +102,19 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   val io = IO(new UnpipeLSUIO)
   io := DontCare
   val dcache = Module(new DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)))
+
+  val addr =  io.in.bits.src1 + io.in.bits.src2
+  io.loadAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.lw ||
+                          addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.lh ||
+                          addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.lhu
+  io.storeAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.sw ||
+                            addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
+
   dcache.io.axi <> io.dmem
-  dcache.io.req.valid := io.in.valid
+  dcache.io.req.valid := io.in.valid && !io.loadAddrMisaligned && !io.storeAddrMisaligned
   dcache.io.RobLsuIn <> io.RobLsuIn
   dcache.io.RobLsuOut <> io.RobLsuOut
   dcache.io.flush := io.flush
-  val addr =  io.in.bits.src1 + io.in.bits.src2
   dcache.io.req.bits.addr := addr
   dcache.io.req.bits.wdata := io.wdata
   dcache.io.req.bits.wmask := MuxLookup(io.in.bits.func(1, 0), 0.U)(
@@ -127,7 +134,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io.diffData := diffData << (addr(1, 0) << 3)
   dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
   
-  io.out.valid := dcache.io.resp.valid
+  io.out.valid := dcache.io.resp.valid || (io.loadAddrMisaligned || io.storeAddrMisaligned) && io.in.valid
   val rdata = dcache.io.resp.bits.rdata
   /*
     def lb   = "b0000000".U
@@ -174,9 +181,6 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.isMMIO := DontCare
   lsu.io.flush := io.flush
 
-  lsu.io.loadAddrMisaligned := DontCare
-  lsu.io.storeAddrMisaligned := DontCare
-
   lsu.io.in.bits.src1 := io.in.bits.src1
   lsu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   lsu.io.in.bits.func := io.in.bits.ctrl.fuOpType
@@ -185,7 +189,11 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.pc := io.in.bits.pc
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
-  
+  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
+                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
+                         io.in.bits.exceptionVec.asUInt(8, 0)
+  )             
+  io.out.bits.exceptionVec := exceptionVec
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid

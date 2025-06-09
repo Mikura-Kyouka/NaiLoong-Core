@@ -195,7 +195,6 @@ class Rob extends Module {
     when (io.writeback(i).valid) {
       val idx = io.writeback(i).bits.robIdx
       robEntries(idx).finished     := true.B
-      // robEntries(idx).exception    := io.writeback(i).bits.exception
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
       robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
@@ -298,7 +297,7 @@ class Rob extends Module {
     shouldCommit(i) := Mux(hasSpecialCommit, i.U <= minIdx && canCommit(i), canCommit(i))
 
     // 物理寄存器回收信息
-    io.commit.commit(i).valid := hasCommit(i) && !entry.rfWen && entry.rd =/= 0.U
+    io.commit.commit(i).valid := hasCommit(i) && !entry.rfWen && entry.rd =/= 0.U && !entry.exceptionVec(9)  // 9: ALE异常
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
     io.commit.commit(i).bits.pc   := entry.pc
@@ -389,6 +388,7 @@ class Rob extends Module {
   io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
   io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
+  io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).paddr     // FIXME: 物理地址作为异常虚拟地址
 
   //excp_ine 
     /*

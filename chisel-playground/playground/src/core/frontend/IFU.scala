@@ -64,7 +64,7 @@ class IFU extends Module{
 
     val pc = Module(new PC())
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 4 * 16, ways = 1))) // Pipelined
-    io.out.valid := icache.io.out.valid && !io.flush // TODO
+    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
     pc.io.PCSrc := io.pcSel
     pc.io.dnpc := io.dnpc
     pc.io.stall :=  ~icache.io.s1Fire
@@ -77,7 +77,14 @@ class IFU extends Module{
     icache.io.flush := io.flush 
     icache.io.in.valid := io.out.ready && !io.flush // TODO
     // io.out.bits.inst := icache.io.out.bits.rdata
-    io.out.bits := icache.io.out.bits
+    val adef = Wire(new IFU2IDU)
+    adef.Valid := true.B
+    adef.pc := pc.io.pc
+    adef.inst := 0x03400000.U
+    io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, icache.io.out.bits(0))
+    io.out.bits(1) := icache.io.out.bits(1)
+    io.out.bits(2) := icache.io.out.bits(2)
+    io.out.bits(3) := icache.io.out.bits(3)
 }
 
 

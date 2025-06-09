@@ -326,28 +326,35 @@ class CSR extends Module {
   io.markIntrpt := csr_crmd.ie === 1.U && int_vec =/= 0.U
 
   // 异常处理
-  io.exceptionInfo.cause := MuxLookup(
-    io.exceptionInfo.exceptionVec.asUInt,
-    60.U) {                         // 60 无效                  
-    Seq(
-      "b0000000000000001".U -> 0.U, // 中断             0
-      "b0000000000000010".U -> 8.U, // 取指地址错        1
-      "b0000000000000100".U -> 63.U, // TLB 重填        2
-      "b0000000000001000".U -> 3.U, // 取指操作页无效     3
-      "b0000000000010000".U -> 7.U, // 页特权等级不合规   4      
-      "b0000000000100000".U -> 11.U, // 系统调用         5
-      "b0000000001000000".U -> 12.U, // 断点            6
-      "b0000000010000000".U -> 13.U, // 指令不存在       7
-      "b0000000100000000".U -> 14.U, // 指令特权等级错    8
-      "b0000001000000000".U -> 9.U, // 地址非对齐        9
-      "b0000010000000000".U -> 60.U, // ERET           10
-      "b0000100000000000".U -> 63.U, // TLB 重填       11
-      "b0001000000000000".U -> 4.U, // 页修改          12
-      "b0010000000000000".U -> 7.U, // 页特权等级不合规  13
-      "b0100000000000000".U -> 2.U, // store 操作页无效 14
-      "b1000000000000000".U -> 1.U  // load 操作页无效  15
-    )
-  }
+  val reversedVec = Reverse(io.exceptionInfo.exceptionVec.asUInt)
+  val exceptionIndex = PriorityEncoder(reversedVec)
+
+  // causeTable 的顺序对应 reversedVec 的位编号
+  val causeTable = Seq(
+    0.U  ->  1.U,  // 原本 bit 15：load 操作页无效
+    1.U  ->  2.U,  // 原本 bit 14：store 操作页无效
+    2.U  ->  7.U,  // 原本 bit 13：页特权等级错
+    3.U  ->  4.U,  // 原本 bit 12：页修改
+    4.U  -> 63.U,  // 原本 bit 11：TLB 重填
+    5.U  -> 60.U,  // 原本 bit 10：ERET
+    6.U  ->  9.U,  // 原本 bit 9：地址非对齐
+    7.U  -> 14.U,  // 原本 bit 8：指令特权等级错
+    8.U  -> 13.U,  // 原本 bit 7：指令不存在
+    9.U  -> 12.U,  // 原本 bit 6：断点
+    10.U  -> 11.U,  // 原本 bit 5：系统调用
+    11.U  ->  7.U,  // 原本 bit 4：页权限
+    12.U  ->  3.U,  // 原本 bit 3：取指页无效
+    13.U  -> 63.U,  // 原本 bit 2：TLB 重填
+    14.U  ->  8.U,  // 原本 bit 1：取指地址错
+    15.U  ->  0.U   // 原本 bit 0：中断
+  )
+
+  val defaultCause = 60.U
+  val hasException = io.exceptionInfo.exceptionVec.asUInt.orR
+  val cause = Mux(hasException, MuxLookup(exceptionIndex, defaultCause)(causeTable), defaultCause)
+
+  io.exceptionInfo.cause := cause
+
   when(io.exceptionInfo.valid && !io.exceptionInfo.eret) {
     csr_prmd.pplv := csr_crmd.plv
     csr_prmd.pie := csr_crmd.ie
@@ -357,6 +364,12 @@ class CSR extends Module {
     csr_era := io.exceptionInfo.exceptionPC
     csr_estat.ecode := io.exceptionInfo.cause
     csr_estat.esubcode := 0.U             // TODO: 异常子码
+    when(cause === 8.U) {
+      csr_badv := io.exceptionInfo.exceptionPC // 取指地址错
+    }
+    when(cause === 9.U) {
+      csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐
+    }
   }
   io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
   io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)

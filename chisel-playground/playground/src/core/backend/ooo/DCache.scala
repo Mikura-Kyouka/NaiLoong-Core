@@ -128,12 +128,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
     val hit = hitVec.orR
+    dontTouch(hit)
 
     // val dirtyHitVec = VecInit(
     //   metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
     // ).asUInt
     // val dirty = dirtyHitVec.orR
     val dirty = metaArray(addr.index)(0).dirty.asBool
+    dontTouch(dirty)
 
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
@@ -146,7 +148,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge), s_idle)),
-        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), s_wait_rob)),
+        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),

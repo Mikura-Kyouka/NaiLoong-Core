@@ -15,10 +15,11 @@ class PC extends Module {
   val io = IO(new PCIO)
   val pcReg = RegInit("h1c000000".U(32.W)) // TODO
   val snpc = Cat((pcReg + 16.U)(31, 4), 0.U(4.W))
-  when(io.PCSrc){
+  when(io.PCSrc) {
     pcReg := io.dnpc
   }.elsewhen(~io.stall){
     pcReg := snpc
   }
   io.pc := pcReg
+
 }

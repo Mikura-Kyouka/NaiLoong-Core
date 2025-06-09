@@ -114,10 +114,16 @@ class Decoder extends Module {
                 [14] pis     |
                 [15] pil     |
     */
-    io.out.bits.cf.exceptionVec(5) := csrOp === CSROp.syscall
-    io.out.bits.cf.exceptionVec(6) := instr(31, 15) === "b00000000001010100".U  // brk
+    when(io.in.bits.pc(1, 0) =/= 0.U) {
+        io.out.bits.cf.exceptionVec(1) := true.B // adef
+    }.elsewhen(isLegal === IsLegal.n) {
+        io.out.bits.cf.exceptionVec(7) := true.B // ine
+    }.elsewhen(instr(31, 15) === "b00000000001010100".U) {
+        io.out.bits.cf.exceptionVec(6) := true.B // brk
+    }.elsewhen(csrOp === CSROp.syscall) {
+        io.out.bits.cf.exceptionVec(5) := true.B // syscall
+    }
 }
-
 class IDU extends Module {
     val io = IO(new Bundle {
         // val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO))) //TODO: Temporarily 4-way

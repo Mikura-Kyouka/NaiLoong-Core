@@ -127,4 +127,5 @@ class csr_excp_bundle extends Bundle {
   val cause = Output(UInt(6.W)) // estat.ecode
   val exceptionVec = Input(UInt(16.W)) // 异常向量
   val exceptionNewPC = Output(UInt(32.W)) // 异常处理完成后返回的pc
+  val exceptionVAddr = Input(UInt(32.W)) // 异常发生的虚拟地址
 }
