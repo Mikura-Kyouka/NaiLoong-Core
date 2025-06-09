@@ -41,6 +41,7 @@ class RobEntry extends Bundle {
   val csrOp     = UInt(3.W)
   val csrNum    = UInt(14.W)
   val csrNewData = UInt(32.W)
+  val eret = Bool() 
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -83,6 +84,7 @@ class rtrBundle extends Bundle {
   val use_preg = Bool()
   val csr_rstat = Bool()
   val csr_data = UInt(32.W)
+  val excp = Bool()
 
   // for bpu
   val isBranch = Bool()
@@ -196,6 +198,7 @@ class Rob extends Module {
       // robEntries(idx).exception    := io.writeback(i).bits.exception
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
+      robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
       robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
       robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
       robEntries(idx).result       := io.writeback(i).bits.writeData
@@ -227,7 +230,7 @@ class Rob extends Module {
     hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
                     canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
-                       canCommit(i) && robEntries(commitIdx).exception
+                       canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i) && !hasBrMispred(i)
@@ -307,6 +310,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.isBranch := entry.isBranch
     io.commit.commit(i).bits.csr_rstat := (entry.csrOp === CSROp.rd || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.wr) && entry.csrNum === 5.U
     io.commit.commit(i).bits.csr_data := entry.result
+    io.commit.commit(i).bits.excp := entry.exceptionVec.orR
     
     // 提交PC信息
     io.commitPC(i).valid := hasCommit(i) && entry.inst_valid
@@ -378,11 +382,12 @@ class Rob extends Module {
   }
 
   // 提交异常信息
-  io.exceptionInfo.valid := exception && io.commitInstr(exceptionIdx).valid
+  val excpOReret = exception && io.commitInstr(exceptionIdx).valid
+  val eret = robEntries(head + exceptionIdx).eret && io.commitInstr(exceptionIdx).valid
+  io.exceptionInfo.valid := excpOReret && !eret
   io.exceptionInfo.exceptionPC := robEntries(head + exceptionIdx).pc
   io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
-  io.exceptionInfo.eret := io.exceptionInfo.valid && 
-                           io.exceptionInfo.exceptionInst === "b00000110010010000011100000000000".U  // FIXME: ugly hardcode
+  io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
 
   //excp_ine 
@@ -428,7 +433,7 @@ class Rob extends Module {
 
   io.flush := exception || brMisPred || csrWrite
   val flushEntry = robEntries(head +& minIdx)
-  io.newPC := Mux(flushEntry.exception, io.exceptionInfo.exceptionNewPC, 
+  io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
                       flushEntry.pc + 4.U))
 }

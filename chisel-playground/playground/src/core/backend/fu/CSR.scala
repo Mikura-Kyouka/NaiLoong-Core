@@ -119,7 +119,7 @@ class CSR extends Module {
   val csr_save3 = RegInit(0.U(32.W))
   val csr_tid = RegInit(0.U(32.W))
   val csr_tcfg = RegInit(0.U.asTypeOf(new csr_tcfg_bundle))
-  val csr_tval = RegInit(0.U(32.W))
+  val csr_tval = RegInit("hffffffff".U(32.W))
   val csr_cntc = RegInit(0.U(32.W))
   val csr_ticlr = RegInit(0.U(1.W))
   val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
@@ -129,19 +129,16 @@ class CSR extends Module {
   val timer64 = RegInit(0.U(64.W))
   timer64 := timer64 + 1.U
 
-  val ti_en = RegInit(0.U(1.W)) // 真正的定时器使能标志
-
-  when(ti_en === 1.U) {
-    when(csr_tval === 0.U) {
-      when(csr_tcfg.periodic === 1.U) {
-        csr_tval := Cat(csr_tcfg.initval, 0.U(2.W)) // 重新加载定时器值
-      }.otherwise {
-        ti_en := 0.U
-      }
-      csr_estat.is11 := 1.U // 设置定时器中断标志
+  when(csr_tcfg.en === 1.U && csr_tval =/= "hffffffff".U) {
+    when(csr_tval === 0.U && csr_tcfg.periodic === 1.U) {
+      csr_tval := Cat(csr_tcfg.initval, 0.U(2.W)) // 重新加载定时器值
     }.otherwise {
-      csr_tval := csr_tval - 1.U
+      csr_tval := csr_tval - 1.U 
     }
+  }
+
+  when(csr_tval === 0.U) {
+    csr_estat.is11 := 1.U // 设置定时器中断标志
   }
 
   val debug_csr_crmd = csr_crmd.asUInt
@@ -314,13 +311,11 @@ class CSR extends Module {
         is(CsrName.TCFG) {
           csr_tcfg := io.write(i).bits.csr_data.asTypeOf(new csr_tcfg_bundle)
           when(io.write(i).bits.csr_data(0) === 1.U) {
-            ti_en := 1.U // 开启定时器
             csr_tval := Cat(io.write(i).bits.csr_data(31, 2), 0.U(2.W))   // 初始化定时器值
           }
         }
         is(CsrName.TICLR) {
-          csr_ticlr := io.write(i).bits.csr_data(0)
-          csr_estat.is12 := 0.U   // 清除定时器中断标志
+          csr_estat.is11 := 0.U   // 清除定时器中断标志
         }
       }
     }

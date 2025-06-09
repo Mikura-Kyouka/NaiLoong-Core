@@ -284,6 +284,7 @@ class RegRenaming extends Module {
     entry.finished := DontCare
     entry.exception := DontCare
     entry.exceptionVec := DontCare
+    entry.eret := DontCare
     entry.intrVec := DontCare
     entry.brMispredict := DontCare
     entry.brTarget := DontCare

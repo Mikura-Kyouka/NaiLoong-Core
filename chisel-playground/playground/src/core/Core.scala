@@ -368,6 +368,7 @@ class Core extends Module {
     val diffDatas     = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.data))
     val diffcsr_rstat = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_rstat))
     val diffcsr_data  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_data))
+    val diffExcp      = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.excp))
     val diffWens      = diffDests.map(_ =/= 0.U)
 
     // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
@@ -385,7 +386,7 @@ class Core extends Module {
         diffValids(j) && (prefixSum(j) === k.U)
       })
       // 输出 valid
-      DiffCommit.io.instr(k).valid := sel.asUInt.orR
+      DiffCommit.io.instr(k).valid := sel.asUInt.orR && !Mux1H(sel.zip(diffExcp))
 
       // 用 Mux1H 实现 one-hot 选择
       DiffCommit.io.instr(k).pc    := Mux1H(sel.zip(diffPCs))
