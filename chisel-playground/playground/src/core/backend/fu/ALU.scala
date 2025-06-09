@@ -173,6 +173,7 @@ class FuOut extends Bundle {
   // for load/store difftest
   val paddr = Output(UInt(32.W))
   val wdata = Output(UInt(32.W))
+  val fuType = Output(UInt(7.W))
   val optype = Output(UInt(7.W))
 }
 class AligendALU extends Module{
@@ -212,5 +213,6 @@ class AligendALU extends Module{
   // for difftest
   io.out.bits.paddr := DontCare
   io.out.bits.wdata := DontCare
+  io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := DontCare
 } 

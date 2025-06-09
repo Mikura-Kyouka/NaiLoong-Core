@@ -53,4 +53,5 @@ class Execute extends Module {
   bru.io.markIntrpt := io.markIntrpt
   alu1.io.markIntrpt := io.markIntrpt
   alu2.io.markIntrpt := io.markIntrpt
+  mdu.io.flush := io.flush
 }

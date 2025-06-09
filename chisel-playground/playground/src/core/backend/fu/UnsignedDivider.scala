@@ -27,6 +27,7 @@ class UnsignedDividerBlackBox extends BlackBox {
 class UnsignedDivider extends Module {
   val io = IO(new Bundle {
     val aclk = Input(Clock())
+    val aresetn = Input(Bool())
 
     val s_axis_divisor_tdata  = Input(UInt(32.W))
     val s_axis_divisor_tready = Output(Bool())
@@ -110,5 +111,16 @@ class UnsignedDivider extends Module {
         }
       }
     }
+  }
+
+  when(io.aresetn === false.B) {
+    state := idle
+    dividend := 0.U
+    divisor := 0.U
+    quotient := 0.U
+    remainder := 0.U
+    latencyCounter := 0.U
+    gapCounter := 0.U
+    outputValid := false.B
   }
 }

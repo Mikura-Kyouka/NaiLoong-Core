@@ -299,7 +299,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
-    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid && Ex.io.in(i).bits.valid
+    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid
     rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
     rob.io.writeback(i).bits.csrNewData := Ex.io.out(i).bits.csrNewData
     rob.io.writeback(i).bits.exceptionVec := Ex.io.out(i).bits.exceptionVec
@@ -307,6 +307,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.paddr := Ex.io.out(i).bits.paddr
     rob.io.writeback(i).bits.wdata := Ex.io.out(i).bits.wdata
     rob.io.writeback(i).bits.optype := Ex.io.out(i).bits.optype
+    rob.io.writeback(i).bits.fuType := Ex.io.out(i).bits.fuType
 
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid

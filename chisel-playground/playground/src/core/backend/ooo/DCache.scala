@@ -64,7 +64,7 @@ sealed abstract class CacheModule(implicit cacheConfig: DCacheConfig)
 
 sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
-  val tag = Output(UInt(TagBits.W))
+  val tag = Output(UInt(TagBits.W))  // 26
   val valid = Output(UInt(1.W))
   val dirty = Output(UInt(1.W))
 
@@ -120,9 +120,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     }
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
-    // when(isMMIO){
-    //   printf("MMIO: %x, %x\n", req.addr, req.wdata)
-    // }
 
     val hitVec = VecInit(
       metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
@@ -130,10 +127,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val hit = hitVec.orR
     dontTouch(hit)
 
-    // val dirtyHitVec = VecInit(
-    //   metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U && m.dirty === 1.U)
-    // ).asUInt
-    // val dirty = dirtyHitVec.orR
     val dirty = metaArray(addr.index)(0).dirty.asBool
     dontTouch(dirty)
 
@@ -171,11 +164,17 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
     io.axi.araddr := req.addr
+    io.axi.arlen := 0.U
+    io.axi.arsize := "b010".U  // 32 bits
+    io.axi.arburst := "b01".U
     io.axi.rready := true.B
     // axi write chanel
-    val awaddr = Cat(addr.index, metaArray(addr.index)(0).tag, 0.U(2.W))
+    val awaddr = Cat(metaArray(addr.index)(0).tag, addr.index, 0.U(2.W))
     io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
+    io.axi.awlen := 0.U
+    io.axi.awsize := "b010".U  // 32 bits
+    io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := true.B
@@ -197,6 +196,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 新的数据寄存器
     val newWord = Wire(UInt(32.W))
     newWord := origWord // 默认保持原值
+    dontTouch(newWord)
 
     when(state === s_write_cache) {
       when(req.wmask === "b1111".U) {
@@ -205,9 +205,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         when(req.addr(1, 0) === "b00".U) {
           // 更新低半字
           newWord := Cat(origWord(31, 16), req.wdata(15, 0))
-        }.elsewhen(req.addr(1, 0) === "b01".U) {
-          // 假设此处的位拼接满足需求，请根据实际情况调整各个片段的宽度和位置
-          newWord := Cat(origWord(31, 24), req.wdata(15, 0), origWord(7, 0))
         }.elsewhen(req.addr(1, 0) === "b10".U) {
           // 更新高半字
           newWord := Cat(req.wdata(15, 0), origWord(15, 0))

@@ -119,9 +119,9 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   dcache.io.req.bits.wdata := io.wdata
   dcache.io.req.bits.wmask := MuxLookup(io.in.bits.func(1, 0), 0.U)(
     List(
-    "b00".U -> "b0001".U,
-    "b01".U -> "b0011".U,
-    "b10".U -> "b1111".U
+    "b00".U -> "b0001".U,  // sb
+    "b01".U -> "b0011".U,  // sh
+    "b10".U -> "b1111".U   // sw
     )
   )
   val diffData = MuxLookup(io.in.bits.func(1, 0), io.wdata)(
@@ -132,6 +132,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
     )
   )
   io.diffData := diffData << (addr(1, 0) << 3)
+  // 
   dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
   
   io.out.valid := dcache.io.resp.valid || (io.loadAddrMisaligned || io.storeAddrMisaligned) && io.in.valid
@@ -196,12 +197,13 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.exceptionVec := exceptionVec
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
-  io.out.valid := lsu.io.out.valid
+  io.out.valid := lsu.io.out.valid || (io.in.valid && io.in.bits.valid && LSUOpType.isStore(io.in.bits.ctrl.fuOpType))
   lsu.io.out.ready := io.out.ready
 
   // for difftest
   io.out.bits.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   io.out.bits.wdata := lsu.io.diffData
+  io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := io.in.bits.ctrl.fuOpType
 } 
 

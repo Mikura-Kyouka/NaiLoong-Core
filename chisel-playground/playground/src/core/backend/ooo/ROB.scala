@@ -72,6 +72,7 @@ class RobWritebackInfo extends Bundle {
   // for load/store difftest
   val paddr       = UInt(32.W)
   val wdata       = UInt(32.W)
+  val fuType      = UInt(3.W)
   val optype      = UInt(7.W)
 }
 
@@ -203,6 +204,7 @@ class Rob extends Module {
       robEntries(idx).result       := io.writeback(i).bits.writeData
       robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
       // for load/store difftest
+      robEntries(idx).fuType       := io.writeback(i).bits.fuType
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
       robEntries(idx).optype       := io.writeback(i).bits.optype
@@ -220,10 +222,10 @@ class Rob extends Module {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
       val preHasCommit = !robEntries(commitIdx - 1.U).valid
-      canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished || robEntries(commitIdx).isStore) &&
+      canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
                       preHasCommit
     } else {
-      canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished || robEntries(commitIdx).isStore) &&
+      canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
     }
     hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
@@ -326,7 +328,7 @@ class Rob extends Module {
     io.commitCSR(i).bits.csr_data := entry.csrNewData
 
     // for load/store difftest
-    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid
+    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype

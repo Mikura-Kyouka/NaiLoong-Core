@@ -40,6 +40,7 @@ class AlignedMDU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
+    val flush = Input(Bool())
   })
   val mdu = Module(new MDU)
   mdu.io := DontCare
@@ -71,6 +72,7 @@ class AlignedMDU extends Module{
     val udiv = Module(new UnsignedDivider)
 
     sdiv.io.aclk := clock
+    sdiv.io.aresetn := !io.flush
     sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
     sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
     sdiv.io.s_axis_dividend_tvalid := false.B
@@ -78,6 +80,7 @@ class AlignedMDU extends Module{
     sdiv.io.m_axis_dout_tready := false.B
 
     udiv.io.aclk := clock
+    udiv.io.aresetn := !io.flush
     udiv.io.s_axis_dividend_tdata := io.in.bits.src1
     udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
     udiv.io.s_axis_dividend_tvalid := false.B
@@ -176,6 +179,19 @@ class AlignedMDU extends Module{
     udiv.io.s_axis_dividend_tvalid := udiv_dividend_tvalid
     udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
     udiv.io.m_axis_dout_tready := udiv_dout_tready
+
+    when(io.flush) {
+      state_s := idle
+      state_u := idle
+      out_valid := false.B
+      in_ready := true.B
+      sdiv_dividend_tvalid := false.B
+      sdiv_divisor_tvalid := false.B
+      sdiv_dout_tready := false.B
+      udiv_dividend_tvalid := false.B
+      udiv_divisor_tvalid := false.B
+      udiv_dout_tready := false.B
+    }
 
     io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
       MDUOpType.div -> div,
@@ -193,7 +209,7 @@ class AlignedMDU extends Module{
     val udiv = Module(new UnsignedDividerBlackBox)
 
     sdiv.io.aclk := clock
-    sdiv.io.aresetn := !reset.asBool
+    sdiv.io.aresetn := !(reset.asBool || io.flush)
     sdiv.io.s_axis_dividend_tdata := io.in.bits.src1.asSInt
     sdiv.io.s_axis_divisor_tdata  := io.in.bits.src2.asSInt
     sdiv.io.s_axis_dividend_tvalid := false.B
@@ -201,7 +217,7 @@ class AlignedMDU extends Module{
     sdiv.io.m_axis_dout_tready := false.B
 
     udiv.io.aclk := clock
-    udiv.io.aresetn := !reset.asBool
+    udiv.io.aresetn := !(reset.asBool || io.flush)
     udiv.io.s_axis_dividend_tdata := io.in.bits.src1
     udiv.io.s_axis_divisor_tdata  := io.in.bits.src2
     udiv.io.s_axis_dividend_tvalid := false.B
@@ -302,6 +318,19 @@ class AlignedMDU extends Module{
     udiv.io.s_axis_divisor_tvalid := udiv_divisor_tvalid
     udiv.io.m_axis_dout_tready := udiv_dout_tready
 
+    when(io.flush) {
+      state_s := idle
+      state_u := idle
+      out_valid := false.B
+      in_ready := true.B
+      sdiv_dividend_tvalid := false.B
+      sdiv_divisor_tvalid := false.B
+      sdiv_dout_tready := false.B
+      udiv_dividend_tvalid := false.B
+      udiv_divisor_tvalid := false.B
+      udiv_dout_tready := false.B
+    }
+
     io.out.bits.data := MuxLookup(io.in.bits.ctrl.fuOpType, 0.U)(Seq(
       MDUOpType.div -> div,
       MDUOpType.divu -> divu,
@@ -317,6 +346,7 @@ class AlignedMDU extends Module{
   io.out.bits.paddr := DontCare
   io.out.bits.wdata := DontCare
   io.out.bits.optype := DontCare
+  io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.csrNewData := DontCare
   io.out.bits.exceptionVec := DontCare
 } 

@@ -77,12 +77,12 @@ class Arb extends Module {
   /* Read transection */
   io.out.arid := 0.U
   io.out.arlen := 0.U
-  io.out.arsize := 0.U
+  io.out.arsize := "b010".U // 32 bits
   io.out.arburst := "b01".U
   /* Write transection */
   io.out.awid := 0.U
   io.out.awlen := 0.U
-  io.out.awsize := 0.U
+  io.out.awsize := "b010".U // 32 bits
   io.out.awburst := "b01".U
   io.out.wlast := true.B
 
