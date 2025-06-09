@@ -36,13 +36,13 @@ sealed trait HasCacheConst {
   val TagBits = 32 - OffsetBits - IndexBits
 
   // 打印参数
-  println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
+  // println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
 
   def addrBundle = new Bundle {
-    val tag = UInt(TagBits.W)
-    val index = UInt(IndexBits.W)
-    val WordIndex = UInt(WordIndexBits.W)
-    val byteOffset = UInt(2.W)
+    val tag = UInt(TagBits.W)       // 26
+    val index = UInt(IndexBits.W)   // 4
+    val WordIndex = UInt(WordIndexBits.W)  // 0
+    val byteOffset = UInt(2.W)      // 2
   }
 
   def getMataIdx(addr: UInt) = addr.asTypeOf(addrBundle).index
@@ -173,7 +173,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.araddr := req.addr
     io.axi.rready := true.B
     // axi write chanel
-    io.axi.awaddr := req.addr
+    val awaddr = Cat(addr.index, metaArray(addr.index)(0).tag, 0.U(2.W))
+    io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.wvalid := state === s_write_mem2
     io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
