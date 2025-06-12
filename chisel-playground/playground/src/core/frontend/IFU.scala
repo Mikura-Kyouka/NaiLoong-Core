@@ -58,6 +58,7 @@ class IFU extends Module{
     io.axi.awvalid := false.B
     io.axi.bready := false.B
     io.axi.wvalid := false.B
+    io.axi.wid := 0.U(4.W)
     io.axi.wdata := 0.U
     io.axi.wstrb := 0.U
     io.axi.awaddr := 0.U

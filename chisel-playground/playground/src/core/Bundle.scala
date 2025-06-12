@@ -100,6 +100,7 @@ class AXI extends Bundle {
   val awburst = Output(UInt(2.W)) // Burst type
 
   /* W */
+  val wid = Output(UInt(4.W))
   val wvalid = Output(Bool())
   val wready = Input(Bool())
   val wdata = Output(UInt(32.W))

@@ -203,6 +203,8 @@ class Rob extends Module {
       robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
       robEntries(idx).result       := io.writeback(i).bits.writeData
       robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
+      val wbRfWen = robEntries(idx).rfWen || io.writeback(i).bits.exceptionVec.orR  // 如果有异常则不写寄存器(0有效)
+      robEntries(idx).rfWen        := wbRfWen
       // for load/store difftest
       robEntries(idx).fuType       := io.writeback(i).bits.fuType
       robEntries(idx).paddr        := io.writeback(i).bits.paddr

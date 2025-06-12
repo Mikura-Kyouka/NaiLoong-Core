@@ -164,6 +164,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
     io.axi.araddr := req.addr
+    io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
     io.axi.arsize := "b010".U  // 32 bits
     io.axi.arburst := "b01".U
@@ -172,10 +173,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val awaddr = Cat(metaArray(addr.index)(0).tag, addr.index, 0.U(2.W))
     io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
+    io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
     io.axi.awsize := "b010".U  // 32 bits
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
+    io.axi.wid := 1.U(4.W)
     io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := true.B
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 

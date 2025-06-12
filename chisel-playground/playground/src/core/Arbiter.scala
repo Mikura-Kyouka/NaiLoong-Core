@@ -120,6 +120,7 @@ class Arb extends Module {
   io.out.awvalid := 0.U
   io.out.awaddr := 0.U
   io.out.wvalid := 0.U
+  io.out.wid := 0.U
   io.out.wdata := 0.U
   io.out.wstrb := 0.U
   io.out.bready := 0.U
@@ -157,6 +158,8 @@ class Arb extends Module {
     io.out.awburst := io.lsu.awburst
     io.out.wdata := io.lsu.wdata
     io.out.wstrb := io.lsu.wstrb
+    io.out.awid := io.lsu.awid
+    io.out.wid := io.lsu.wid
     io.out.bready := io.lsu.bready
 
     io.lsu.awready := io.out.awready

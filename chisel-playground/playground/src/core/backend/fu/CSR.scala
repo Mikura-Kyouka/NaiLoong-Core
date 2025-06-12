@@ -98,7 +98,7 @@ class CSR extends Module {
     val to_mmu = Flipped(new CsrToMmuBundle)
     val from_mmu = Flipped(new MmuToCsrBundle)
   })
-  val csr_crmd = RegInit(0.U.asTypeOf(new csr_crmd_bundle))
+  val csr_crmd = RegInit(8.U.asTypeOf(new csr_crmd_bundle))  // reset as 0x8
   val csr_prmd = RegInit(0.U.asTypeOf(new csr_prmd_bundle))
   val csr_ecfg = RegInit(0.U.asTypeOf(new csr_ecfg_bundle))
   val csr_estat = RegInit(0.U.asTypeOf(new csr_estat_bundle))
@@ -380,6 +380,10 @@ class CSR extends Module {
     io.exceptionInfo.exceptionNewPC := csr_era
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
+    }
+    when(csr_estat.ecode === "h3f".U) {
+      csr_crmd.da := 0.U
+      csr_crmd.pg := 1.U
     }
   }
 
