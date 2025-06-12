@@ -14,6 +14,7 @@ object MDUOpType {
 
   def isDiv(op: UInt) = op(2)
   def isDivSign(op: UInt) = isDiv(op) && !op(0)
+  def isMul(op: UInt) = !op(2)
 }
 
 class MulDivIO(val len: Int) extends Bundle {
@@ -60,7 +61,7 @@ class AlignedMDU extends Module{
   val out_valid = RegInit(false.B)
 
   io.in.ready := in_ready && (!io.in.valid || io.out.fire)
-  io.out.valid := out_valid || (io.in.valid && !MDUOpType.isDiv(io.in.bits.ctrl.fuOpType))
+  io.out.valid := out_valid 
 
   val idle :: put :: waiting :: get :: Nil = Enum(4)
   val div = RegInit(0.U(32.W))
@@ -96,12 +97,16 @@ class AlignedMDU extends Module{
 
     switch(state_s) {
       is(idle) {
-        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+        when(io.in.valid && io.in.bits.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
           out_valid := false.B
           sdiv_dividend_tvalid := true.B
           sdiv_divisor_tvalid := true.B
           in_ready := false.B
           state_s := put
+        }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
@@ -143,12 +148,16 @@ class AlignedMDU extends Module{
 
     switch(state_u) {
       is(idle) {
-        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+        when(io.in.valid && io.in.bits.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
           out_valid := false.B
           udiv_dividend_tvalid := true.B
           udiv_divisor_tvalid := true.B
           in_ready := false.B
           state_u := put
+        }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
@@ -233,12 +242,16 @@ class AlignedMDU extends Module{
 
     switch(state_s) {
       is(idle) {
-        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+        when(io.in.valid && io.in.bits.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
           out_valid := false.B
           sdiv_dividend_tvalid := true.B
           sdiv_divisor_tvalid := true.B
           in_ready := false.B
           state_s := put
+        }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
@@ -280,12 +293,16 @@ class AlignedMDU extends Module{
 
     switch(state_u) {
       is(idle) {
-        when(io.in.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
+        when(io.in.valid && io.in.bits.valid && MDUOpType.isDiv(io.in.bits.ctrl.fuOpType) && !MDUOpType.isDivSign(io.in.bits.ctrl.fuOpType)) {
           out_valid := false.B
           udiv_dividend_tvalid := true.B
           udiv_divisor_tvalid := true.B
           in_ready := false.B
           state_u := put
+        }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
