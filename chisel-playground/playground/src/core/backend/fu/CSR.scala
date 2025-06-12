@@ -42,6 +42,10 @@ object CsrName {
   val TVAL  =66.U(14.W)
   val CNTC  =67.U(14.W)
   val TICLR =68.U(14.W)
+
+  val CNTVL =69.U(14.W) // 64-bit timer, low part
+  val CNTVH =70.U(14.W) // 64-bit timer, high part
+
   val LLBCTL=96.U(14.W)
   val TLBRENTRY=136.U(14.W)
   val DMW0  =384.U(14.W)
@@ -140,6 +144,9 @@ class CSR extends Module {
   when(csr_tval === 0.U) {
     csr_estat.is11 := 1.U // 设置定时器中断标志
   }
+
+  io.read(0).timer64 := timer64
+  io.read(1).timer64 := timer64
 
   val debug_csr_crmd = csr_crmd.asUInt
   val debug_csr_prmd = csr_prmd.asUInt
@@ -262,7 +269,10 @@ class CSR extends Module {
       CsrName.LLBCTL->csr_llbctl.asUInt,
       CsrName.TLBRENTRY->csr_tlbrentry.asUInt,
       CsrName.DMW0  ->csr_dmw0.asUInt,
-      CsrName.DMW1  ->csr_dmw1.asUInt
+      CsrName.DMW1  ->csr_dmw1.asUInt,
+
+      CsrName.CNTVL -> timer64(31, 0), // 64-bit timer, low part
+      CsrName.CNTVH -> timer64(63, 32) // 64-bit timer, high part
     ))
   }
 

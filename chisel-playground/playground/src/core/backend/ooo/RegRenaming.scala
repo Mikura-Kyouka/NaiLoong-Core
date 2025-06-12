@@ -290,6 +290,7 @@ class RegRenaming extends Module {
     entry.brTarget := DontCare
     entry.result := DontCare
     entry.csrNewData := DontCare
+    entry.timer64 := DontCare
   }
 
   // 连接到ROB分配接口
@@ -451,7 +452,7 @@ class RegRenaming extends Module {
   }.otherwise {
     freeList.io.rollback.bits := DontCare
   }
-  freeList.io.rollback.valid := io.brMispredict.brMisPred.valid || io.exception
+  freeList.io.rollback.valid := io.flush
 
   // retire 
   for(i <- 0 until 4) {

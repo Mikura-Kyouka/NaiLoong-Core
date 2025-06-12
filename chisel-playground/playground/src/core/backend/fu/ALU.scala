@@ -175,6 +175,7 @@ class FuOut extends Bundle {
   val wdata = Output(UInt(32.W))
   val fuType = Output(UInt(7.W))
   val optype = Output(UInt(7.W))
+  val timer64 = Output(UInt(64.W))
 }
 class AligendALU extends Module{
   val io = IO(new Bundle{
@@ -185,10 +186,11 @@ class AligendALU extends Module{
   })
   
   dontTouch(io.in.bits)
-  io.csrRead.csr_num := io.in.bits.ctrl.csrNum
+  io.csrRead.csr_num := Mux(io.in.bits.ctrl.csrOp === CSROp.cntid, CsrName.TID, io.in.bits.ctrl.csrNum)
   val dest_is_csr = io.in.bits.ctrl.csrOp === CSROp.rd ||
                     io.in.bits.ctrl.csrOp === CSROp.wr ||
-                    io.in.bits.ctrl.csrOp === CSROp.xchg
+                    io.in.bits.ctrl.csrOp === CSROp.xchg ||
+                    io.in.bits.ctrl.csrOp === CSROp.cntid
 
   val alu = Module(new ALU)
   alu.io := DontCare
@@ -198,7 +200,9 @@ class AligendALU extends Module{
   alu.io.offset       := io.in.bits.imm
   alu.io.pc           := io.in.bits.pc
   io.out.bits.pc      := io.in.bits.pc
-  io.out.bits.data    := Mux(dest_is_csr, io.csrRead.csr_data, alu.io.out.bits)
+  io.out.bits.data    := Mux(dest_is_csr, io.csrRead.csr_data, Mux(io.in.bits.ctrl.csrOp === CSROp.cntvh, io.csrRead.timer64(63, 32),
+                                                               Mux(io.in.bits.ctrl.csrOp === CSROp.cntvl, io.csrRead.timer64(31, 0),
+                                                                alu.io.out.bits)))
   io.out.bits.robIdx  := io.in.bits.robIdx
   io.out.bits.redirect := alu.io.redirect
   io.out.bits.csrNewData := Mux(io.in.bits.ctrl.csrOp === CSROp.xchg, 
@@ -215,4 +219,5 @@ class AligendALU extends Module{
   io.out.bits.wdata := DontCare
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := DontCare
+  io.out.bits.timer64 := io.csrRead.timer64
 } 

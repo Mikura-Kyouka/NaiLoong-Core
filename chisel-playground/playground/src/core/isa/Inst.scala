@@ -73,8 +73,8 @@ object Inst {
     def ibar            = BitPat("b00111000011100101_???????????????")
 
     def rdcntid_w       = BitPat("b0000000000000000011000_?????_00000") // RDCNTID Counter ID 号信息写入通用寄存器 rj中
-    def rdcntvl_w       = BitPat("b0000000000000000011000_00000_?????")// 低位
-    def rdcntvh_w       = BitPat("b0000000000000000011001_00000_?????")  // 高位     // n58_rdcnt
+    def rdcntvl_w       = BitPat("b0000000000000000011000_00000_?????") // 低位
+    def rdcntvh_w       = BitPat("b0000000000000000011001_00000_?????") // 高位     // n58_rdcnt
     
     /* Cache维护指令 */
     def cacop           = BitPat("b0000011000_????????????_?????_?????")
@@ -146,9 +146,9 @@ object Inst {
         csrxchg         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y, CSROp.xchg, TlbOp.nop), 
         dbar            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.nop), 
         ibar            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.nop), 
-        rdcntid_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.nop), 
-        rdcntvl_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.nop), 
-        rdcntvh_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.nop), 
+        rdcntid_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rj, RfWen.y, IsLegal.y, CSROp.cntid, TlbOp.nop), 
+        rdcntvl_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cntvl, TlbOp.nop), 
+        rdcntvh_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cntvh, TlbOp.nop), 
         cacop           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop, TlbOp.nop), 
         tlbsrch         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.srch), 
         tlbrd           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.rd), 

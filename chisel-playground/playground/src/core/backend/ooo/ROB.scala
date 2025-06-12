@@ -47,6 +47,7 @@ class RobEntry extends Bundle {
   val paddr      = UInt(32.W)
   val wdata      = UInt(32.W)
   val optype     = UInt(7.W)
+  val timer64    = UInt(64.W)
 }
 
 // ROB分配接口
@@ -74,6 +75,7 @@ class RobWritebackInfo extends Bundle {
   val wdata       = UInt(32.W)
   val fuType      = UInt(3.W)
   val optype      = UInt(7.W)
+  val timer64     = UInt(64.W)
 }
 
 class rtrBundle extends Bundle {
@@ -86,6 +88,7 @@ class rtrBundle extends Bundle {
   val csr_rstat = Bool()
   val csr_data = UInt(32.W)
   val excp = Bool()
+  val timer64 = UInt(64.W)
 
   // for bpu
   val isBranch = Bool()
@@ -210,6 +213,7 @@ class Rob extends Module {
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
       robEntries(idx).optype       := io.writeback(i).bits.optype
+      robEntries(idx).timer64      := io.writeback(i).bits.timer64
     }
   }
   
@@ -314,6 +318,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.csr_rstat := (entry.csrOp === CSROp.rd || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.wr) && entry.csrNum === 5.U
     io.commit.commit(i).bits.csr_data := entry.result
     io.commit.commit(i).bits.excp := entry.exceptionVec.orR
+    io.commit.commit(i).bits.timer64 := entry.timer64
     
     // 提交PC信息
     io.commitPC(i).valid := hasCommit(i) && entry.inst_valid

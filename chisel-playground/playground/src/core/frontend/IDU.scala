@@ -78,7 +78,10 @@ class Decoder extends Module {
     io.out.bits.ctrl.src2Type := src2Type
     // for csr
     io.out.bits.ctrl.csrOp := csrOp
-    io.out.bits.ctrl.csrNum := instr(23, 10)
+    io.out.bits.ctrl.csrNum := Mux(csrOp === CSROp.cntid, CsrName.TID,
+                               Mux(csrOp === CSROp.cntvl, CsrName.CNTVL,
+                               Mux(csrOp === CSROp.cntvh, CsrName.CNTVH,
+                                                          instr(23, 10))))
 
     io.out.bits.ctrl.tlbOp := tlbOp
     

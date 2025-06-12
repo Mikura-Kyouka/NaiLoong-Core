@@ -111,6 +111,7 @@ class csr_dmw_bundle extends Bundle {
 class csr_read_bundle extends Bundle {
   val csr_num = Input(UInt(14.W)) // csr寄存器的id
   val csr_data = Output(UInt(32.W)) // csr寄存器的值  
+  val timer64 = Output(UInt(64.W)) // 64位定时器寄存器
 }
 
 class csr_write_bundle extends Bundle {

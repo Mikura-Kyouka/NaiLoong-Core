@@ -57,12 +57,15 @@ object FuType {
 }
 
 object CSROp {
-  def nop = "b000".U
-  def rd = "b001".U
-  def wr = "b010".U
-  def xchg = "b011".U
-  def syscall = "b100".U
-  def ertn = "b101".U
+  def nop = "b0000".U
+  def rd = "b0001".U
+  def wr = "b0010".U
+  def xchg = "b0011".U
+  def syscall = "b0100".U
+  def ertn = "b0101".U
+  def cntid = "b1100".U
+  def cntvl = "b1001".U
+  def cntvh = "b1010".U
 }
 
 object TlbOp {

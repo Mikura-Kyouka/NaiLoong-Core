@@ -205,5 +205,6 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.wdata := lsu.io.diffData
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := io.in.bits.ctrl.fuOpType
+  io.out.bits.timer64 := DontCare   // TODO
 } 
 

@@ -309,6 +309,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.wdata := Ex.io.out(i).bits.wdata
     rob.io.writeback(i).bits.optype := Ex.io.out(i).bits.optype
     rob.io.writeback(i).bits.fuType := Ex.io.out(i).bits.fuType
+    rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
 
     // <busy reg> update
     Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
@@ -371,6 +372,8 @@ class Core extends Module {
     val diffcsr_rstat = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_rstat))
     val diffcsr_data  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_data))
     val diffExcp      = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.excp))
+    val diffTimer64   = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.timer64))
+    val diffIsCNTinst = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits(31, 11) === "b000000000000000001100".U))
     val diffWens      = diffDests.map(_ =/= 0.U)
 
     // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
@@ -400,8 +403,8 @@ class Core extends Module {
       DiffCommit.io.instr(k).skip          := DontCare
       DiffCommit.io.instr(k).is_TLBFILL    := DontCare
       DiffCommit.io.instr(k).TLBFILL_index := DontCare
-      DiffCommit.io.instr(k).is_CNTinst    := DontCare
-      DiffCommit.io.instr(k).timer_64_value:= DontCare
+      DiffCommit.io.instr(k).is_CNTinst    := Mux1H(sel.zip(diffIsCNTinst))
+      DiffCommit.io.instr(k).timer_64_value:= Mux1H(sel.zip(diffTimer64))
       DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
       DiffCommit.io.instr(k).csr_data      := Mux1H(sel.zip(diffcsr_data))
 
@@ -416,32 +419,21 @@ class Core extends Module {
     // 4) 其余接口
     DiffCommit.io.reg := Rn.io.arf
     DiffCommit.io.csr := csr.io.difftest
-    
-    // val storeValid = LSUOpType.isStore(Ex.io.optype) && (Ex.io.pc === DiffCommit.io.instr(0).pc
-    //                                                   || Ex.io.pc === DiffCommit.io.instr(1).pc
-    //                                                   || Ex.io.pc === DiffCommit.io.instr(2).pc 
-    //                                                   || Ex.io.pc === DiffCommit.io.instr(3).pc)
-    // val storeType = MuxLookup(Ex.io.optype, 0.U)(
-    //   List(
-    //     LSUOpType.sw -> "b00000100".U,
-    //     LSUOpType.sh -> "b00000010".U,
-    //     LSUOpType.sb -> "b00000001".U,
-    //   )
-    // )
 
     val isSt = rob.io.commitLS.map { commit =>
       commit.valid && (commit.bits.optype === LSUOpType.sw ||
                        commit.bits.optype === LSUOpType.sh ||
                        commit.bits.optype === LSUOpType.sb)
     }
+    val isValidSt = isSt.zip(diffExcp).map { case (st, excp) => st && !excp }
     val stInfo = Wire(new LSCommitInfo)
-    when (isSt(0)) {
+    when (isValidSt(0)) {
       stInfo := rob.io.commitLS(0).bits
-    }.elsewhen (isSt(1)) {
+    }.elsewhen (isValidSt(1)) {
       stInfo := rob.io.commitLS(1).bits
-    }.elsewhen (isSt(2)) {
+    }.elsewhen (isValidSt(2)) {
       stInfo := rob.io.commitLS(2).bits
-    }.elsewhen (isSt(3)) {
+    }.elsewhen (isValidSt(3)) {
       stInfo := rob.io.commitLS(3).bits
     }.otherwise {
       stInfo := 0.U.asTypeOf(new LSCommitInfo)
@@ -454,7 +446,7 @@ class Core extends Module {
       )
     )
 
-    DiffCommit.io.store.valid := Mux(isSt.reduce(_ || _), storeType, 0.U)
+    DiffCommit.io.store.valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
     DiffCommit.io.store.paddr := stInfo.paddr
     DiffCommit.io.store.vaddr := stInfo.paddr
     DiffCommit.io.store.data  := stInfo.wdata
