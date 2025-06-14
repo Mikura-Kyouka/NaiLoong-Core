@@ -21,6 +21,7 @@ class Dispatch extends Module {
     q.bits.inst_cnt := 0.U
     for(i <- 0 until ISSUE_WIDTH) {
       q.bits.inst_vec(i) := DontCare
+      q.bits.inst_vec(i).valid := false.B
     }
   }
 
@@ -44,21 +45,21 @@ class Dispatch extends Module {
     val inst = io.in.bits(i)
 
     val alu_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).ctrl.fuType === FuType.alu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in.bits(j).ctrl.fuType === FuType.alu && io.in.bits(j).valid, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
     // reduceOption: combine all elements with addition
     // getOrElse: provides a default value (0) if no elements exist
     
     val muldiv_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).ctrl.fuType === FuType.mdu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in.bits(j).ctrl.fuType === FuType.mdu && io.in.bits(j).valid, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
     
     val loadstore_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).ctrl.fuType === FuType.lsu, 1.U(3.W), 0.U(3.W))
+      Mux(io.in.bits(j).ctrl.fuType === FuType.lsu && io.in.bits(j).valid, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
 
     val branch_cnt_before = (0 until i).map { j =>
-      Mux(io.in.bits(j).ctrl.fuType === FuType.bru, 1.U(3.W), 0.U(3.W))
+      Mux(io.in.bits(j).ctrl.fuType === FuType.bru && io.in.bits(j).valid, 1.U(3.W), 0.U(3.W))
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
 
     // 根据指令类型分发

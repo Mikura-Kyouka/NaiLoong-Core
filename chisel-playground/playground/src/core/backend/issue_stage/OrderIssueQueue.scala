@@ -23,8 +23,9 @@ class OrderIssueQueue extends Module {
   val read_ptr = RegInit(0.U(log2Ceil(QUEUE_SIZE).W))
   val valid_count = RegInit(0.U((log2Ceil(QUEUE_SIZE.toInt) + 1).W))
 
-  // val can_accept = (write_ptr === read_ptr) || (write_ptr - read_ptr) >= io.in.bits.inst_cnt
-  val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
+  // FIXME: ???
+  // val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
+  val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= 4.U
   io.in.ready := can_accept && valid_count < 7.U
 
   val enq_count = Wire(UInt(3.W))
