@@ -26,11 +26,11 @@ class OrderIssueQueue extends Module {
   // FIXME: ???
   // val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
   val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= 4.U
-  io.in.ready := can_accept && valid_count < 7.U
+  io.in.ready := can_accept && valid_count < 7.U && (!io.in.valid || io.out.fire)
 
   val enq_count = Wire(UInt(3.W))
   enq_count := 0.U
-  when(io.in.fire) {
+  when(io.in.valid) {
     enq_count := io.in.bits.inst_cnt
   }
   val deq_count = Mux(io.out.fire, 1.U, 0.U)
@@ -39,14 +39,14 @@ class OrderIssueQueue extends Module {
   // write
   switch(io.in.bits.inst_cnt) {
     is(1.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         write_ptr := write_ptr + 1.U
       }
     }
     is(2.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -55,7 +55,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(3.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -66,7 +66,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(4.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
