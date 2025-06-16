@@ -134,6 +134,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io.diffData := diffData << (addr(1, 0) << 3)
   // 
   dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
+  dcache.io.resp.ready := io.out.ready
   
   io.out.valid := dcache.io.resp.valid || (io.loadAddrMisaligned || io.storeAddrMisaligned) && io.in.valid
   val rdata = dcache.io.resp.bits.rdata
@@ -154,7 +155,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
     )
   )
 
-  io.in.ready := dcache.io.req.ready && (!io.in.valid || io.out.fire)
+  io.in.ready := dcache.io.req.ready
 }
 
 class AligendUnpipelinedLSU extends Module{
@@ -190,6 +191,7 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.pc := io.in.bits.pc
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
+  io.out.bits.preg := io.in.bits.preg
   val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
                          lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
                          io.in.bits.exceptionVec.asUInt(8, 0)

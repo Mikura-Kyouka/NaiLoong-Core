@@ -166,6 +166,7 @@ class FuOut extends Bundle {
   val pc     = Output(UInt(32.W))
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
+  val preg   = Output(UInt(6.W))
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)
@@ -204,6 +205,7 @@ class AligendALU extends Module{
                                                                Mux(io.in.bits.ctrl.csrOp === CSROp.cntvl, io.csrRead.timer64(31, 0),
                                                                 alu.io.out.bits)))
   io.out.bits.robIdx  := io.in.bits.robIdx
+  io.out.bits.preg := io.in.bits.preg
   io.out.bits.redirect := alu.io.redirect
   io.out.bits.csrNewData := Mux(io.in.bits.ctrl.csrOp === CSROp.xchg, 
               (io.in.bits.src1 & io.in.bits.src2) | (~io.in.bits.src1 & io.csrRead.csr_data), io.in.bits.src2)

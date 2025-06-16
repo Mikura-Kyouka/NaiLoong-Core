@@ -341,12 +341,12 @@ class RegRenaming extends Module {
     io.robAllocate.allocEntries(i).use_preg := needAlloc && freeList.io.allocResp(i).valid
 
     // 更新RAT
-    when(io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid) {
+    when(io.in.valid && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid) {
       rat(rd).inARF := false.B
       rat(rd).preg := allocated_preg(i)
       rat(rd).robPointer := freeList.io.allocResp(i).bits
     }
-    renameFired(i) := io.in.valid && io.in.ready && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid
+    renameFired(i) := io.in.valid && needAlloc && freeList.io.allocResp(i).valid && io.in.bits(i).inst_valid
 
     // 源寄存器映射
     temp_prj(i) := Mux(rj.orR, rat(rj).preg, 0.U)
@@ -410,7 +410,7 @@ class RegRenaming extends Module {
   // 存储检查点
   for (i <- 0 until 4) {
     val input = io.in.bits(i)
-    when(input.checkpoint.needSave && io.in.valid && io.in.ready) {
+    when(input.checkpoint.needSave && io.in.valid) {
       checkpointRAT(input.checkpoint.id) := rat
       val allocUntilCheckpointValid = PopCount(VecInit((0 until i + 1).map(j => 
         io.robAllocate.allocEntries(j).use_preg

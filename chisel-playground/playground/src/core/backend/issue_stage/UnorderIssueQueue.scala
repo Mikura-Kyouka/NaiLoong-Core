@@ -32,7 +32,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   // 判断是否可以接受
   // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
   val can_accept = valid_count === 0.U || valid_count < 7.U
-  io.in.ready := can_accept && (!io.in.valid || io.out.fire)
+  io.in.ready := can_accept
 
   // 计算下一拍的valid_count
   val enq_count = Wire(UInt(2.W))  // 最多一次入两条指令

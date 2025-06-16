@@ -51,6 +51,7 @@ class AlignedMDU extends Module{
   io.out.bits.pc := io.in.bits.pc
   io.out.bits.data := mdu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
+  io.out.bits.preg := io.in.bits.preg
   
   mdu.io.in.valid := io.in.valid
   mdu.io.out.ready := io.out.ready
@@ -60,7 +61,7 @@ class AlignedMDU extends Module{
   val in_ready = RegInit(true.B)
   val out_valid = RegInit(false.B)
 
-  io.in.ready := in_ready && (!(io.in.valid && io.in.bits.valid) || io.out.fire)
+  io.in.ready := in_ready && (!io.in.valid || io.out.fire)
   io.out.valid := out_valid 
 
   val idle :: put :: waiting :: get :: Nil = Enum(4)

@@ -21,7 +21,6 @@ class Dispatch extends Module {
     q.bits.inst_cnt := 0.U
     for(i <- 0 until ISSUE_WIDTH) {
       q.bits.inst_vec(i) := DontCare
-      q.bits.inst_vec(i).valid := false.B
     }
   }
 
@@ -31,7 +30,8 @@ class Dispatch extends Module {
   }
 
   // FIXME: paramiterize FETCH_WITDTH
-  io.in.ready := (io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready) 
+  io.in.ready := io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready
+  
   for (i <- 0 until ISSUE_WIDTH) {
      io.out(i).valid := io.in.valid 
   } 
