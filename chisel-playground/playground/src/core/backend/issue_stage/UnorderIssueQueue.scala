@@ -32,12 +32,12 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   // 判断是否可以接受
   // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
   val can_accept = valid_count === 0.U || valid_count < 7.U
-  io.in.ready := can_accept
+  io.in.ready := can_accept && (!io.in.valid || io.out.fire)
 
   // 计算下一拍的valid_count
   val enq_count = Wire(UInt(2.W))  // 最多一次入两条指令
   enq_count := 0.U
-  when(io.in.fire) {
+  when(io.in.valid) {
     enq_count := io.in.bits.inst_cnt
   }
   val deq_count = Mux(io.out.fire, 1.U, 0.U)
@@ -82,7 +82,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
   }
 
   // write
-  when(io.in.fire) {
+  when(io.in.valid) {
     val base = valid_count - deq_count
     dontTouch(base)
     when(io.in.bits.inst_cnt === 1.U) {

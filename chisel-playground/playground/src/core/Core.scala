@@ -98,19 +98,19 @@ class Core extends Module {
 
   val flush = rob.io.flush
 
-  PipelineConnect(If.io.out, Id.io.in, Id.io.in.fire, flush)
-  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.in.fire, flush)
-  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.in.fire, flush)
-  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Issue.io.in(0).fire, flush)
-  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Issue.io.in(1).fire, flush)
-  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Issue.io.in(2).fire, flush)
-  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Issue.io.in(3).fire, flush)
-  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Issue.io.in(4).fire, flush)
-  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.fire(0), flush)
-  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.fire(1), flush)
-  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.fire(2), flush)
-  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.fire(3), flush)
-  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.fire(4), flush)
+  PipelineConnect(If.io.out, Id.io.in, If.io.out.fire, flush)
+  PipelineConnect(Id.io.out, Rn.io.in, Id.io.out.fire, flush)
+  PipelineConnect(Rn.io.out, Dispatch.io.in, Rn.io.out.fire, flush)
+  PipelineConnect(Dispatch.io.out(0), Issue.io.in(0), Dispatch.io.out(0).fire, flush)
+  PipelineConnect(Dispatch.io.out(1), Issue.io.in(1), Dispatch.io.out(1).fire, flush)
+  PipelineConnect(Dispatch.io.out(2), Issue.io.in(2), Dispatch.io.out(2).fire, flush)
+  PipelineConnect(Dispatch.io.out(3), Issue.io.in(3), Dispatch.io.out(3).fire, flush)
+  PipelineConnect(Dispatch.io.out(4), Issue.io.in(4), Dispatch.io.out(4).fire, flush)
+  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Issue.io.out(0).fire, flush)
+  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Issue.io.out(1).fire, flush)
+  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Issue.io.out(2).fire, flush)
+  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Issue.io.out(3).fire, flush)
+  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Issue.io.out(4).fire, flush)
 
   val ifAXI = Wire(new AXI)
 
