@@ -108,6 +108,10 @@ class AlignedMDU extends Module{
           out_valid := true.B
           in_ready := false.B
           state_s := get
+        }.elsewhen(io.in.valid && !io.in.bits.valid) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
@@ -158,7 +162,11 @@ class AlignedMDU extends Module{
         }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
           out_valid := true.B
           in_ready := false.B
-          state_s := get
+          state_u := get
+        }.elsewhen(io.in.valid && !io.in.bits.valid) {
+          out_valid := true.B
+          in_ready := false.B
+          state_u := get
         }
       }
       is(put) {
@@ -253,6 +261,10 @@ class AlignedMDU extends Module{
           out_valid := true.B
           in_ready := false.B
           state_s := get
+        }.elsewhen(io.in.valid && !io.in.bits.valid) {
+          out_valid := true.B
+          in_ready := false.B
+          state_s := get
         }
       }
       is(put) {
@@ -303,7 +315,11 @@ class AlignedMDU extends Module{
         }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
           out_valid := true.B
           in_ready := false.B
-          state_s := get
+          state_u := get
+        }.elsewhen(io.in.valid && !io.in.bits.valid) {
+          out_valid := true.B
+          in_ready := false.B
+          state_u := get
         }
       }
       is(put) {
