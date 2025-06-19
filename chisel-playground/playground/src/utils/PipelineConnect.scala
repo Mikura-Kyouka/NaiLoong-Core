@@ -80,7 +80,7 @@ object PipelineConnect2 {
       valid := false.B
     }
 
-    when(left.valid && right.ready) {
+    when((left.valid || valid_reg) && right.ready) {
       valid_reg := false.B
     }.elsewhen(left.valid) {
       valid_reg := true.B
