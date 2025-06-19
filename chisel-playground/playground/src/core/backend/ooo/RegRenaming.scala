@@ -294,7 +294,7 @@ class RegRenaming extends Module {
   }
 
   // 连接到ROB分配接口
-  io.robAllocate.allocReq := io.in.valid
+  io.robAllocate.allocReq := io.in.valid && io.out.ready
   io.robAllocate.allocCount := PopCount(io.in.bits.map(x => io.in.valid && x.inst_valid))
   
   // 握手信号控制
@@ -324,7 +324,7 @@ class RegRenaming extends Module {
 
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg && instValid
-    freeList.io.allocReq(i).valid := needAlloc && io.in.valid
+    freeList.io.allocReq(i).valid := needAlloc && io.in.valid && io.out.ready
     freeList.io.allocReq(i).bits := DontCare
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.ready
     
