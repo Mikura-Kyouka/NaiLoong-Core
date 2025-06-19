@@ -130,6 +130,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val dirty = metaArray(addr.index)(0).dirty.asBool
     dontTouch(dirty)
 
+    val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
+    when(io.req.valid) {
+      flushed := false.B
+    }
+    when(io.flush) {
+      flushed := true.B
+    }
+
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
     // !hit -> find one line -> dirty? --yes--> write this dirty cacheline to mem -> read from mem to cache -> read/write cache
@@ -153,7 +161,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     ))
     io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
                     (!io.req.valid || io.resp.fire)
-    io.resp.valid := (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)
+    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && !flushed
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
@@ -233,13 +241,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray(addr.index)(0).valid := true.B
       metaArray(addr.index)(0).dirty := true.B
 
-      io.resp.valid := true.B
+      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
       resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
-      io.resp.valid := true.B
+      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     io.resp.bits := resp
