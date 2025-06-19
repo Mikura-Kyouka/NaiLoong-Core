@@ -31,11 +31,11 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
 
   // 判断是否可以接受
   // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= QUEUE_SIZE.asUInt
-  val can_accept = valid_count === 0.U || valid_count < 7.U
+  val can_accept = valid_count === 0.U || valid_count < 4.U
   io.in.ready := can_accept
 
   // 计算下一拍的valid_count
-  val enq_count = Wire(UInt(2.W))  // 最多一次入两条指令
+  val enq_count = Wire(UInt(3.W))  // 最多一次入两条指令
   enq_count := 0.U
   when(io.in.valid) {
     enq_count := io.in.bits.inst_cnt
@@ -93,6 +93,22 @@ class UnorderIssueQueue(val check_dest: Boolean = false) extends Module {
       next_valid_vec(base) := true.B
       next_mem(base + 1.U) := io.in.bits.inst_vec(1)
       next_valid_vec(base + 1.U) := true.B
+    }.elsewhen(io.in.bits.inst_cnt === 3.U) {
+      next_mem(base) := io.in.bits.inst_vec(0)
+      next_valid_vec(base) := true.B
+      next_mem(base + 1.U) := io.in.bits.inst_vec(1)
+      next_valid_vec(base + 1.U) := true.B
+      next_mem(base + 2.U) := io.in.bits.inst_vec(2)
+      next_valid_vec(base + 2.U) := true.B
+    }.elsewhen(io.in.bits.inst_cnt === 4.U) {
+      next_mem(base) := io.in.bits.inst_vec(0)
+      next_valid_vec(base) := true.B
+      next_mem(base + 1.U) := io.in.bits.inst_vec(1)
+      next_valid_vec(base + 1.U) := true.B
+      next_mem(base + 2.U) := io.in.bits.inst_vec(2)
+      next_valid_vec(base + 2.U) := true.B
+      next_mem(base + 3.U) := io.in.bits.inst_vec(3)
+      next_valid_vec(base + 3.U) := true.B
     }
   }
 
