@@ -41,7 +41,7 @@ object PipelineConnect {
     when(rightOutFire) { valid := false.B } // already excepted, right.valid := false
     when(left.valid && right.ready) { valid := true.B } // in.fire
     when(isFlush) { valid := false.B }
-    when(~left.valid) { valid := false.B }
+    when(~left.valid || ~right.ready) { valid := false.B }
 
     left.ready := right.ready
     right.valid := valid

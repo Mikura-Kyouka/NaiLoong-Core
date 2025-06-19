@@ -28,7 +28,7 @@ class OrderIssueQueue extends Module {
   // FIXME: ???
   // val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
   val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) - enq_count + deq_count >= 4.U
-  io.in.ready := can_accept && valid_count < 7.U
+  io.in.ready := can_accept && valid_count < 4.U
   
   enq_count := 0.U
   when(io.in.valid) {
