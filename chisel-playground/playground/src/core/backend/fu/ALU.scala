@@ -67,6 +67,7 @@ object ALUOpType {
 class ALUIO extends FunctionUnitIO {
   val cfIn = Flipped(new CtrlFlowIO)
   val pc = Input(UInt(32.W))
+  val redirect_in = Flipped(new RedirectIO)
   val redirect = new RedirectIO
   val offset = Input(UInt(32.W))
 }
@@ -133,9 +134,11 @@ class ALU extends Module {
   val brValid = (taken || !isBranch) && isBru
   val isJirl = ALUOpType.getBranchType(func) === ALUOpType.getBranchType(ALUOpType.jirl)
   dontTouch(isJirl)
-  io.redirect.target := Mux(isBranch || isJirl,
+  io.redirect.actuallyTarget := Mux(isBranch || isJirl,
                             target, io.pc + io.offset) 
-  io.redirect.valid := brValid && predictWrong
+  io.redirect.actuallyTaken := brValid && predictWrong
+  io.redirect.predictTaken := io.redirect_in.predictTaken
+  io.redirect.predictTarget := io.redirect_in.predictTarget
   io.redirect.rtype := DontCare // TODO
   
   // actually for bl and jirl to write pc + 4 to rd 

@@ -74,6 +74,7 @@ class Rename extends Module {
     io.out.bits(i).ctrl := io.in.bits(i).ctrl
     io.out.bits(i).valid := io.in.bits(i).valid
     io.out.bits(i).csrNewData := io.in.bits(i).csrNewData
+    io.out.bits(i).redirect := io.in.bits(i).redirect
   }
 }
 

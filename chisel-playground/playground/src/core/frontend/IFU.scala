@@ -7,7 +7,7 @@ class IFU2IDU extends Bundle {
   val pc = Output(UInt(32.W))
   val inst = Output(UInt(32.W))
   val Valid = Output(Bool())
-  val brPredictTaken = Output(Bool())
+  val brPredict = Output(new RedirectIO)
 }
 
 class IFU extends Module{
@@ -20,7 +20,7 @@ class IFU extends Module{
         val dnpc  = Input(UInt(32.W))
         val nextPC = Output(UInt(32.W))
 
-        val BrPredictTaken = Input(Vec(4, Bool()))
+        val BrPredictTaken = Vec(4, Flipped(new RedirectIO))
 
         val intrpt = Input(Bool())
 
@@ -88,7 +88,7 @@ class IFU extends Module{
     adef.Valid := true.B
     adef.pc := pc.io.pc
     adef.inst := 0x03400000.U
-    adef.brPredictTaken := false.B
+    adef.brPredict := DontCare
     io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, icache.io.out.bits(0))
     io.out.bits(1) := icache.io.out.bits(1)
     io.out.bits(2) := icache.io.out.bits(2)

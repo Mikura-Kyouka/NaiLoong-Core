@@ -92,10 +92,19 @@ class Core extends Module {
   bpu.io.pc(2) := If.io.nextPC + 8.U
   bpu.io.pc(3) := If.io.nextPC + 12.U
 
-  If.io.BrPredictTaken := VecInit(Seq.fill(4)(false.B))
-  bpu.io.train.pc := rob.io.commitPC(0).bits
+  If.io.BrPredictTaken := DontCare
+  If.io.BrPredictTaken(0).predictTaken := bpu.io.taken(0)
+  If.io.BrPredictTaken(0).predictTarget := bpu.io.target(0)
+  If.io.BrPredictTaken(1).predictTaken := bpu.io.taken(1)
+  If.io.BrPredictTaken(1).predictTarget := bpu.io.target(1)
+  If.io.BrPredictTaken(2).predictTaken := bpu.io.taken(2)
+  If.io.BrPredictTaken(2).predictTarget := bpu.io.target(2)
+  If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3)
+  If.io.BrPredictTaken(3).predictTarget := bpu.io.target(3)
+
+  bpu.io.train.pc := rob.io.brMisPredInfo.brMisPredPC
   bpu.io.train.target := rob.io.brMisPredInfo.brMisPredTarget
-  bpu.io.train.taken := rob.io.brMisPredInfo.brMisPred.valid
+  bpu.io.train.taken := rob.io.brMisPredInfo.actuallyTaken
   bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
   dontTouch(bpu.io)
 
@@ -303,8 +312,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.robIdx := Ex.io.out(i).bits.robIdx
     rob.io.writeback(i).bits.writeData := Ex.io.out(i).bits.data
     rob.io.writeback(i).bits.pc := Ex.io.out(i).bits.pc
-    rob.io.writeback(i).bits.brMispredict := Ex.io.out(i).bits.redirect.valid
-    rob.io.writeback(i).bits.brTarget := Ex.io.out(i).bits.redirect.target
+    rob.io.writeback(i).bits.redirect := Ex.io.out(i).bits.redirect
     rob.io.writeback(i).bits.csrNewData := Ex.io.out(i).bits.csrNewData
     rob.io.writeback(i).bits.exceptionVec := Ex.io.out(i).bits.exceptionVec
     // for load/store difftest

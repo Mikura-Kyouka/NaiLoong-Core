@@ -30,6 +30,7 @@ class RobEntry extends Bundle {
   val isBranch   = Bool()
   val isStore    = Bool()
   val brMispredict = Bool()
+  val brTaken    = Bool()
   val brTarget   = UInt(32.W)
   val fuType     = UInt(3.W)
   val result     = UInt(32.W) //FIXME
@@ -65,8 +66,7 @@ class RobWritebackInfo extends Bundle {
   val robIdx       = UInt(RobConfig.ROB_INDEX_WIDTH.W)
   val exception    = Bool()
   val exceptionVec = UInt(16.W)
-  val brMispredict = Bool()
-  val brTarget     = UInt(32.W)
+  val redirect     = new RedirectIO
   val writeData    = UInt(32.W)
   val csrNewData   = UInt(32.W)
 
@@ -96,9 +96,10 @@ class rtrBundle extends Bundle {
 
 class BrMisPredInfo extends Bundle {
   val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
+  val actuallyTaken = Bool()
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
-  // val brMisPredPC = UInt(32.W)
+  val brMisPredPC = UInt(32.W)
 }
 
 class LSCommitInfo extends Bundle {
@@ -203,8 +204,10 @@ class Rob extends Module {
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
       robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
-      robEntries(idx).brMispredict := io.writeback(i).bits.brMispredict
-      robEntries(idx).brTarget     := io.writeback(i).bits.brTarget
+      robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, true.B, 
+                                          io.writeback(i).bits.redirect.actuallyTarget =/= io.writeback(i).bits.redirect.predictTarget)
+      robEntries(idx).brTarget     := io.writeback(i).bits.redirect.actuallyTarget
+      robEntries(idx).brTaken      := io.writeback(i).bits.redirect.actuallyTaken
       robEntries(idx).result       := io.writeback(i).bits.writeData
       robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
       val wbRfWen = robEntries(idx).rfWen || io.writeback(i).bits.exceptionVec.orR  // 如果有异常则不写寄存器(0有效)
@@ -271,6 +274,8 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
+  io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
+  io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
 
   // 提交逻辑
   // 生成提交信息

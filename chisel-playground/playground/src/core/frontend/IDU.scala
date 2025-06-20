@@ -269,6 +269,7 @@ class IDU extends Module {
     io.out.bits(3).imm := decoder4.io.out.bits.data.imm
 
     for (i <- 0 until 4) {
+        io.out.bits(i).redirect := io.in.bits(i).brPredict
         io.out.bits(i).prj := DontCare
         io.out.bits(i).jIsArf := DontCare
         io.out.bits(i).dataj := DontCare

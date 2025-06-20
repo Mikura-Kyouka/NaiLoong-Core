@@ -218,7 +218,7 @@ class ICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 // Stage1: Tag Access 
 class Stage1In extends Bundle {
   val addr = Input(UInt(32.W))
-  val brPredictTaken = Input(Vec(4, Bool()))
+  val brPredictTaken = Input(Vec(4, new RedirectIO))
   val valid = Input(Bool())
 }
 
@@ -227,7 +227,7 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
-  val brPredictTaken = Output(Vec(4, Bool()))
+  val brPredictTaken = Output(Vec(4, new RedirectIO))
 }
 
 // Stage2: Data Access
@@ -236,14 +236,14 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
   val wordIndex = Output(UInt(WordIndexBits.W))
-  val brPredictTaken = Output(Vec(4, Bool()))
+  val brPredictTaken = Output(Vec(4, new RedirectIO))
 }
 
 // Stage3: Result Drive
 class Stage3Out extends Bundle {
   val addr = Output(UInt(32.W))
   val rdata = Output(UInt(32.W))
-  val brPredictTaken = Output(Vec(4, Bool()))
+  val brPredictTaken = Output(Vec(4, new RedirectIO))
 }
 
 class metaArrayWriteBundle(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
@@ -438,22 +438,22 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits(0).inst := rdata(0)
   io.out.bits(0).pc := Cat(io.in.bits.addr(31, 4), "h0".U(4.W))
   io.out.bits(0).Valid := ValidVec(0)
-  io.out.bits(0).brPredictTaken := io.in.bits.brPredictTaken(0)
+  io.out.bits(0).brPredict := io.in.bits.brPredictTaken(0)
 
   io.out.bits(1).inst := rdata(1)
   io.out.bits(1).pc := Cat(io.in.bits.addr(31, 4), "h4".U(4.W))
   io.out.bits(1).Valid := ValidVec(1)
-  io.out.bits(1).brPredictTaken := io.in.bits.brPredictTaken(1)
+  io.out.bits(1).brPredict := io.in.bits.brPredictTaken(1)
 
   io.out.bits(2).inst := rdata(2)
   io.out.bits(2).pc := Cat(io.in.bits.addr(31, 4), "h8".U(4.W))
   io.out.bits(2).Valid := ValidVec(2)
-  io.out.bits(2).brPredictTaken := io.in.bits.brPredictTaken(2)
+  io.out.bits(2).brPredict := io.in.bits.brPredictTaken(2)
 
   io.out.bits(3).inst := rdata(3)
   io.out.bits(3).pc := Cat(io.in.bits.addr(31, 4), "hc".U(4.W))
   io.out.bits(3).Valid := ValidVec(3)
-  io.out.bits(3).brPredictTaken := io.in.bits.brPredictTaken(3)
+  io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush 
