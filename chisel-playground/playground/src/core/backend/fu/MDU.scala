@@ -62,8 +62,8 @@ class AlignedMDU extends Module{
   val out_valid = RegInit(false.B)
 
   io.in.ready := in_ready && (!io.in.valid || io.out.fire)
-  io.out.valid := out_valid 
-
+  io.out.valid := out_valid && io.in.bits.valid
+  
   val idle :: put :: waiting :: get :: Nil = Enum(4)
   val div = RegInit(0.U(32.W))
   val divu = RegInit(0.U(32.W))
