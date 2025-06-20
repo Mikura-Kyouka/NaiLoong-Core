@@ -61,7 +61,7 @@ class AlignedMDU extends Module{
   val in_ready = RegInit(true.B)
   val out_valid = RegInit(false.B)
 
-  io.in.ready := in_ready && (!io.in.valid || io.out.fire)
+  io.in.ready := in_ready && (!(io.in.valid && io.in.bits.valid) || io.out.fire)
   io.out.valid := out_valid && io.in.bits.valid
   
   val idle :: put :: waiting :: get :: Nil = Enum(4)
@@ -105,10 +105,6 @@ class AlignedMDU extends Module{
           in_ready := false.B
           state_s := put
         }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
-          out_valid := true.B
-          in_ready := false.B
-          state_s := get
-        }.elsewhen(io.in.valid && !io.in.bits.valid) {
           out_valid := true.B
           in_ready := false.B
           state_s := get
@@ -160,10 +156,6 @@ class AlignedMDU extends Module{
           in_ready := false.B
           state_u := put
         }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
-          out_valid := true.B
-          in_ready := false.B
-          state_u := get
-        }.elsewhen(io.in.valid && !io.in.bits.valid) {
           out_valid := true.B
           in_ready := false.B
           state_u := get
@@ -261,10 +253,6 @@ class AlignedMDU extends Module{
           out_valid := true.B
           in_ready := false.B
           state_s := get
-        }.elsewhen(io.in.valid && !io.in.bits.valid) {
-          out_valid := true.B
-          in_ready := false.B
-          state_s := get
         }
       }
       is(put) {
@@ -313,10 +301,6 @@ class AlignedMDU extends Module{
           in_ready := false.B
           state_u := put
         }.elsewhen(io.in.valid && io.in.bits.valid && MDUOpType.isMul(io.in.bits.ctrl.fuOpType)) {
-          out_valid := true.B
-          in_ready := false.B
-          state_u := get
-        }.elsewhen(io.in.valid && !io.in.bits.valid) {
           out_valid := true.B
           in_ready := false.B
           state_u := get
