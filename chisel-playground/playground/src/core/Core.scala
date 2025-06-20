@@ -87,11 +87,14 @@ class Core extends Module {
 
   val mmu = Module(new MMU)
   
-  for(i <- 0 until 4) {
-    bpu.io.pc(i) := If.io.out.bits(i).pc
-  }
-  bpu.io.train.pc := rob.io.commit.commit(0).bits.pc
-  bpu.io.train.target := Mux(rob.io.exceptionInfo.valid, rob.io.exceptionInfo.exceptionNewPC, rob.io.brMisPredInfo.brMisPredTarget)
+  bpu.io.pc(0) := If.io.nextPC
+  bpu.io.pc(1) := If.io.nextPC + 4.U
+  bpu.io.pc(2) := If.io.nextPC + 8.U
+  bpu.io.pc(3) := If.io.nextPC + 12.U
+
+  If.io.BrPredictTaken := VecInit(Seq.fill(4)(false.B))
+  bpu.io.train.pc := rob.io.commitPC(0).bits
+  bpu.io.train.target := rob.io.brMisPredInfo.brMisPredTarget
   bpu.io.train.taken := rob.io.brMisPredInfo.brMisPred.valid
   bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
   dontTouch(bpu.io)

@@ -42,11 +42,13 @@ class IssueTop extends Module {
   io.out(2) <> mdurs.io.out
   io.out(3) <> lsurs.io.out
   io.out(4) <> brurs.io.out
-  io.in(0).ready := alu1rs.io.in.ready
-  io.in(1).ready := alu2rs.io.in.ready
-  io.in(2).ready := mdurs.io.in.ready
-  io.in(3).ready := lsurs.io.in.ready
-  io.in(4).ready := brurs.io.in.ready
+  val all_ready = alu1rs.io.in.ready && alu2rs.io.in.ready && 
+                  mdurs.io.in.ready && lsurs.io.in.ready && brurs.io.in.ready
+  io.in(0).ready := all_ready
+  io.in(1).ready := all_ready
+  io.in(2).ready := all_ready
+  io.in(3).ready := all_ready
+  io.in(4).ready := all_ready
   alu1rs.io.flush := io.flush
   alu2rs.io.flush := io.flush
   mdurs.io.flush := io.flush
@@ -54,22 +56,12 @@ class IssueTop extends Module {
   brurs.io.flush := io.flush
 
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
-  for(i <- 0 until 4) {
+  for(i <- 0 until ISSUE_WIDTH) {
     when(io.in(i).valid) {
-      when(io.in(0).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(0).bits.inst_cnt) {
-        busyreg(io.in(0).bits.inst_vec(i).preg) := true.B
-      }
-      when(io.in(1).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(1).bits.inst_cnt) {
-        busyreg(io.in(1).bits.inst_vec(i).preg) := true.B
-      }
-      when(io.in(2).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(2).bits.inst_cnt) {
-        busyreg(io.in(2).bits.inst_vec(i).preg) := true.B
-      }
-      when(io.in(3).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(3).bits.inst_cnt) {
-        busyreg(io.in(3).bits.inst_vec(i).preg) := true.B
-      }
-      when(io.in(4).bits.inst_vec(i).preg =/= 0.U && i.U < io.in(4).bits.inst_cnt) {
-        busyreg(io.in(4).bits.inst_vec(i).preg) := true.B
+      for(j <- 0 until 4) {
+        when(io.in(i).bits.inst_vec(j).preg =/= 0.U && j.U < io.in(i).bits.inst_cnt) {
+          busyreg(io.in(i).bits.inst_vec(j).preg) := true.B
+        }
       }
     }
   }

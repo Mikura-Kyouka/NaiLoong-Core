@@ -98,6 +98,7 @@ class BrMisPredInfo extends Bundle {
   val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
+  // val brMisPredPC = UInt(32.W)
 }
 
 class LSCommitInfo extends Bundle {

@@ -7,6 +7,7 @@ class IFU2IDU extends Bundle {
   val pc = Output(UInt(32.W))
   val inst = Output(UInt(32.W))
   val Valid = Output(Bool())
+  val brPredictTaken = Output(Bool())
 }
 
 class IFU extends Module{
@@ -17,6 +18,9 @@ class IFU extends Module{
         val pcSel = Input(Bool())
         val flush = Input(Bool())
         val dnpc  = Input(UInt(32.W))
+        val nextPC = Output(UInt(32.W))
+
+        val BrPredictTaken = Input(Vec(4, Bool()))
 
         val intrpt = Input(Bool())
 
@@ -64,16 +68,18 @@ class IFU extends Module{
     io.axi.awaddr := 0.U
 
     val pc = Module(new PC())
-    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 4 * 16, ways = 1))) // Pipelined
+    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 32 * 16, ways = 1))) // Pipelined
     io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
     pc.io.PCSrc := io.pcSel
     pc.io.dnpc := io.dnpc
     pc.io.stall :=  ~icache.io.s1Fire
+    io.nextPC := pc.io.pc
     // io.out.bits.pc := icache.io.out.bits.addr
 
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
     icache.io.in.addr := pc.io.pc
+    icache.io.in.brPredictTaken := io.BrPredictTaken
 
     icache.io.flush := io.flush 
     icache.io.in.valid := io.out.ready && !io.flush // TODO
@@ -82,6 +88,7 @@ class IFU extends Module{
     adef.Valid := true.B
     adef.pc := pc.io.pc
     adef.inst := 0x03400000.U
+    adef.brPredictTaken := false.B
     io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, icache.io.out.bits(0))
     io.out.bits(1) := icache.io.out.bits(1)
     io.out.bits(2) := icache.io.out.bits(2)

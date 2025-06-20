@@ -32,6 +32,8 @@ class DataSrcIO extends Bundle {
 class RedirectIO extends Bundle {
   val target = Output(UInt(32.W)) // TODO:VAddrBits
   val rtype = Output(UInt(1.W)) // 1: branch mispredict: only need to flush frontend  0: others: flush the whole pipeline
+  // val predictTaken = Output(Bool()) // whether the redirect is predicted taken
+  // val actuallyTaken = Output(Bool()) // whether the redirect is actually taken
   val valid = Output(Bool())
 }
 
