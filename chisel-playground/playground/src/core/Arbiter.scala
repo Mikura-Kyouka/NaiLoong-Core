@@ -129,6 +129,7 @@ class Arb extends Module {
     io.out.arvalid := io.ifu.arvalid
     io.out.araddr := io.ifu.araddr
     io.out.arlen := io.ifu.arlen
+    io.out.arid := io.ifu.arid
 
     io.out.arsize := io.ifu.arsize
     io.out.arburst := io.ifu.arburst
@@ -143,6 +144,7 @@ class Arb extends Module {
     io.out.arsize := io.lsu.arsize //
     io.out.arlen := io.lsu.arlen 
     io.out.arburst := io.lsu.arburst
+    io.out.arid := io.lsu.arid
     io.out.rready := io.lsu.rready
 
     io.lsu.arready := io.out.arready
@@ -166,6 +168,7 @@ class Arb extends Module {
     io.lsu.wready := io.out.wready
     io.lsu.bvalid := io.out.bvalid
     io.lsu.bresp := io.out.bresp
+    io.lsu.bid := io.out.bid
   }.otherwise {
     io.out.araddr := 0.U
     io.out.arvalid := false.B

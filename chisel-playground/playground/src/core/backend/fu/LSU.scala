@@ -101,7 +101,7 @@ class UnpipeLSUIO extends FunctionUnitIO {
 class UnpipelinedLSU extends Module with HasLSUConst {
   val io = IO(new UnpipeLSUIO)
   io := DontCare
-  val dcache = Module(new DCache()(new DCacheConfig(totalSize = 4 * 16, ways = 1)))
+  val dcache = Module(new DCache()(new DCacheConfig(totalSize = 8 * 16, ways = 1)))
 
   val addr =  io.in.bits.src1 + io.in.bits.src2
   io.loadAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.lw ||
@@ -133,7 +133,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   )
   io.diffData := diffData << (addr(1, 0) << 3)
   // 
-  dcache.io.req.bits.cmd := Mux(LSUOpType.isStore(io.in.bits.func), 1.U, 0.U)
+  dcache.io.req.bits.cmd := LSUOpType.isStore(io.in.bits.func)
   dcache.io.resp.ready := io.out.ready
   
   io.out.valid := dcache.io.resp.valid || (io.loadAddrMisaligned || io.storeAddrMisaligned) && io.in.valid

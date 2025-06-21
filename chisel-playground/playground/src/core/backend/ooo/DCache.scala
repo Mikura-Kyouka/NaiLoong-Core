@@ -194,8 +194,16 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
     val rdata = io.axi.rdata
-    when(io.axi.rvalid && state === s_read_mem2) {
+    when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
       dataArray(addr.index)(0)(0) := rdata // TODO
+
+      // val writeMeta = Vec(Ways, new MetaBundle)
+      // for (i <- 0 until Ways) {
+      //   writeMeta(i).tag := addr.tag
+      //   writeMeta(i).valid := true.B
+      //   writeMeta(i).dirty := false.B
+      // }
+      // metaArray.write(addr.index, writeMeta)
 
       metaArray(addr.index)(0).tag := addr.tag
       metaArray(addr.index)(0).valid := true.B
@@ -237,6 +245,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       dataArray(addr.index)(0) := VecInit(Seq(newWord))
       
       // 同时更新metaArray
+      // val writeMeta = Vec(Ways, new MetaBundle)
+      // for (i <- 0 until Ways) {
+      //   writeMeta(i).tag := addr.tag
+      //   writeMeta(i).valid := true.B
+      //   writeMeta(i).dirty := true.B
+      // }
+      // metaArray.write(addr.index, writeMeta)
+
       metaArray(addr.index)(0).tag := addr.tag
       metaArray(addr.index)(0).valid := true.B
       metaArray(addr.index)(0).dirty := true.B
