@@ -140,6 +140,7 @@ class ALU extends Module {
   io.redirect.predictTaken := io.redirect_in.predictTaken
   io.redirect.predictTarget := io.redirect_in.predictTarget
   io.redirect.rtype := DontCare // TODO
+  io.redirect.valid := io.in.valid
   
   // actually for bl and jirl to write pc + 4 to rd 
   dontTouch(aluRes)

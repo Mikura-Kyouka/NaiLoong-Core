@@ -72,7 +72,7 @@ class IFU extends Module{
     io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
     pc.io.PCSrc := io.pcSel
     pc.io.dnpc := io.dnpc
-    pc.io.stall :=  ~icache.io.s1Fire
+    pc.io.stall := ~icache.io.s1Fire
     io.nextPC := pc.io.pc
     // io.out.bits.pc := icache.io.out.bits.addr
 

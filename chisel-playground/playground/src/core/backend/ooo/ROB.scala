@@ -204,8 +204,9 @@ class Rob extends Module {
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
       robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
-      robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, true.B, 
-                                          io.writeback(i).bits.redirect.actuallyTarget =/= io.writeback(i).bits.redirect.predictTarget)
+      robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, 
+                                          io.writeback(i).bits.redirect.actuallyTarget =/= io.writeback(i).bits.redirect.predictTarget, 
+                                          false.B)
       robEntries(idx).brTarget     := io.writeback(i).bits.redirect.actuallyTarget
       robEntries(idx).brTaken      := io.writeback(i).bits.redirect.actuallyTaken
       robEntries(idx).result       := io.writeback(i).bits.writeData

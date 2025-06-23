@@ -292,6 +292,7 @@ class RegRenaming extends Module {
     entry.result := DontCare
     entry.csrNewData := DontCare
     entry.timer64 := DontCare
+    entry.brTaken := DontCare
   }
 
   // 连接到ROB分配接口
