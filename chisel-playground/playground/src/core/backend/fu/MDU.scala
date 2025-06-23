@@ -55,7 +55,7 @@ class AlignedMDU extends Module{
   
   mdu.io.in.valid := io.in.valid
   mdu.io.out.ready := io.out.ready
-  io.out.bits.redirect := DontCare
+  io.out.bits.redirect := io.in.bits.redirect
   io.out.bits.timer64 := DontCare  // TODO
   
   val in_ready = RegInit(true.B)

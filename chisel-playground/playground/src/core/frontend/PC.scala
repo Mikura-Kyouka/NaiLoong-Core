@@ -8,6 +8,7 @@ class PCIO extends Bundle {
   val dnpc = Input(UInt(32.W))
   val pc = Output(UInt(32.W))
   val PCSrc = Input(Bool())
+  val PCPredictTaken = Input(Bool())
   //val refetch = Ouput(Bool())
 }
 
@@ -16,6 +17,10 @@ class PC extends Module {
   val pcReg = RegInit("h1c000000".U(32.W)) // TODO
   val snpc = Cat((pcReg + 16.U)(31, 4), 0.U(4.W))
   when(io.PCSrc) {
+    pcReg := io.dnpc
+  }.elsewhen(io.stall) {
+    pcReg := pcReg
+  }.elsewhen(io.PCPredictTaken) {
     pcReg := io.dnpc
   }.elsewhen(~io.stall){
     pcReg := snpc

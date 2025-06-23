@@ -70,8 +70,16 @@ class IFU extends Module{
     val pc = Module(new PC())
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 32 * 16, ways = 1))) // Pipelined
     io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
+
+    val predictValid = !RegNext(io.flush) && RegNext(icache.io.s1Fire)
+
+    val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _) && predictValid 
+    val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
+    val predictTarget = PriorityMux(io.BrPredictTaken.map(_.predictTaken), io.BrPredictTaken.map(_.predictTarget))
+
     pc.io.PCSrc := io.pcSel
-    pc.io.dnpc := io.dnpc
+    pc.io.PCPredictTaken := predictTaken
+    pc.io.dnpc := Mux(io.pcSel, io.dnpc, predictTarget)
     pc.io.stall := ~icache.io.s1Fire
     io.nextPC := pc.io.pc
     // io.out.bits.pc := icache.io.out.bits.addr
@@ -79,9 +87,18 @@ class IFU extends Module{
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
     icache.io.in.addr := pc.io.pc
-    icache.io.in.brPredictTaken := io.BrPredictTaken
 
-    icache.io.flush := io.flush 
+    val notValidPredict = Wire(new RedirectIO)
+    notValidPredict.valid := false.B
+    notValidPredict.predictTaken := false.B
+    notValidPredict.predictTarget := 0.U
+    notValidPredict.rtype := DontCare
+    notValidPredict.actuallyTaken := false.B
+    notValidPredict.actuallyTarget := 0.U
+
+    icache.io.in.brPredictTaken := Mux(predictValid, io.BrPredictTaken, VecInit(Seq.fill(4)(notValidPredict)))
+
+    icache.io.flush := io.flush
     icache.io.in.valid := io.out.ready && !io.flush // TODO
     // io.out.bits.inst := icache.io.out.bits.rdata
     val adef = Wire(new IFU2IDU)
@@ -89,10 +106,18 @@ class IFU extends Module{
     adef.pc := pc.io.pc
     adef.inst := 0x03400000.U
     adef.brPredict := DontCare
+    val nop = Wire(new IFU2IDU)
+    nop.Valid := false.B
+    nop.pc := 0.U
+    nop.inst := 0.U
+    nop.brPredict := DontCare
+
+    val hasBrPredictOut = icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid).reduce(_ || _)
+    val brPredictIdxOut = PriorityEncoder(icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid))
     io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, icache.io.out.bits(0))
-    io.out.bits(1) := icache.io.out.bits(1)
-    io.out.bits(2) := icache.io.out.bits(2)
-    io.out.bits(3) := icache.io.out.bits(3)
+    io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, icache.io.out.bits(1))
+    io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, icache.io.out.bits(2))
+    io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, icache.io.out.bits(3))
 }
 
 

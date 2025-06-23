@@ -87,19 +87,23 @@ class Core extends Module {
 
   val mmu = Module(new MMU)
   
-  bpu.io.pc(0) := If.io.nextPC
-  bpu.io.pc(1) := If.io.nextPC + 4.U
-  bpu.io.pc(2) := If.io.nextPC + 8.U
-  bpu.io.pc(3) := If.io.nextPC + 12.U
+
+  val nextPC = Cat(If.io.nextPC(31, 4), 0.U(4.W))
+  bpu.io.pc(0) := nextPC
+  bpu.io.pc(1) := nextPC + 4.U
+  bpu.io.pc(2) := nextPC + 8.U
+  bpu.io.pc(3) := nextPC + 12.U
+
+  val offset = RegNext(If.io.nextPC(3, 2)) // 4 bytes aligned
 
   If.io.BrPredictTaken := DontCare
-  If.io.BrPredictTaken(0).predictTaken := bpu.io.taken(0)
+  If.io.BrPredictTaken(0).predictTaken := bpu.io.taken(0) && offset <= 0.U
   If.io.BrPredictTaken(0).predictTarget := bpu.io.target(0)
-  If.io.BrPredictTaken(1).predictTaken := bpu.io.taken(1)
+  If.io.BrPredictTaken(1).predictTaken := bpu.io.taken(1) && offset <= 1.U
   If.io.BrPredictTaken(1).predictTarget := bpu.io.target(1)
-  If.io.BrPredictTaken(2).predictTaken := bpu.io.taken(2)
+  If.io.BrPredictTaken(2).predictTaken := bpu.io.taken(2) && offset <= 2.U
   If.io.BrPredictTaken(2).predictTarget := bpu.io.target(2)
-  If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3)
+  If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3) && offset <= 3.U
   If.io.BrPredictTaken(3).predictTarget := bpu.io.target(3)
 
   bpu.io.train.pc := rob.io.brMisPredInfo.brMisPredPC

@@ -136,7 +136,7 @@ class ALU extends Module {
   dontTouch(isJirl)
   io.redirect.actuallyTarget := Mux(isBranch || isJirl,
                             target, io.pc + io.offset) 
-  io.redirect.actuallyTaken := brValid && predictWrong
+  io.redirect.actuallyTaken := brValid
   io.redirect.predictTaken := io.redirect_in.predictTaken
   io.redirect.predictTarget := io.redirect_in.predictTarget
   io.redirect.rtype := DontCare // TODO
@@ -199,6 +199,7 @@ class AligendALU extends Module{
 
   val alu = Module(new ALU)
   alu.io := DontCare
+  alu.io.redirect_in := io.in.bits.redirect
   alu.io.in.bits.src1 := io.in.bits.src1
   alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
   alu.io.in.bits.func := io.in.bits.ctrl.fuOpType

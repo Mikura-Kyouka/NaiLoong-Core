@@ -20,6 +20,13 @@ class BHT extends Module {
   })
 
   val mem = SyncReadMem(1 << INDEX_WIDTH, UInt(HISTORY_WIDTH.W))
+
+  when(reset.asBool) {
+    for (i <- 0 until (1 << INDEX_WIDTH)) {
+      mem.write(i.U, 0.U(HISTORY_WIDTH.W))
+    }
+  }
+
   when (io.wen) {
     mem.write(io.waddr, io.wdata)
   }
@@ -45,6 +52,13 @@ class BTBData extends Module {
     val wen = Input(Bool())
   })
   val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt(32.W))
+
+  when(reset.asBool) {
+    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
+      mem.write(i.U, 0.U(32.W))
+    }
+  }
+
   when (io.wen) {
     mem.write(io.waddr, io.wdata)
   }
@@ -70,6 +84,13 @@ class BTBTag extends Module {
     val wen = Input(Bool())
   })
   val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W))
+
+  when(reset.asBool) {
+    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
+      mem.write(i.U, 0.U((32 - 2 - BTB_INDEX_WIDTH).W))
+    }
+  }
+
   when (io.wen) {
     mem.write(io.waddr, io.wdata)
   }
@@ -95,6 +116,13 @@ class BTBValid extends Module {
     val wen = Input(Bool())
   })
   val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, Bool())
+
+  when(reset.asBool) {
+    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
+      mem.write(i.U, false.B)
+    }
+  }
+
   when (io.wen) {
     mem.write(io.waddr, io.wdata)
   }
