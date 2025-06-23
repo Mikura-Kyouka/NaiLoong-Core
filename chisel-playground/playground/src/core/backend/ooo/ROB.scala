@@ -446,4 +446,12 @@ class Rob extends Module {
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
                       flushEntry.pc + 4.U))
+
+  val flushCounter = RegInit(0.U(64.W))
+
+  when(io.flush) {
+    flushCounter := flushCounter +& 1.U
+  }
+
+  dontTouch(flushCounter)
 }
