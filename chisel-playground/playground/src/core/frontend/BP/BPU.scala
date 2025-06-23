@@ -2,6 +2,7 @@ package core
 import chisel3._
 import chisel3.util._
 import core.BpuConfig._
+import core.DualPortBRAM
 
 class BHT extends Module {
   val io = IO(new Bundle {
@@ -19,21 +20,63 @@ class BHT extends Module {
     val wen = Input(Bool())
   })
 
-  val mem = SyncReadMem(1 << INDEX_WIDTH, UInt(HISTORY_WIDTH.W))
+  val bht0 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
+  val bht1 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
+  val bht2 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
+  val bht3 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
 
-  when(reset.asBool) {
-    for (i <- 0 until (1 << INDEX_WIDTH)) {
-      mem.write(i.U, 0.U(HISTORY_WIDTH.W))
-    }
-  }
+  bht0.io.clka := clock
+  bht0.io.ena := true.B
+  bht0.io.addra := io.raddr0
+  bht0.io.wea := false.B
+  bht0.io.dina := 0.U
 
-  when (io.wen) {
-    mem.write(io.waddr, io.wdata)
-  }
-  io.rdata0 := mem.read(io.raddr0, true.B)
-  io.rdata1 := mem.read(io.raddr1, true.B)
-  io.rdata2 := mem.read(io.raddr2, true.B)
-  io.rdata3 := mem.read(io.raddr3, true.B)
+  bht0.io.clkb := clock
+  bht0.io.enb := true.B
+  bht0.io.web := io.wen && (io.waddr(1, 0) === 0.U)
+  bht0.io.addrb := io.waddr
+  bht0.io.dinb := io.wdata
+
+  bht1.io.clka := clock
+  bht1.io.ena := true.B
+  bht1.io.addra := io.raddr1
+  bht1.io.wea := false.B
+  bht1.io.dina := 0.U
+
+  bht1.io.clkb := clock
+  bht1.io.enb := true.B
+  bht1.io.web := io.wen && (io.waddr(1, 0) === 1.U)
+  bht1.io.addrb := io.waddr
+  bht1.io.dinb := io.wdata
+
+  bht2.io.clka := clock
+  bht2.io.ena := true.B
+  bht2.io.addra := io.raddr2
+  bht2.io.wea := false.B
+  bht2.io.dina := 0.U
+
+  bht2.io.clkb := clock
+  bht2.io.enb := true.B
+  bht2.io.web := io.wen && (io.waddr(1, 0) === 2.U)
+  bht2.io.addrb := io.waddr
+  bht2.io.dinb := io.wdata
+
+  bht3.io.clka := clock
+  bht3.io.ena := true.B
+  bht3.io.addra := io.raddr3
+  bht3.io.wea := false.B
+  bht3.io.dina := 0.U
+
+  bht3.io.clkb := clock
+  bht3.io.enb := true.B
+  bht3.io.web := io.wen && (io.waddr(1, 0) === 3.U)
+  bht3.io.addrb := io.waddr
+  bht3.io.dinb := io.wdata
+
+  io.rdata0 := bht0.io.doutb
+  io.rdata1 := bht1.io.doutb
+  io.rdata2 := bht2.io.doutb
+  io.rdata3 := bht3.io.doutb
 }
 
 class BTBData extends Module {
@@ -51,21 +94,64 @@ class BTBData extends Module {
     val wdata = Input(UInt(32.W))
     val wen = Input(Bool())
   })
-  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt(32.W))
 
-  when(reset.asBool) {
-    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
-      mem.write(i.U, 0.U(32.W))
-    }
-  }
+  val btbdata0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
+  val btbdata1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
+  val btbdata2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
+  val btbdata3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
 
-  when (io.wen) {
-    mem.write(io.waddr, io.wdata)
-  }
-  io.rdata0 := mem.read(io.raddr0, true.B)
-  io.rdata1 := mem.read(io.raddr1, true.B)
-  io.rdata2 := mem.read(io.raddr2, true.B)
-  io.rdata3 := mem.read(io.raddr3, true.B)
+  btbdata0.io.clka := clock
+  btbdata0.io.ena := true.B
+  btbdata0.io.addra := io.raddr0
+  btbdata0.io.wea := false.B
+  btbdata0.io.dina := 0.U
+
+  btbdata0.io.clkb := clock
+  btbdata0.io.enb := true.B
+  btbdata0.io.web := io.wen && (io.waddr(1, 0) === 0.U)
+  btbdata0.io.addrb := io.waddr
+  btbdata0.io.dinb := io.wdata
+
+  btbdata1.io.clka := clock
+  btbdata1.io.ena := true.B
+  btbdata1.io.addra := io.raddr1
+  btbdata1.io.wea := false.B
+  btbdata1.io.dina := 0.U
+
+  btbdata1.io.clkb := clock
+  btbdata1.io.enb := true.B
+  btbdata1.io.web := io.wen && (io.waddr(1, 0) === 1.U)
+  btbdata1.io.addrb := io.waddr
+  btbdata1.io.dinb := io.wdata
+
+  btbdata2.io.clka := clock
+  btbdata2.io.ena := true.B
+  btbdata2.io.addra := io.raddr2
+  btbdata2.io.wea := false.B
+  btbdata2.io.dina := 0.U
+
+  btbdata2.io.clkb := clock
+  btbdata2.io.enb := true.B
+  btbdata2.io.web := io.wen && (io.waddr(1, 0) === 2.U)
+  btbdata2.io.addrb := io.waddr
+  btbdata2.io.dinb := io.wdata
+
+  btbdata3.io.clka := clock
+  btbdata3.io.ena := true.B
+  btbdata3.io.addra := io.raddr3
+  btbdata3.io.wea := false.B
+  btbdata3.io.dina := 0.U
+
+  btbdata3.io.clkb := clock
+  btbdata3.io.enb := true.B
+  btbdata3.io.web := io.wen && (io.waddr(1, 0) === 3.U)
+  btbdata3.io.addrb := io.waddr
+  btbdata3.io.dinb := io.wdata
+
+  io.rdata0 := btbdata0.io.doutb
+  io.rdata1 := btbdata1.io.doutb
+  io.rdata2 := btbdata2.io.doutb
+  io.rdata3 := btbdata3.io.doutb
 }
 
 class BTBTag extends Module {
@@ -83,21 +169,64 @@ class BTBTag extends Module {
     val wdata = Input(UInt((32 - 2 - BTB_INDEX_WIDTH).W))
     val wen = Input(Bool())
   })
-  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W))
 
-  when(reset.asBool) {
-    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
-      mem.write(i.U, 0.U((32 - 2 - BTB_INDEX_WIDTH).W))
-    }
-  }
+  val btbtag0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32 - 2 - BTB_INDEX_WIDTH))
+  val btbtag1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32 - 2 - BTB_INDEX_WIDTH))
+  val btbtag2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32 - 2 - BTB_INDEX_WIDTH))
+  val btbtag3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32 - 2 - BTB_INDEX_WIDTH))
 
-  when (io.wen) {
-    mem.write(io.waddr, io.wdata)
-  }
-  io.rdata0 := mem.read(io.raddr0, true.B)
-  io.rdata1 := mem.read(io.raddr1, true.B)
-  io.rdata2 := mem.read(io.raddr2, true.B)
-  io.rdata3 := mem.read(io.raddr3, true.B)
+  btbtag0.io.clka := clock
+  btbtag0.io.ena := true.B
+  btbtag0.io.addra := io.raddr0
+  btbtag0.io.wea := false.B
+  btbtag0.io.dina := 0.U
+
+  btbtag0.io.clkb := clock
+  btbtag0.io.enb := true.B
+  btbtag0.io.web := io.wen && (io.waddr(1, 0) === 0.U)
+  btbtag0.io.addrb := io.waddr
+  btbtag0.io.dinb := io.wdata
+
+  btbtag1.io.clka := clock
+  btbtag1.io.ena := true.B
+  btbtag1.io.addra := io.raddr1
+  btbtag1.io.wea := false.B
+  btbtag1.io.dina := 0.U
+
+  btbtag1.io.clkb := clock
+  btbtag1.io.enb := true.B
+  btbtag1.io.web := io.wen && (io.waddr(1, 0) === 1.U)
+  btbtag1.io.addrb := io.waddr
+  btbtag1.io.dinb := io.wdata
+
+  btbtag2.io.clka := clock
+  btbtag2.io.ena := true.B
+  btbtag2.io.addra := io.raddr2
+  btbtag2.io.wea := false.B
+  btbtag2.io.dina := 0.U
+
+  btbtag2.io.clkb := clock
+  btbtag2.io.enb := true.B
+  btbtag2.io.web := io.wen && (io.waddr(1, 0) === 2.U)
+  btbtag2.io.addrb := io.waddr
+  btbtag2.io.dinb := io.wdata
+
+  btbtag3.io.clka := clock
+  btbtag3.io.ena := true.B
+  btbtag3.io.addra := io.raddr3
+  btbtag3.io.wea := false.B
+  btbtag3.io.dina := 0.U
+
+  btbtag3.io.clkb := clock
+  btbtag3.io.enb := true.B
+  btbtag3.io.web := io.wen && (io.waddr(1, 0) === 3.U)
+  btbtag3.io.addrb := io.waddr
+  btbtag3.io.dinb := io.wdata
+
+  io.rdata0 := btbtag0.io.doutb
+  io.rdata1 := btbtag1.io.doutb
+  io.rdata2 := btbtag2.io.doutb
+  io.rdata3 := btbtag3.io.doutb
 }
 
 class BTBValid extends Module {
@@ -115,21 +244,64 @@ class BTBValid extends Module {
     val wdata = Input(Bool())
     val wen = Input(Bool())
   })
-  val mem = SyncReadMem(1 << BTB_INDEX_WIDTH, Bool())
 
-  when(reset.asBool) {
-    for (i <- 0 until (1 << BTB_INDEX_WIDTH)) {
-      mem.write(i.U, false.B)
-    }
-  }
+  val btbvalid0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  val btbvalid1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  val btbvalid2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  val btbvalid3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
 
-  when (io.wen) {
-    mem.write(io.waddr, io.wdata)
-  }
-  io.rdata0 := mem.read(io.raddr0, true.B)
-  io.rdata1 := mem.read(io.raddr1, true.B)
-  io.rdata2 := mem.read(io.raddr2, true.B)
-  io.rdata3 := mem.read(io.raddr3, true.B)
+  btbvalid0.io.clka := clock
+  btbvalid0.io.ena := true.B
+  btbvalid0.io.addra := io.raddr0
+  btbvalid0.io.wea := false.B
+  btbvalid0.io.dina := 0.U
+
+  btbvalid0.io.clkb := clock
+  btbvalid0.io.enb := true.B
+  btbvalid0.io.web := io.wen && (io.waddr(1, 0) === 0.U)
+  btbvalid0.io.addrb := io.waddr
+  btbvalid0.io.dinb := io.wdata
+
+  btbvalid1.io.clka := clock
+  btbvalid1.io.ena := true.B
+  btbvalid1.io.addra := io.raddr1
+  btbvalid1.io.wea := false.B
+  btbvalid1.io.dina := 0.U
+
+  btbvalid1.io.clkb := clock
+  btbvalid1.io.enb := true.B
+  btbvalid1.io.web := io.wen && (io.waddr(1, 0) === 1.U)
+  btbvalid1.io.addrb := io.waddr
+  btbvalid1.io.dinb := io.wdata
+
+  btbvalid2.io.clka := clock
+  btbvalid2.io.ena := true.B
+  btbvalid2.io.addra := io.raddr2
+  btbvalid2.io.wea := false.B
+  btbvalid2.io.dina := 0.U
+
+  btbvalid2.io.clkb := clock
+  btbvalid2.io.enb := true.B
+  btbvalid2.io.web := io.wen && (io.waddr(1, 0) === 2.U)
+  btbvalid2.io.addrb := io.waddr
+  btbvalid2.io.dinb := io.wdata
+
+  btbvalid3.io.clka := clock
+  btbvalid3.io.ena := true.B
+  btbvalid3.io.addra := io.raddr3
+  btbvalid3.io.wea := false.B
+  btbvalid3.io.dina := 0.U
+
+  btbvalid3.io.clkb := clock
+  btbvalid3.io.enb := true.B
+  btbvalid3.io.web := io.wen && (io.waddr(1, 0) === 3.U)
+  btbvalid3.io.addrb := io.waddr
+  btbvalid3.io.dinb := io.wdata
+
+  io.rdata0 := btbvalid0.io.doutb.asBool
+  io.rdata1 := btbvalid1.io.doutb.asBool
+  io.rdata2 := btbvalid2.io.doutb.asBool
+  io.rdata3 := btbvalid3.io.doutb.asBool
 }
 
 /*
