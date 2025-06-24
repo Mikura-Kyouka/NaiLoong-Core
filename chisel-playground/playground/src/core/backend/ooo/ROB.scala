@@ -249,7 +249,7 @@ class Rob extends Module {
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
-                    !hasException(i) && !hasBrMispred(i)
+                    !hasException(i)
   }
 
   val store_entry = robEntries(head +& PriorityEncoder(hasStore))
@@ -264,14 +264,30 @@ class Rob extends Module {
     isAfterStart
   }
 
+  // 提交逻辑
+  // 生成提交信息
+
+  // 提交 Store 状态机
+  val st_idle :: st_commit :: st_retire :: Nil = Enum(3)
+  
+  val st_state = RegInit(st_idle)
+  val OutValid = RegInit(false.B)
+  val InReady  = RegInit(false.B)
+
+  val shouldCommit = Wire(Vec(4, Bool()))
+  val hasCommit = Wire(Vec(4, Bool()))
+
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
 
   val exception = hasException.reduce(_ || _)
   val exceptionIdx = PriorityEncoder(hasException)
 
-  val brMisPred = hasBrMispred.reduce(_ || _)
+  
+  val brMisPredTemp = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
+  val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx) && st_state === st_retire && io.RobLsuIn.valid
+  val brMisPred = brMisPredTemp && storeFinished
 
   val minIdx = Wire(UInt(2.W))
 
@@ -281,11 +297,6 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
   io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
-
-  // 提交逻辑
-  // 生成提交信息
-  val shouldCommit = Wire(Vec(4, Bool()))
-  val hasCommit = Wire(Vec(4, Bool()))
 
   for (i <- 0 until 4) {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
@@ -356,13 +367,6 @@ class Rob extends Module {
       robEntries(commitIdx).valid := false.B
     }
   }
-
-  // 提交 Store 状态机
-  val st_idle :: st_commit :: st_retire :: Nil = Enum(3)
-  
-  val st_state = RegInit(st_idle)
-  val OutValid = RegInit(false.B)
-  val InReady  = RegInit(false.B)
   
   switch (st_state) {
     is (st_idle) {

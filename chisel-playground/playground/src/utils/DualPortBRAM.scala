@@ -87,6 +87,13 @@ class BlackBoxDualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Black
     |  (* ram_style = "block" *) 
     |  reg [DATA_WIDTH-1:0] mem [0:(1<<ADDR_WIDTH)-1];
     |
+    |  integer i;
+    |  initial begin
+    |    for (i = 0; i < (1 << ADDR_WIDTH); i = i + 1) begin
+    |      mem[i] = 0;
+    |    end
+    |  end
+    |
     |  always @(posedge clka) begin
     |    if (ena) begin
     |      if (wea) mem[addra] <= dina;
