@@ -36,7 +36,7 @@ sealed trait HasCacheConst {
   val TagBits = 32 - OffsetBits - IndexBits
 
   // 打印参数
-  // println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
+  println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
 
   def addrBundle = new Bundle {
     val tag = UInt(TagBits.W)       // 26
@@ -99,35 +99,64 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     resp := DontCare
     val addr = req.addr.asTypeOf(addrBundle)
 
-    val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
-    val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
+    // val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
+    // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
     
-    when(reset.asBool){
-      for (i <- 0 until Sets) {
-        for (j <- 0 until Ways) {
-          metaArray(i)(j).valid := false.B
-          metaArray(i)(j).dirty := false.B
-          metaArray(i)(j).tag := 0.U
-        }
-      }
-    }
-    when(reset.asBool){
-      for (i <- 0 until Sets) {
-        for (j <- 0 until Ways) {
-          dataArray(i)(j) := VecInit(Seq.fill(LineBeats)(0.U(32.W)))
-        }
-      }
-    }
+    // 暂时只支持 1 way
+    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), TagBits + 2))
+    val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), 32 * LineBeats))
+
+    // when(reset.asBool){
+    //   for (i <- 0 until Sets) {
+    //     for (j <- 0 until Ways) {
+    //       metaArray(i)(j).valid := false.B
+    //       metaArray(i)(j).dirty := false.B
+    //       metaArray(i)(j).tag := 0.U
+    //     }
+    //   }
+    // }
+    // when(reset.asBool){
+    //   for (i <- 0 until Sets) {
+    //     for (j <- 0 until Ways) {
+    //       dataArray(i)(j) := VecInit(Seq.fill(LineBeats)(0.U(32.W)))
+    //     }
+    //   }
+    // }
+
+    metaArray.io.clka := clock
+    metaArray.io.addra := addr.index
+    metaArray.io.dina := 0.U // 后续覆盖
+    metaArray.io.wea := false.B // 后续覆盖
+    metaArray.io.ena := true.B
+    metaArray.io.clkb := clock
+    metaArray.io.addrb := addr.index
+    metaArray.io.enb := true.B
+    metaArray.io.web := false.B
+    metaArray.io.dinb := 0.U // 不需要写入数据
+
+    dataArray.io.clka := clock
+    dataArray.io.addra := addr.index
+    dataArray.io.dina := 0.U // 后续覆盖
+    dataArray.io.wea := false.B // 后续覆盖
+    dataArray.io.ena := true.B
+    dataArray.io.clkb := clock
+    dataArray.io.addrb := addr.index
+    dataArray.io.enb := true.B
+    dataArray.io.web := false.B
+    dataArray.io.dinb := 0.U // 不需要写入数据
+
+    val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
+    val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 
     val hitVec = VecInit(
-      metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
+      metaReadData.map(m => m.tag === addr.tag && m.valid === 1.U)
     ).asUInt
     val hit = hitVec.orR
     dontTouch(hit)
 
-    val dirty = metaArray(addr.index)(0).dirty.asBool
+    val dirty = metaReadData(0).dirty.asBool
     dontTouch(dirty)
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
@@ -169,7 +198,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
     io.RobLsuIn.ready := state === s_wait_rob
 
-    val cacheData = dataArray(addr.index)(0)(0)
+    val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
     io.axi.araddr := req.addr
@@ -179,7 +208,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.arburst := "b01".U
     io.axi.rready := true.B
     // axi write chanel
-    val awaddr = Cat(metaArray(addr.index)(0).tag, addr.index, 0.U(2.W))
+    val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
     io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
@@ -195,7 +224,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 将这个cacheline标记为not dirty的状态
     val rdata = io.axi.rdata
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
-      dataArray(addr.index)(0)(0) := rdata // TODO
+      dataArray.io.wea := true.B
+      dataArray.io.addra := addr.index
+      dataArray.io.dina := rdata
+      // dataArray(addr.index)(0)(0) := rdata // TODO
 
       // val writeMeta = Vec(Ways, new MetaBundle)
       // for (i <- 0 until Ways) {
@@ -205,14 +237,17 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // }
       // metaArray.write(addr.index, writeMeta)
 
-      metaArray(addr.index)(0).tag := addr.tag
-      metaArray(addr.index)(0).valid := true.B
-      metaArray(addr.index)(0).dirty := false.B
+      // metaArray(addr.index)(0).tag := addr.tag
+      // metaArray(addr.index)(0).valid := true.B
+      // metaArray(addr.index)(0).dirty := false.B
+      metaArray.io.wea := true.B
+      metaArray.io.addra := addr.index
+      metaArray.io.dina := Cat(addr.tag, true.B, false.B) // tag, valid, dirty
     }
 
     val offset = req.addr(1, 0) << 3
     // 读取当前字
-    val origWord = dataArray(addr.index)(0)(0)
+    val origWord = dataReadData(0)(0)
 
     // 新的数据寄存器
     val newWord = Wire(UInt(32.W))
@@ -242,7 +277,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         }
       }
       // 完整写入更新后的数据
-      dataArray(addr.index)(0) := VecInit(Seq(newWord))
+      // dataArray(addr.index)(0) := VecInit(Seq(newWord))
+      dataArray.io.wea := true.B
+      dataArray.io.addra := addr.index
+      dataArray.io.dina := VecInit(Seq.fill(LineBeats)(newWord)).asUInt
       
       // 同时更新metaArray
       // val writeMeta = Vec(Ways, new MetaBundle)
@@ -253,9 +291,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // }
       // metaArray.write(addr.index, writeMeta)
 
-      metaArray(addr.index)(0).tag := addr.tag
-      metaArray(addr.index)(0).valid := true.B
-      metaArray(addr.index)(0).dirty := true.B
+      // metaArray(addr.index)(0).tag := addr.tag
+      // metaArray(addr.index)(0).valid := true.B
+      // metaArray(addr.index)(0).dirty := true.B
+      metaArray.io.wea := true.B
+      metaArray.io.addra := addr.index
+      metaArray.io.dina := Cat(addr.tag, true.B, true.B) // tag, valid, dirty
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }

@@ -106,10 +106,12 @@ class Core extends Module {
   If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3) && offset <= 3.U
   If.io.BrPredictTaken(3).predictTarget := bpu.io.target(3)
 
-  bpu.io.train.pc := rob.io.brMisPredInfo.brMisPredPC
-  bpu.io.train.target := rob.io.brMisPredInfo.brMisPredTarget
-  bpu.io.train.taken := rob.io.brMisPredInfo.actuallyTaken
-  bpu.io.train.valid := rob.io.brMisPredInfo.brMisPred.valid  // FIXME: must have bugs!!!
+  val pipedBrMisPredInfo = RegNext(rob.io.brMisPredInfo)
+  bpu.io.train.pc := pipedBrMisPredInfo.brMisPredPC
+  bpu.io.train.target := pipedBrMisPredInfo.brMisPredTarget
+  bpu.io.train.taken := pipedBrMisPredInfo.actuallyTaken
+  bpu.io.train.valid := pipedBrMisPredInfo.brMisPred.valid
+
   dontTouch(bpu.io)
 
   val flush = rob.io.flush
