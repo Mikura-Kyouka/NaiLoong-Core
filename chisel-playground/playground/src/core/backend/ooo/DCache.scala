@@ -103,8 +103,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
     
     // 暂时只支持 1 way
-    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), TagBits + 2))
-    val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), 32 * LineBeats))
+    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 2)))
+    val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
     // when(reset.asBool){
     //   for (i <- 0 until Sets) {
@@ -123,6 +123,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   }
     // }
 
+    // a 口只用于写入，b 口只用于读取
     metaArray.io.clka := clock
     metaArray.io.addra := addr.index
     metaArray.io.dina := 0.U // 后续覆盖
@@ -226,7 +227,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
       dataArray.io.wea := true.B
       dataArray.io.addra := addr.index
-      dataArray.io.dina := rdata
+      dataArray.io.dina := VecInit(Seq.fill(LineBeats)(rdata)).asUInt
       // dataArray(addr.index)(0)(0) := rdata // TODO
 
       // val writeMeta = Vec(Ways, new MetaBundle)
@@ -242,7 +243,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := false.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, false.B) // tag, valid, dirty
+      metaArray.io.dina := Cat(addr.tag, true.B, false.B).asUInt // tag, valid, dirty
     }
 
     val offset = req.addr(1, 0) << 3
@@ -296,7 +297,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := true.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, true.B) // tag, valid, dirty
+      metaArray.io.dina := Cat(addr.tag, true.B, true.B).asUInt // tag, valid, dirty
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
