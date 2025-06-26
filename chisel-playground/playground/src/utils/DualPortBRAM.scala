@@ -4,17 +4,11 @@ import chisel3.util._
 
 class DualPortBRAMIO(val addrWidth: Int, val dataWidth: Int) extends Bundle {
   val clka  = Input(Clock())
-  val ena   = Input(Bool())
   val wea   = Input(Bool())
   val addra = Input(UInt(addrWidth.W))
   val dina  = Input(UInt(dataWidth.W))
-  val douta = Output(UInt(dataWidth.W))
 
-  val clkb  = Input(Clock())
-  val enb   = Input(Bool())
-  val web   = Input(Bool())
   val addrb = Input(UInt(addrWidth.W))
-  val dinb  = Input(UInt(dataWidth.W))
   val doutb = Output(UInt(dataWidth.W))
 }
 
@@ -26,23 +20,14 @@ class DualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Module {
 
     withClock(io.clka) {
       val doutaReg = RegInit(0.U(dataWidth.W))
-      when(io.ena) {
-        when(io.wea) {
-          mem.write(io.addra, io.dina)
-        }
-        doutaReg := mem.read(io.addra, !io.wea)
+      when(io.wea) {
+        mem.write(io.addra, io.dina)
       }
-      io.douta := doutaReg
     }
 
-    withClock(io.clkb) {
+    withClock(io.clka) {
       val doutbReg = RegInit(0.U(dataWidth.W))
-      when(io.enb) {
-        when(io.web) {
-          mem.write(io.addrb, io.dinb)
-        }
-        doutbReg := mem.read(io.addrb, !io.web)
-      }
+      doutbReg := mem.read(io.addrb, true.B)
       io.doutb := doutbReg
     }
 
@@ -65,50 +50,39 @@ class BlackBoxDualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Black
   val module = "BlackBoxDualPortBRAM.sv"
     setInline(module,
     """
-    |module BlackBoxDualPortBRAM #(
-    |    parameter ADDR_WIDTH = 10,
-    |    parameter DATA_WIDTH = 32
-    |) (
-    |    input  wire [ADDR_WIDTH-1:0] addra,
-    |    input  wire clka,
-    |    input  wire [DATA_WIDTH-1:0] dina,
-    |    output reg  [DATA_WIDTH-1:0] douta,
-    |    input  wire ena,
-    |    input  wire wea,
+    | module BlackBoxDualPortBRAM #(
+    |     parameter ADDR_WIDTH = 64,                       // Specify RAM data width
+    |     parameter DATA_WIDTH = 512                      // Specify RAM depth (number of entries)
+    |   ) (
+    |     input  wire [ADDR_WIDTH-1:0] addra, // Write address bus, width determined from RAM_DEPTH
+    |     input  wire [ADDR_WIDTH-1:0] addrb, // Read address bus, width determined from RAM_DEPTH
+    |     input  wire [DATA_WIDTH-1:0] dina,          // RAM input data
+    |     input  wire clka,                          // Clock
+    |     input  wire wea,                           // Write enable
+    |     output wire  [DATA_WIDTH-1:0] doutb         // RAM output data
+    |   );
+    |   (*ram_style="block"*)
+    |     reg [DATA_WIDTH-1:0] BRAM [(1<<ADDR_WIDTH)-1:0];
+    |     reg [ADDR_WIDTH-1:0] addr_r;
+    |     reg is_collision;
+    |     reg [DATA_WIDTH-1:0] collison_data;
     |
-    |    input  wire [ADDR_WIDTH-1:0] addrb,
-    |    input  wire clkb,
-    |    input  wire [DATA_WIDTH-1:0] dinb,
-    |    output reg  [DATA_WIDTH-1:0] doutb,
-    |    input  wire enb,
-    |    input  wire web
-    |);
+    |   generate
+    |       integer ram_index;
+    |       initial
+    |         for (ram_index = 0; ram_index < (1<<ADDR_WIDTH); ram_index = ram_index + 1)
+    |           BRAM[ram_index] = {DATA_WIDTH{1'b0}};
+    |   endgenerate
     |
-    |  (* ram_style = "block" *) 
-    |  reg [DATA_WIDTH-1:0] mem [0:(1<<ADDR_WIDTH)-1];
+    |     always @(posedge clka) begin
+    |         addr_r <= addrb;
+    |         is_collision <= (addra == addrb && wea);
+    |         collison_data <= dina;
+    |         if (wea) BRAM[addra] <= dina;
+    |     end
     |
-    |  integer i;
-    |  initial begin
-    |    for (i = 0; i < (1 << ADDR_WIDTH); i = i + 1) begin
-    |      mem[i] = 0;
-    |    end
-    |  end
-    |
-    |  always @(posedge clka) begin
-    |    if (ena) begin
-    |      if (wea) mem[addra] <= dina;
-    |      douta <= mem[addra];
-    |    end
-    |  end
-    |
-    |  always @(posedge clkb) begin
-    |    if (enb) begin
-    |      if (web) mem[addrb] <= dinb;
-    |      doutb <= mem[addrb];
-    |    end
-    |  end
-    |
-    |endmodule
+    |     assign doutb = is_collision == 1'b1 ? collison_data : BRAM[addr_r];
+    |   endmodule
     """.stripMargin)
 }
 

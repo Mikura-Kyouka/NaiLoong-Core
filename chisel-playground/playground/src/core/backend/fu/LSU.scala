@@ -101,7 +101,7 @@ class UnpipeLSUIO extends FunctionUnitIO {
 class UnpipelinedLSU extends Module with HasLSUConst {
   val io = IO(new UnpipeLSUIO)
   io := DontCare
-  val dcache = Module(new DCache()(new DCacheConfig(totalSize = 8 * 16, ways = 1)))
+  val dcache = Module(new DCache()(new DCacheConfig(totalSize = 1024 * 16, ways = 1)))
 
   val addr =  io.in.bits.src1 + io.in.bits.src2
   io.loadAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.lw ||

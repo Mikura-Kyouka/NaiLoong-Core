@@ -128,23 +128,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     metaArray.io.addra := addr.index
     metaArray.io.dina := 0.U // 后续覆盖
     metaArray.io.wea := false.B // 后续覆盖
-    metaArray.io.ena := true.B
-    metaArray.io.clkb := clock
     metaArray.io.addrb := addr.index
-    metaArray.io.enb := true.B
-    metaArray.io.web := false.B
-    metaArray.io.dinb := 0.U // 不需要写入数据
 
     dataArray.io.clka := clock
     dataArray.io.addra := addr.index
     dataArray.io.dina := 0.U // 后续覆盖
     dataArray.io.wea := false.B // 后续覆盖
-    dataArray.io.ena := true.B
-    dataArray.io.clkb := clock
     dataArray.io.addrb := addr.index
-    dataArray.io.enb := true.B
-    dataArray.io.web := false.B
-    dataArray.io.dinb := 0.U // 不需要写入数据
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
@@ -175,7 +165,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_fill_cache :: Nil = Enum(11)
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
     val state = RegInit(s_idle)
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge), s_idle)),
@@ -185,8 +175,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, s_fill_cache, s_read_mem2), //FIXME
-        s_fill_cache -> Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)),
+        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
