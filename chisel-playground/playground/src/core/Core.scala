@@ -224,6 +224,7 @@ class Core extends Module {
   io.awvalid := arb.io.out.awvalid
   arb.io.out.awready := io.awready
 
+  io.wid := arb.io.out.wid
   io.wdata := arb.io.out.wdata
   io.wstrb := arb.io.out.wstrb
   io.wlast := arb.io.out.wlast

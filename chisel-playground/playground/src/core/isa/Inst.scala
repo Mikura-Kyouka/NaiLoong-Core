@@ -76,6 +76,9 @@ object Inst {
     def rdcntvl_w       = BitPat("b0000000000000000011000_00000_?????") // 低位
     def rdcntvh_w       = BitPat("b0000000000000000011001_00000_?????") // 高位     // n58_rdcnt
     
+    /* CPU 配置获取指令 */
+    def cpucfg          = BitPat("b0000000000000000011011_?????_?????")
+
     /* Cache维护指令 */
     def cacop           = BitPat("b0000011000_????????????_?????_?????")
     
@@ -149,6 +152,7 @@ object Inst {
         rdcntid_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rj, RfWen.y, IsLegal.y, CSROp.cntid, TlbOp.nop), 
         rdcntvl_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cntvl, TlbOp.nop), 
         rdcntvh_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cntvh, TlbOp.nop), 
+        cpucfg          -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cpucfg, TlbOp.nop),
         cacop           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop, TlbOp.nop), 
         tlbsrch         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.srch), 
         tlbrd           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop, TlbOp.rd), 
