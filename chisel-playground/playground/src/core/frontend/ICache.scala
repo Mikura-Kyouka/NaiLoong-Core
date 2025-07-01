@@ -258,26 +258,27 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     val out = Decoupled(new Stage1Out)
     val metaArrayWrite = Flipped(new metaArrayWriteBundle)
     val metaArrayTag = Output(UInt(TagBits.W))
+    val metaArrayValid = Output(Bool())
     val flush = Input(Bool())
   })
 
   val addr = io.in.addr.asTypeOf(addrBundle)
-  val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
-  when(reset.asBool) {
-    for (i <- 0 until Sets)
-      for (j <- 0 until Ways) {
-        metaArray(i)(j).valid := false.B
-        metaArray(i)(j).tag := 0.U
-      }
-  }
   val index = addr.index 
   val tag = addr.tag 
+
+  // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
+  val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 1))) // Ways * (TagBits + ValidBit)
+
+  // a 口只用于写入，b 口只用于读取
+  metaArray.io.clka := clock
+  metaArray.io.wea := io.metaArrayWrite.valid
+  metaArray.io.addra := io.metaArrayWrite.index
+  metaArray.io.dina := Cat(io.metaArrayWrite.tag, 1.U(1.W)) // FIXME: tag + valid
+  metaArray.io.addrb := index
   
-  io.metaArrayTag := metaArray(index)(0).tag
-  when(io.metaArrayWrite.valid) {
-    metaArray(io.metaArrayWrite.index)(0).tag := io.metaArrayWrite.tag
-    metaArray(io.metaArrayWrite.index)(0).valid := true.B
-  }
+  val metaArrayTag = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
+  io.metaArrayTag := metaArrayTag.tag
+  io.metaArrayValid := metaArrayTag.valid
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
@@ -292,28 +293,29 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage1Out))
     val metaArrayTag = Input(UInt(TagBits.W))
+    val metaArrayValid = Input(Bool())
     val out = Decoupled(new Stage2Out)
     val axi = new AXI
     val metaArrayWrite = new metaArrayWriteBundle
     val flush = Input(Bool())
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
   })
-  io.axi := DontCare
-  val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
-  when(reset.asBool) {
-    for (i <- 0 until Sets)
-      for (j <- 0 until Ways)
-        for (k <- 0 until LineBeats) {
-          dataArray(i)(j)(k) := 0.U
-        }
-  }
-
   val addr = io.in.bits.addr
   val wordIndex = io.in.bits.wordIndex
   val index = io.in.bits.index 
   val tag = io.in.bits.tag
 
-  val hit = io.metaArrayTag === io.in.bits.tag && io.in.valid
+  io.axi := DontCare
+  // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
+  val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
+
+  dataArray.io.clka := clock
+  dataArray.io.wea := false.B // TODO: see below
+  dataArray.io.addra := index
+  dataArray.io.dina := DontCare
+  dataArray.io.addrb := index
+
+  val hit = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
   dontTouch(hit)
 
   io.out.bits.hit := hit
@@ -321,10 +323,10 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.brPredictTaken := io.in.bits.brPredictTaken
 
   val cacheData = Wire(Vec(LineBeats, UInt(32.W)))
-  cacheData := dataArray(index)(0)//(wordIndex)
+  cacheData := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
   dontTouch(cacheData)
   val cacheDataVec = Wire(Vec(LineBeats, UInt(32.W)))
-  cacheDataVec := dataArray(index)(0)
+  cacheDataVec := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
   dontTouch(cacheDataVec)
   for (i <- 0 until LineBeats) {
     io.cacheDataVec(i) := cacheDataVec(i)
@@ -377,10 +379,12 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when((io.axi.rlast && io.axi.rvalid) && state === s_wait_data) {
     burst := 0.U
     // dataArray update 
-    dataArray(index)(0)(0) := axiDataLatch(0)
-    dataArray(index)(0)(1) := axiDataLatch(1)
-    dataArray(index)(0)(2) := axiDataLatch(2)
-    dataArray(index)(0)(3) := rdata
+    // dataArray(index)(0)(0) := axiDataLatch(0)
+    // dataArray(index)(0)(1) := axiDataLatch(1)
+    // dataArray(index)(0)(2) := axiDataLatch(2)
+    // dataArray(index)(0)(3) := rdata
+    dataArray.io.wea := true.B
+    dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
     io.metaArrayWrite.valid := true.B
     io.metaArrayWrite.index := index
@@ -476,6 +480,7 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   s3.io.flush := io.flush
 
   s2.io.metaArrayTag := s1.io.metaArrayTag
+  s2.io.metaArrayValid := s1.io.metaArrayValid
   s3.io.inFire := s2.io.out.fire 
   for (i <- 0 until LineBeats) {
     s3.io.cacheDataVec(i) := s2.io.cacheDataVec(i)
