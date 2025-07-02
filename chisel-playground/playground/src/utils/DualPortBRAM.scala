@@ -19,16 +19,13 @@ class DualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Module {
     val mem = SyncReadMem(1 << addrWidth, UInt(dataWidth.W))
 
     withClock(io.clka) {
-      val doutaReg = RegInit(0.U(dataWidth.W))
       when(io.wea) {
         mem.write(io.addra, io.dina)
       }
     }
 
     withClock(io.clka) {
-      val doutbReg = RegInit(0.U(dataWidth.W))
-      doutbReg := mem.read(io.addrb, true.B)
-      io.doutb := doutbReg
+      io.doutb := mem.read(io.addrb, true.B)
     }
 
   } else {
