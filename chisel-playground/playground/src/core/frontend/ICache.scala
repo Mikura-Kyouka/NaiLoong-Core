@@ -276,9 +276,9 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   metaArray.io.dina := Cat(io.metaArrayWrite.tag, 1.U(1.W)) // FIXME: tag + valid
   metaArray.io.addrb := index
   
-  val metaArrayTag = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
-  io.metaArrayTag := metaArrayTag.tag
-  io.metaArrayValid := metaArrayTag.valid
+  val metaArrayInfo = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
+  io.metaArrayTag := metaArrayInfo.tag
+  io.metaArrayValid := metaArrayInfo.valid
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
