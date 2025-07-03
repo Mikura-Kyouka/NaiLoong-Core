@@ -327,6 +327,12 @@ class CSR extends Module {
         is(CsrName.TICLR) {
           csr_estat.is11 := 0.U   // 清除定时器中断标志
         }
+        is(CsrName.DMW0) {
+          csr_dmw0 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+        }
+        is(CsrName.DMW1) {
+          csr_dmw1 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+        }
       }
     }
   }
