@@ -65,12 +65,12 @@ sealed abstract class CacheModule(implicit cacheConfig: DCacheConfig)
 sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
   val tag = Output(UInt(TagBits.W))  // 26
-  val valid = Output(UInt(1.W))
+  // val valid = Output(UInt(1.W))
   val dirty = Output(UInt(1.W))
 
   def apply(tag: UInt, valid: UInt) = {
     this.tag := tag
-    this.valid := valid
+    // this.valid := valid
     this
   }
 }
@@ -103,7 +103,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
     
     // 暂时只支持 1 way
-    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 2)))
+    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 1)))
+    val metaValid = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
     val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
     // when(reset.asBool){
@@ -137,12 +138,15 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     dataArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
+    val metaValidData = metaValid(addr.index)
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 
     val hitVec = VecInit(
-      metaReadData.map(m => m.tag === addr.tag && m.valid === 1.U)
+      metaReadData.zipWithIndex.map { case (meta, i) =>
+        meta.tag === addr.tag && metaValidData(0)
+      }
     ).asUInt
     val hit = hitVec.orR
     dontTouch(hit)
@@ -233,7 +237,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := false.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, false.B).asUInt // tag, valid, dirty
+      metaArray.io.dina := Cat(addr.tag, false.B).asUInt // tag, dirty
+      metaValid(addr.index)(0) := true.B
     }
 
     val offset = req.addr(1, 0) << 3
@@ -287,7 +292,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := true.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, true.B).asUInt // tag, valid, dirty
+      metaArray.io.dina := Cat(addr.tag, true.B).asUInt // tag, dirty
+      metaValid(addr.index)(0) := true.B
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }

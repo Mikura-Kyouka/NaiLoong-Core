@@ -173,39 +173,50 @@ class BTBValid extends Module {
     val wen = Input(Bool())
   })
 
-  val btbvalid0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
-  val btbvalid1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
-  val btbvalid2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
-  val btbvalid3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  // val btbvalid0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  // val btbvalid1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  // val btbvalid2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
+  // val btbvalid3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 1))
 
-  btbvalid0.io.clka := clock
-  btbvalid0.io.wea := io.wen && (io.waddr(1, 0) === 0.U)
-  btbvalid0.io.addra := io.raddr0
-  btbvalid0.io.dina := io.wdata
-  btbvalid0.io.addrb := io.waddr
+  // btbvalid0.io.clka := clock
+  // btbvalid0.io.wea := io.wen && (io.waddr(1, 0) === 0.U)
+  // btbvalid0.io.addra := io.raddr0
+  // btbvalid0.io.dina := io.wdata
+  // btbvalid0.io.addrb := io.waddr
 
-  btbvalid1.io.clka := clock
-  btbvalid1.io.wea := io.wen && (io.waddr(1, 0) === 1.U)
-  btbvalid1.io.addra := io.raddr1
-  btbvalid1.io.dina := io.wdata
-  btbvalid1.io.addrb := io.waddr
+  // btbvalid1.io.clka := clock
+  // btbvalid1.io.wea := io.wen && (io.waddr(1, 0) === 1.U)
+  // btbvalid1.io.addra := io.raddr1
+  // btbvalid1.io.dina := io.wdata
+  // btbvalid1.io.addrb := io.waddr
 
-  btbvalid2.io.clka := clock
-  btbvalid2.io.wea := io.wen && (io.waddr(1, 0) === 2.U)
-  btbvalid2.io.addra := io.raddr2
-  btbvalid2.io.dina := io.wdata
-  btbvalid2.io.addrb := io.waddr
+  // btbvalid2.io.clka := clock
+  // btbvalid2.io.wea := io.wen && (io.waddr(1, 0) === 2.U)
+  // btbvalid2.io.addra := io.raddr2
+  // btbvalid2.io.dina := io.wdata
+  // btbvalid2.io.addrb := io.waddr
 
-  btbvalid3.io.clka := clock
-  btbvalid3.io.wea := io.wen && (io.waddr(1, 0) === 3.U)
-  btbvalid3.io.addra := io.raddr3
-  btbvalid3.io.dina := io.wdata
-  btbvalid3.io.addrb := io.waddr
+  // btbvalid3.io.clka := clock
+  // btbvalid3.io.wea := io.wen && (io.waddr(1, 0) === 3.U)
+  // btbvalid3.io.addra := io.raddr3
+  // btbvalid3.io.dina := io.wdata
+  // btbvalid3.io.addrb := io.waddr
 
-  io.rdata0 := btbvalid0.io.doutb.asBool
-  io.rdata1 := btbvalid1.io.doutb.asBool
-  io.rdata2 := btbvalid2.io.doutb.asBool
-  io.rdata3 := btbvalid3.io.doutb.asBool
+  // io.rdata0 := btbvalid0.io.doutb.asBool
+  // io.rdata1 := btbvalid1.io.doutb.asBool
+  // io.rdata2 := btbvalid2.io.doutb.asBool
+  // io.rdata3 := btbvalid3.io.doutb.asBool
+
+  val btbvalid = RegInit(VecInit(Seq.fill(1 << BTB_INDEX_WIDTH)(false.B)))
+
+  when(io.wen) {
+    btbvalid(io.waddr) := io.wdata
+  }
+
+  io.rdata0 := btbvalid(io.raddr0)
+  io.rdata1 := btbvalid(io.raddr1)
+  io.rdata2 := btbvalid(io.raddr2)
+  io.rdata3 := btbvalid(io.raddr3)
 }
 
 /*

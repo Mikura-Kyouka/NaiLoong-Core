@@ -15,23 +15,23 @@ class DualPortBRAMIO(val addrWidth: Int, val dataWidth: Int) extends Bundle {
 class DualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Module {
   val io = IO(new DualPortBRAMIO(addrWidth, dataWidth))
 
-  if (GenCtrl.USE_SIMU) {
-    val mem = SyncReadMem(1 << addrWidth, UInt(dataWidth.W))
+  // if (GenCtrl.USE_SIMU) {
+  //   val mem = SyncReadMem(1 << addrWidth, UInt(dataWidth.W))
 
-    withClock(io.clka) {
-      when(io.wea) {
-        mem.write(io.addra, io.dina)
-      }
-    }
+  //   withClock(io.clka) {
+  //     when(io.wea) {
+  //       mem.write(io.addra, io.dina)
+  //     }
+  //   }
 
-    withClock(io.clka) {
-      io.doutb := mem.read(io.addrb, true.B)
-    }
+  //   withClock(io.clka) {
+  //     io.doutb := mem.read(io.addrb, true.B)
+  //   }
 
-  } else {
+  // } else {
     val bram = Module(new BlackBoxDualPortBRAM(addrWidth, dataWidth))
     bram.io <> io
-  }
+  // }
 }
 
 import chisel3.experimental._
