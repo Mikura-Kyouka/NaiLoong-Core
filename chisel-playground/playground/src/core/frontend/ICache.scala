@@ -353,6 +353,17 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     s_valid -> s_idle
   ))
 
+  // 命中率统计
+  val hitCount = RegInit(0.U(32.W))
+  val accessCount = RegInit(0.U(32.W))
+  when(io.out.valid) { // io.out.valid只可能有一拍
+    printf("addr = %x\n", io.in.bits.addr)
+    when(state === s_idle) {
+      hitCount := hitCount + 1.U
+    }
+    accessCount := accessCount + 1.U
+  }
+
   // axi read signals
   io.axi.arvalid := state === s_fetching
   io.axi.araddr := Cat(addr(31, OffsetBits), Fill(OffsetBits, 0.U(1.W)))
