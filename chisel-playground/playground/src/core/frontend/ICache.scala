@@ -3,6 +3,8 @@ package core
 import chisel3._
 import chisel3.util._
 
+import utils._
+
 case class ICacheConfig(
     totalSize: Int = 4 * 16, // Bytes
     ways: Int = 1
@@ -299,6 +301,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     val metaArrayWrite = new metaArrayWriteBundle
     val flush = Input(Bool())
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
+    val inFire = Input(Bool())
   })
   val addr = io.in.bits.addr
   val wordIndex = io.in.bits.wordIndex
@@ -315,7 +318,11 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dataArray.io.dina := DontCare
   dataArray.io.addrb := index
 
-  val hit = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
+  val HIT = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
+  dontTouch(HIT)
+  val hitEn = RegNext(io.inFire)
+  val hitReg = RegEnable(HIT, hitEn) // RegEnable(nextValue, enable)
+  val hit = HIT || (hitReg && ~hitEn)
   dontTouch(hit)
 
   io.out.bits.hit := hit
@@ -356,7 +363,9 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   // 命中率统计
   val hitCount = RegInit(0.U(32.W))
   val accessCount = RegInit(0.U(32.W))
-  when(io.out.valid) { // io.out.valid只可能有一拍
+  dontTouch(hitCount)
+  dontTouch(accessCount)
+  when(hitEn) { 
     printf("addr = %x\n", io.in.bits.addr)
     when(state === s_idle) {
       hitCount := hitCount + 1.U
@@ -432,6 +441,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val hit = io.in.bits.hit
   dontTouch(io.in.bits.hit)
   val flag = RegNext(io.inFire)
+  dontTouch(flag)
   val cacheDataVecLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
   when(flag){
     cacheDataVecLatch := cacheDataVec
@@ -492,7 +502,8 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
 
   s2.io.metaArrayTag := s1.io.metaArrayTag
   s2.io.metaArrayValid := s1.io.metaArrayValid
-  s3.io.inFire := s2.io.out.fire 
+  s2.io.inFire := s1.io.out.fire
+  s3.io.inFire := s2.io.out.fire
   for (i <- 0 until LineBeats) {
     s3.io.cacheDataVec(i) := s2.io.cacheDataVec(i)
   }
@@ -501,8 +512,8 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   s1.io.in := io.in
   s1.io.metaArrayWrite <> s2.io.metaArrayWrite
 
-  ICachePipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
-  ICachePipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
+  PipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
+  PipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
   s3.io.out <> io.out
   io.s1Fire := s1.io.out.fire
 }
