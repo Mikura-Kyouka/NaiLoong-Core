@@ -366,8 +366,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dontTouch(hitCount)
   dontTouch(accessCount)
   when(hitEn) { 
-    printf("addr = %x\n", io.in.bits.addr)
-    when(state === s_idle) {
+    // printf("addr = %x\n", io.in.bits.addr)
+    when(hit) {
       hitCount := hitCount + 1.U
     }
     accessCount := accessCount + 1.U
