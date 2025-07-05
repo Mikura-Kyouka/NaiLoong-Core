@@ -283,7 +283,7 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   
   val metaArrayTag = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
   io.metaArrayTag := metaArrayTag.tag
-  io.metaArrayValid := metaValid(index)(0)
+  io.metaArrayValid := RegNext(metaValid(index)(0))
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 

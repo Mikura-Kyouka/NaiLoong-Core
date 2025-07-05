@@ -9,6 +9,7 @@ class PCIO extends Bundle {
   val pc = Output(UInt(32.W))
   val PCSrc = Input(Bool())
   val PCPredictTaken = Input(Bool())
+  val nextPC = Output(UInt(32.W))
   //val refetch = Ouput(Bool())
 }
 
@@ -16,14 +17,35 @@ class PC extends Module {
   val io = IO(new PCIO)
   val pcReg = RegInit("h1c000000".U(32.W)) // TODO
   val snpc = Cat((pcReg + 16.U)(31, 4), 0.U(4.W))
+
+  val predictTakenReg = RegInit(false.B)
+  val predictTargetReg = RegInit("h00000000".U(32.W))
+
+  when(io.stall && io.PCPredictTaken) {
+    predictTakenReg := true.B
+    predictTargetReg := io.dnpc
+  }
+  when(!io.stall && predictTakenReg) {
+    predictTakenReg := false.B
+  }
+
+  io.nextPC := snpc
+
   when(io.PCSrc) {
     pcReg := io.dnpc
+    io.nextPC := io.dnpc
   }.elsewhen(io.stall) {
     pcReg := pcReg
+    io.nextPC := pcReg
   }.elsewhen(io.PCPredictTaken) {
     pcReg := io.dnpc
+    io.nextPC := io.dnpc
+  }.elsewhen(predictTakenReg) {
+    pcReg := predictTargetReg
+    io.nextPC
   }.elsewhen(~io.stall){
     pcReg := snpc
+    io.nextPC := snpc
   }
   io.pc := pcReg
 

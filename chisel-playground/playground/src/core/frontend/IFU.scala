@@ -81,7 +81,7 @@ class IFU extends Module{
     pc.io.PCPredictTaken := predictTaken
     pc.io.dnpc := Mux(io.pcSel, io.dnpc, predictTarget)
     pc.io.stall := ~icache.io.s1Fire
-    io.nextPC := pc.io.pc
+    io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
     icache.io.axi <> io.axi

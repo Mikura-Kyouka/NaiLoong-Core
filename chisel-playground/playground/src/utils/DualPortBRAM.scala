@@ -64,12 +64,6 @@ class BlackBoxDualPortBRAM(val addrWidth: Int, val dataWidth: Int) extends Black
     |     reg is_collision;
     |     reg [DATA_WIDTH-1:0] collison_data;
     |
-    |   generate
-    |       integer ram_index;
-    |       initial
-    |         for (ram_index = 0; ram_index < (1<<ADDR_WIDTH); ram_index = ram_index + 1)
-    |           BRAM[ram_index] = {DATA_WIDTH{1'b0}};
-    |   endgenerate
     |
     |     always @(posedge clka) begin
     |         addr_r <= addrb;
