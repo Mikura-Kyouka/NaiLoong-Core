@@ -25,7 +25,7 @@ class PC extends Module {
     predictTakenReg := true.B
     predictTargetReg := io.dnpc
   }
-  when(!io.stall && predictTakenReg) {
+  when(!io.stall && predictTakenReg || io.PCSrc) {
     predictTakenReg := false.B
   }
 
@@ -42,7 +42,7 @@ class PC extends Module {
     io.nextPC := io.dnpc
   }.elsewhen(predictTakenReg) {
     pcReg := predictTargetReg
-    io.nextPC
+    io.nextPC := predictTargetReg
   }.elsewhen(~io.stall){
     pcReg := snpc
     io.nextPC := snpc
