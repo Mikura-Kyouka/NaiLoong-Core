@@ -66,7 +66,7 @@ sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
   val tag = Output(UInt(TagBits.W))  // 26
   // val valid = Output(UInt(1.W))
-  val dirty = Output(UInt(1.W))
+  // val dirty = Output(UInt(1.W))
 
   def apply(tag: UInt, valid: UInt) = {
     this.tag := tag
@@ -105,6 +105,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 暂时只支持 1 way
     val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 1)))
     val metaValid = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
+    val metaDirty = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
     val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
     // when(reset.asBool){
@@ -138,7 +139,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     dataArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    val metaValidData = metaValid(addr.index)
+    val metaValidData = RegNext(metaValid(addr.index))
+    val metaDirtyData = RegNext(metaDirty(addr.index))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
@@ -151,7 +153,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val hit = hitVec.orR
     dontTouch(hit)
 
-    val dirty = metaReadData(0).dirty.asBool
+    val dirty = metaDirtyData(0)
     dontTouch(dirty)
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
