@@ -60,9 +60,9 @@ object cpucfg {
                     0.U( 1.W),   // L2 U_Inclusive  [ 6: 6]
                     0.U( 1.W),   // not used        [ 5: 5]
                     0.U( 2.W),   // L2 U_Present    [ 4: 3]
-                    0.U( 1.W),   // L1 D_Present    [ 2: 2]
+                    1.U( 1.W),   // L1 D_Present    [ 2: 2]
                     0.U( 1.W),   // not used        [ 1: 1]
-                    0.U( 1.W))   // L1 I_Present    [ 0: 0]
+                    1.U( 1.W))   // L1 I_Present    [ 0: 0]
   
   def word17 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     4.U( 7.W),   // Linesize-log2 [30: 24]

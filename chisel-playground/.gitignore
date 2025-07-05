@@ -3,6 +3,6 @@ out/
 .metals/
 .bloop/
 build/
-!./
 .mill-version
 mill.*
+!./
