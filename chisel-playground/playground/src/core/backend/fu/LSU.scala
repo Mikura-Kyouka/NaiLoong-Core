@@ -96,6 +96,8 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val loadAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
   val storeAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
   val flush = Input(Bool())
+  val addr_trans_out = Output(new AddrTrans)
+  val addr_trans_in = Input(new AddrTrans)
 }
 
 class UnpipelinedLSU extends Module with HasLSUConst {
@@ -111,6 +113,8 @@ class UnpipelinedLSU extends Module with HasLSUConst {
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
   dcache.io.axi <> io.dmem
+  dcache.io.addr_trans_out <> io.addr_trans_out
+  dcache.io.addr_trans_in <> io.addr_trans_in
   dcache.io.req.valid := io.in.valid && !io.loadAddrMisaligned && !io.storeAddrMisaligned
   dcache.io.RobLsuIn <> io.RobLsuIn
   dcache.io.RobLsuOut <> io.RobLsuOut
@@ -167,8 +171,13 @@ class AligendUnpipelinedLSU extends Module{
     val RobLsuIn  = Flipped(DecoupledIO())
     val RobLsuOut = DecoupledIO()
     val flush = Input(Bool())
+    val addr_trans_out = Output(new AddrTrans)
+    val addr_trans_in = Input(new AddrTrans)
   })
   val lsu = Module(new UnpipelinedLSU)
+
+  io.addr_trans_out <> lsu.io.addr_trans_out
+  io.addr_trans_in <> lsu.io.addr_trans_in
   // load
   io.out.valid := lsu.io.complete
 
