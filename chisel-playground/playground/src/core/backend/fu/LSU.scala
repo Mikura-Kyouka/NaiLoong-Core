@@ -52,38 +52,6 @@ trait HasLSUConst {
   val storeQueueSize = 8
 }
 
-class StoreQueueEntry extends Bundle {
-  val pc = UInt(32.W)
-  val prfidx = UInt(7.W)
-  val valid = Bool()
-}
-
-class DCacheUserBundle extends Bundle {
-  val moqidx = UInt(5.W)
-  val op     = UInt(7.W)
-}
-
-class moqEntry extends Bundle{
-  val pc = UInt(32.W)
-
-  val func = UInt(7.W)
-  val size = UInt(2.W)
-  val op = UInt(7.W)
-  val data = UInt(32.W)
-
-  val fdata = UInt(32.W) // forwarding data
-  val fmask = UInt(4.W) // forwarding mask
-
-  val isMMIO = Bool()
-  val rfWen = Bool()
-  val valid = Bool()
-  val finished = Bool()
-  val storePageFault = Bool()
-  val loadPageFault = Bool()
-  val loadAddrMisaligned = Bool()
-  val storeAddrMisaligned = Bool()
-}
-
 class UnpipeLSUIO extends FunctionUnitIO {
   val wdata = Input(UInt(32.W))
   val diffData = Output(UInt(32.W))
@@ -210,4 +178,86 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.optype := io.in.bits.ctrl.fuOpType
   io.out.bits.timer64 := DontCare   // TODO
 } 
+
+class storeQueueEntry extends Bundle {
+  val pc = UInt(32.W)
+  val isMMIO = Bool()
+  val valid = Bool()
+  val finished = Bool() 
+}
+
+class moqEntry extends Bundle{
+  val pc = UInt(32.W)
+  val isMMIO = Bool()
+}
+
+class LSU extends Module with HasLSUConst {
+  val io = IO(new Bundle{
+    val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
+    val dtlb = 
+    val flush = Input(Bool())
+    val demem = 
+  })
+  val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
+  
+  val storeReq = valid & LSUOpType.isStore(func)
+  val loadReq = valid & LSUOpType.isLoad(func)
+
+  //                           Memory reOrder Queue
+  // ---------------------------------------------------------------------------
+  // |   not used   |   waittlb    |   waitmem    |   dmemreq   |   not used   |
+  // ---------------------------------------------------------------------------
+  //                |              |              |             |
+  //              head            tlb            mem           tail
+  val moq = RegInit(VecInit(Seq.fill(moqSize)(0.U.asTypeOf(new moqEntry))))
+  // Memory reOrder Queue contains Load, Store and TLB request
+  // Store insts will access TLB before its result being commited to CDB
+  // moq should be called 'loadStoreQueue' or 'memReOrderQueue', in some ways
+  val moqHeadPtr  = RegInit(0.U((log2Up(moqSize)).W))
+  val moqDtlbPtr  = RegInit(0.U((log2Up(moqSize)).W))
+  val moqDmemPtr  = RegInit(0.U((log2Up(moqSize)).W))
+  val moqTailPtr  = RegInit(0.U((log2Up(moqSize)).W))
+  val moqFull = moqHeadPtr === (moqTailPtr - 1.U) //TODO: fix it with maybe_full logic
+  val moqEmpty = moqHeadPtr === moqTailPtr //TODO: fix it with maybe_full logic
+
+  // load queue enqueue
+  val moqEnqueue = io.in.valid
+  when(moqEnqueue){moqHeadPtr := moqHeadPtr + 1.U}
+  // move moqDtlbptr
+  val dtlbRespond = io.dtlb.req.fire 
+  // move moqDmemptr
+  val moqResponf = dmem.io.req.fire && 
+  
+  // load queue enqueue 
+  when(io.out.fire){
+    moq(writebackSelect).valid := false.B
+    moq(writebackSelect).finished := true.B
+  }
+
+  when((moqTailPtr =/= moqDmemPtr) && !moq(moqTailPtr).valid && moq(moqTailPtr).finished){
+    moqTailPtr := moqTailPtr + 1.U
+    moq(moqTailPtr).valid := false.B
+    moq(moqTailPtr).finished := false.B
+  }
+
+  //                               Store Queue
+  //              ------------------------------------------------------------
+  // ---> Enqueue |   not used   |   commited   |   retiring   |   retired   |  --> Dequeue
+  //              ------------------------------------------------------------
+  //                             |              |              |
+  //                            head           cmt            req
+  val storeQueue = Reg(Vec(storeQueueSize, new storeQueueEntry)) 
+  // Store Queue contains store insts that have finished TLB lookup stage
+  // There are 2 types of store insts in this queue: ROB-commited (retired) / CDB-commited (commited)
+  // CDB-commited insts have already gotten their paddr from TLB,
+  // but whether these insts will be canceled is still pending for judgement.
+  // ROB-commited insts are those insts already retired from ROB
+  // val storeAlloc   = RegInit(0.U((log2Up(storeQueueSize)+1).W))
+  val storeHeadPtr    = RegInit(0.U((log2Up(storeQueueSize)+1).W))
+  val storeCmtPtr     = RegInit(0.U((log2Up(storeQueueSize)+1).W))
+
+  storeQueueEnqueue := havePendingStoreEnq && !storeQueueFull || !havePendingDmemReq && tlbRespStoreEnq && !storeQueueFull
+
+  val
+}
 
