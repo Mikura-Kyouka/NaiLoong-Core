@@ -270,17 +270,22 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
+  val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
   metaArray.io.wea := io.metaArrayWrite.valid
   metaArray.io.addra := io.metaArrayWrite.index
-  metaArray.io.dina := io.metaArrayWrite.tag
+  metaArray.io.dina := Cat(io.metaArrayWrite.tag)
   metaArray.io.addrb := index
 
-  val metaArrayInfo = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
-  io.metaArrayTag := metaArrayInfo.tag
-  io.metaArrayValid := metaArrayInfo.valid
+  when(io.metaArrayWrite.valid) {
+    metaValidArray(io.metaArrayWrite.index)(0) := true.B
+  }
+  
+  val metaArrayInfo = metaArray.io.doutb
+  io.metaArrayTag := metaArrayInfo
+  io.metaArrayValid := RegNext(metaValidArray(addr.index)(0))
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
