@@ -50,11 +50,11 @@ sealed abstract class ICacheModule(implicit cacheConfig: ICacheConfig)
 sealed class ICacheMetaBundle(implicit val cacheConfig: ICacheConfig)
     extends ICacheBundle {
   val tag = Output(UInt(TagBits.W))
-  // val valid = Output(UInt(1.W))
+  val valid = Output(UInt(1.W))
 
   def apply(tag: UInt, valid: UInt) = {
     this.tag := tag
-    // this.valid := valid
+    this.valid := valid
     this
   }
 }
@@ -270,7 +270,6 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
-  val metaValid = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))  // TODO: valid
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
@@ -279,10 +278,6 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   metaArray.io.dina := io.metaArrayWrite.tag
   metaArray.io.addrb := index
 
-  when(io.metaArrayWrite.valid) {
-    metaValid(io.metaArrayWrite.index)(0) := true.B
-  }
-  
   val metaArrayInfo = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
   io.metaArrayTag := metaArrayInfo.tag
   io.metaArrayValid := metaArrayInfo.valid
