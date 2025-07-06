@@ -2,7 +2,6 @@ package core
 
 import chisel3._
 import chisel3.util._
-import dataclass.data
 import core.ALUOpType.add
 
 class reqBundle extends Bundle{
@@ -113,6 +112,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     resp := DontCare
     val addr = req.addr.asTypeOf(addrBundle)
 
+    val isMMIO = req.addr(31, 16) === "hbfaf".U
+
+    //   000        001          010          011               100               101            110          111
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
+    val state = RegInit(s_idle)
+
     // 暂时只支持 1 way
     val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits)))
     val metaFlagArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle))))))
@@ -132,10 +137,16 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     dataArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    val metaFlagData = RegNext(metaFlagArray(addr.index))
-    val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
+    val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+    val is_collision = RegInit(false.B)
+    val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
+    syncReadAddr := addr.index
+    is_collision := io.axi.rvalid && state === s_read_mem2 && !isMMIO || state === s_write_cache
+    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(Cat(true.B, false.B).asTypeOf(new MetaFlagBundle))), 
+                                                                            VecInit(Seq.fill(Ways)(Cat(true.B, true.B).asTypeOf(new MetaFlagBundle))))
 
-    val isMMIO = req.addr(31, 16) === "hbfaf".U
+    val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
+    val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val hitVec = VecInit(
       metaReadData.zipWithIndex.map { case (meta, i) =>
@@ -143,10 +154,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       }
     ).asUInt
     val hit = hitVec.orR
-    dontTouch(hit)
 
     val dirty = metaFlagData(0).dirty
-    dontTouch(dirty)
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
     when(io.req.valid) {
@@ -162,9 +171,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //                            +-------------------no----------------------------------+
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
-    //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
-    val state = RegInit(s_idle)
+
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge), s_idle)),
         s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
@@ -242,7 +249,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 新的数据寄存器
     val newWord = Wire(UInt(32.W))
     newWord := origWord // 默认保持原值
-    dontTouch(newWord)
 
     when(state === s_write_cache) {
       when(req.wmask === "b1111".U) {

@@ -271,6 +271,12 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
   val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
+  val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+  val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(false.B))))
+  val is_collision = RegInit(false.B)
+  is_collision := io.metaArrayWrite.index === index && io.metaArrayWrite.valid
+  syncReadAddr := index
+  collison_data := VecInit(Seq.fill(Ways)(true.B))
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
@@ -285,7 +291,7 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   
   val metaArrayInfo = metaArray.io.doutb
   io.metaArrayTag := metaArrayInfo
-  io.metaArrayValid := RegNext(metaValidArray(addr.index)(0))
+  io.metaArrayValid := Mux(is_collision, collison_data(0), metaValidArray(syncReadAddr)(0))
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
