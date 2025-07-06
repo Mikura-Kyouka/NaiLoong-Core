@@ -21,12 +21,12 @@ class PC extends Module {
   val predictTakenReg = RegInit(false.B)
   val predictTargetReg = RegInit("h00000000".U(32.W))
 
-  when(io.stall && io.PCPredictTaken) {
+  when(!io.stall || io.PCSrc) {
+    predictTakenReg := false.B
+  }
+  when(io.stall && !io.PCSrc && io.PCPredictTaken) {
     predictTakenReg := true.B
     predictTargetReg := io.dnpc
-  }
-  when(!io.stall && predictTakenReg || io.PCSrc) {
-    predictTakenReg := false.B
   }
 
   io.nextPC := snpc
@@ -37,12 +37,12 @@ class PC extends Module {
   }.elsewhen(io.stall) {
     pcReg := pcReg
     io.nextPC := pcReg
-  }.elsewhen(io.PCPredictTaken) {
-    pcReg := io.dnpc
-    io.nextPC := io.dnpc
   }.elsewhen(predictTakenReg) {
     pcReg := predictTargetReg
     io.nextPC := predictTargetReg
+  }.elsewhen(io.PCPredictTaken) {
+    pcReg := io.dnpc
+    io.nextPC := io.dnpc
   }.elsewhen(~io.stall){
     pcReg := snpc
     io.nextPC := snpc

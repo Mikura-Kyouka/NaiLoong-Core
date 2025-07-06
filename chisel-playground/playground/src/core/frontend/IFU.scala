@@ -71,15 +71,33 @@ class IFU extends Module{
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
     io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
 
-    val predictValid = !RegNext(io.flush) && RegNext(icache.io.s1Fire)
-
-    val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _) && predictValid 
+    val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
     val predictTarget = PriorityMux(io.BrPredictTaken.map(_.predictTaken), io.BrPredictTaken.map(_.predictTarget))
+    val predictInfo = io.BrPredictTaken
+    
+    val predictTakenReg = RegInit(false.B)
+    val predictIndexReg = RegInit(0.U(2.W))
+    val predictTargetReg = RegInit("h00000000".U(32.W))
+    val predictInfoReg = RegInit(VecInit(Seq.fill(4)(0.U.asTypeOf(new RedirectIO))))
+
+    when(icache.io.s1Fire) {
+        predictTakenReg := false.B
+    }
+    when(predictTaken && !icache.io.s1Fire) {
+        predictTakenReg := true.B
+        predictIndexReg := predictIndex
+        predictTargetReg := predictTarget
+        predictInfoReg := predictInfo
+    }
+
+    when(io.flush) {
+        predictTakenReg := false.B
+    }
 
     pc.io.PCSrc := io.pcSel
-    pc.io.PCPredictTaken := predictTaken
-    pc.io.dnpc := Mux(io.pcSel, io.dnpc, predictTarget)
+    pc.io.PCPredictTaken := predictTaken || predictTakenReg && !icache.io.s1Fire
+    pc.io.dnpc := Mux(io.pcSel, io.dnpc, Mux(predictTaken, predictTarget, predictTargetReg))
     pc.io.stall := ~icache.io.s1Fire
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
@@ -96,7 +114,9 @@ class IFU extends Module{
     notValidPredict.actuallyTaken := false.B
     notValidPredict.actuallyTarget := 0.U
 
-    icache.io.in.brPredictTaken := Mux(predictValid, io.BrPredictTaken, VecInit(Seq.fill(4)(notValidPredict)))
+    icache.io.in.brPredictTaken := Mux(predictTaken, io.BrPredictTaken, 
+                                       Mux(predictTakenReg, predictInfoReg, 
+                                           VecInit(Seq.fill(4)(notValidPredict))))
 
     icache.io.flush := io.flush
     icache.io.in.valid := io.out.ready && !io.flush // TODO
