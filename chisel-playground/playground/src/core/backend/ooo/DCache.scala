@@ -2,7 +2,6 @@ package core
 
 import chisel3._
 import chisel3.util._
-import dataclass.data
 import core.ALUOpType.add
 
 class reqBundle extends Bundle{
@@ -36,7 +35,7 @@ sealed trait HasCacheConst {
   val TagBits = 32 - OffsetBits - IndexBits
 
   // 打印参数
-  println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
+  // println(s"TotalSize: $TotalSize, Ways: $Ways, LineSize: $LineSize, LineBeats: $LineBeats, Sets: $Sets, OffsetBits: $OffsetBits, IndexBits: $IndexBits, WordIndexBits: $WordIndexBits, TagBits: $TagBits")
 
   def addrBundle = new Bundle {
     val tag = UInt(TagBits.W)       // 26
@@ -65,12 +64,26 @@ sealed abstract class CacheModule(implicit cacheConfig: DCacheConfig)
 sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
   val tag = Output(UInt(TagBits.W))  // 26
-  val valid = Output(UInt(1.W))
-  val dirty = Output(UInt(1.W))
+  // val valid = Output(UInt(1.W))
+  // val dirty = Output(UInt(1.W))
 
-  def apply(tag: UInt, valid: UInt) = {
+  def apply(tag: UInt) = {
     this.tag := tag
+    // this.valid := valid
+    this
+  }
+}
+
+sealed class MetaFlagBundle(implicit val cacheConfig: DCacheConfig)
+    extends CacheBundle {
+  // val tag = Output(UInt(TagBits.W))  // 26
+  val valid = Output(Bool()) // 1
+  val dirty = Output(Bool()) // 1
+
+  def apply(valid: Bool, dirty: Bool) = {
+    // this.tag := tag
     this.valid := valid
+    this.dirty := dirty
     this
   }
 }
@@ -106,66 +119,54 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.addr_trans_out.vaddr := io.req.bits.addr
     io.addr_trans_out.trans_en := io.req.valid
 
-    // val metaArray = SyncReadMem(Sets, Vec(Ways, new MetaBundle))
-    // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
-    
-    // 暂时只支持 1 way
-    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits + 2)))
-    val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
+    io.addr_trans_out := DontCare
+    io.addr_trans_out.vaddr := io.req.bits.addr
+    io.addr_trans_out.trans_en := io.req.valid
 
-    // when(reset.asBool){
-    //   for (i <- 0 until Sets) {
-    //     for (j <- 0 until Ways) {
-    //       metaArray(i)(j).valid := false.B
-    //       metaArray(i)(j).dirty := false.B
-    //       metaArray(i)(j).tag := 0.U
-    //     }
-    //   }
-    // }
-    // when(reset.asBool){
-    //   for (i <- 0 until Sets) {
-    //     for (j <- 0 until Ways) {
-    //       dataArray(i)(j) := VecInit(Seq.fill(LineBeats)(0.U(32.W)))
-    //     }
-    //   }
-    // }
+    val isMMIO = req.addr(31, 16) === "hbfaf".U
+
+    //   000        001          010          011               100               101            110          111
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
+    val state = RegInit(s_idle)
+
+    // 暂时只支持 1 way
+    val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits)))
+    val metaFlagArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle))))))
+    val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
     // a 口只用于写入，b 口只用于读取
     metaArray.io.clka := clock
     metaArray.io.addra := addr.index
     metaArray.io.dina := 0.U // 后续覆盖
     metaArray.io.wea := false.B // 后续覆盖
-    metaArray.io.ena := true.B
-    metaArray.io.clkb := clock
     metaArray.io.addrb := addr.index
-    metaArray.io.enb := true.B
-    metaArray.io.web := false.B
-    metaArray.io.dinb := 0.U // 不需要写入数据
 
     dataArray.io.clka := clock
     dataArray.io.addra := addr.index
     dataArray.io.dina := 0.U // 后续覆盖
     dataArray.io.wea := false.B // 后续覆盖
-    dataArray.io.ena := true.B
-    dataArray.io.clkb := clock
     dataArray.io.addrb := addr.index
-    dataArray.io.enb := true.B
-    dataArray.io.web := false.B
-    dataArray.io.dinb := 0.U // 不需要写入数据
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
+    val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+    val is_collision = RegInit(false.B)
+    val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
+    syncReadAddr := addr.index
+    is_collision := io.axi.rvalid && state === s_read_mem2 && !isMMIO || state === s_write_cache
+    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(Cat(true.B, false.B).asTypeOf(new MetaFlagBundle))), 
+                                                                            VecInit(Seq.fill(Ways)(Cat(true.B, true.B).asTypeOf(new MetaFlagBundle))))
+
+    val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
-    val isMMIO = req.addr(31, 16) === "hbfaf".U
-
     val hitVec = VecInit(
-      metaReadData.map(m => m.tag === addr.tag && m.valid === 1.U)
+      metaReadData.zipWithIndex.map { case (meta, i) =>
+        meta.tag === addr.tag && metaFlagData(0).valid
+      }
     ).asUInt
     val hit = hitVec.orR
-    dontTouch(hit)
 
-    val dirty = metaReadData(0).dirty.asBool
-    dontTouch(dirty)
+    val dirty = metaFlagData(0).dirty
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
     when(io.req.valid) {
@@ -193,8 +194,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, s_fill_cache, s_read_mem2), //FIXME
-        s_fill_cache -> Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)),
+        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
@@ -252,7 +252,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := false.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, false.B).asUInt // tag, valid, dirty
+      metaArray.io.dina := addr.tag // tag, dirty
+      metaFlagArray(addr.index)(0) := Cat(true.B, false.B).asTypeOf(new MetaFlagBundle) // valid, dirty
     }
 
     val offset = req.addr(1, 0) << 3
@@ -262,7 +263,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 新的数据寄存器
     val newWord = Wire(UInt(32.W))
     newWord := origWord // 默认保持原值
-    dontTouch(newWord)
 
     when(state === s_write_cache) {
       when(req.wmask === "b1111".U) {
@@ -306,7 +306,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := true.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := Cat(addr.tag, true.B, true.B).asUInt // tag, valid, dirty
+      metaArray.io.dina := addr.tag // tag, dirty
+      metaFlagArray(addr.index)(0) := Cat(true.B, true.B).asTypeOf(new MetaFlagBundle) // valid, dirty
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }

@@ -63,6 +63,7 @@ object CSROp {
   def xchg = "b0011".U
   def syscall = "b0100".U
   def ertn = "b0101".U
+  def cpucfg = "b0110".U
   def cntid = "b1100".U
   def cntvl = "b1001".U
   def cntvh = "b1010".U

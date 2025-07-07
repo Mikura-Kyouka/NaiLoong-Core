@@ -44,6 +44,42 @@ object ALUOpType {
   // def isBranchInvert(func: UInt) = func(0)
 }
 
+object cpucfg {
+  def word1 = Cat( 0.U(13.W),    // not used [31:20]
+                  31.U( 8.W),    // VALEN    [19:12]
+                  31.U( 8.W),    // PALEN    [11: 4]
+                   0.U( 1.W),    // PGMMU    [ 3: 3]
+                   0.U( 2.W))    // ARCH     [ 2: 1]
+  
+  def word2 = Cat( 0.U(29.W),    // not used [31: 3]
+                   0.U( 1.W),    // FP_DP    [ 2: 2] 
+                   0.U( 1.W),    // FP_SP    [ 1: 1]
+                   0.U( 1.W))    // FP       [ 0: 0]
+
+  def word16 = Cat( 0.U(25.W),   // not used        [31: 7]
+                    0.U( 1.W),   // L2 U_Inclusive  [ 6: 6]
+                    0.U( 1.W),   // not used        [ 5: 5]
+                    0.U( 2.W),   // L2 U_Present    [ 4: 3]
+                    1.U( 1.W),   // L1 D_Present    [ 2: 2]
+                    0.U( 1.W),   // not used        [ 1: 1]
+                    1.U( 1.W))   // L1 I_Present    [ 0: 0]
+  
+  def word17 = Cat( 0.U( 1.W),   // not used      [31: 31]
+                    4.U( 7.W),   // Linesize-log2 [30: 24]
+                    8.U( 8.W),   // Index-log2    [23: 16]
+                    0.U(16.W))   // Way-1         [15:  0]
+
+  def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
+                    2.U( 7.W),   // Linesize-log2 [30: 24]
+                    9.U( 8.W),   // Index-log2    [23: 16]
+                    0.U(16.W))   // Way-1         [15:  0]
+
+  def word19 = Cat( 0.U( 1.W),   // not used      [31: 31]
+                    0.U( 7.W),   // Linesize-log2 [30: 24]
+                    0.U( 8.W),   // Index-log2    [23: 16]
+                    0.U(16.W))   // Way-1         [15:  0]
+}
+
 // class FunctionUnitIO extends Bundle {
 //   val in = Flipped(Decoupled(new Bundle {
 //     val src1 = Output(UInt(32.W))
@@ -206,9 +242,23 @@ class AligendALU extends Module{
   alu.io.offset       := io.in.bits.imm
   alu.io.pc           := io.in.bits.pc
   io.out.bits.pc      := io.in.bits.pc
+
+  val cpucfgWord = MuxLookup(io.in.bits.src1, 0.U)(
+    Seq(
+      1.U  -> cpucfg.word1,
+      2.U  -> cpucfg.word2,
+      16.U -> cpucfg.word16,
+      17.U -> cpucfg.word17,
+      18.U -> cpucfg.word18,
+      19.U -> cpucfg.word19
+    )
+  )
+
   io.out.bits.data    := Mux(dest_is_csr, io.csrRead.csr_data, Mux(io.in.bits.ctrl.csrOp === CSROp.cntvh, io.csrRead.timer64(63, 32),
                                                                Mux(io.in.bits.ctrl.csrOp === CSROp.cntvl, io.csrRead.timer64(31, 0),
-                                                                alu.io.out.bits)))
+                                                               Mux(io.in.bits.ctrl.csrOp === CSROp.cntvl, io.csrRead.timer64(31, 0),
+                                                               Mux(io.in.bits.ctrl.csrOp === CSROp.cpucfg, cpucfgWord,
+                                                                alu.io.out.bits)))))
   io.out.bits.robIdx  := io.in.bits.robIdx
   io.out.bits.preg := io.in.bits.preg
   io.out.bits.redirect := alu.io.redirect

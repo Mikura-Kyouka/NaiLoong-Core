@@ -3,6 +3,8 @@ package core
 import chisel3._
 import chisel3.util._
 
+import utils._
+
 case class ICacheConfig(
     totalSize: Int = 4 * 16, // Bytes
     ways: Int = 1
@@ -118,97 +120,97 @@ object ICachePipelineConnect {
   }
 }
 
-class ICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
-  val io = IO(new Bundle {
-    val axi = new AXI
-    val ready = Input(Bool())
-    val inst = Output(UInt(32.W))
-    val instValid = Output(Bool())
-    val outFire = Input(Bool())
-    val addr = Input(UInt(32.W))
-    val addrValid = Input(Bool())
-    val fenceI = Input(Bool())
-    val refetch = Input(Bool())
-  })
-  io.axi := DontCare // walk around
-  val addr = io.addr.asTypeOf(addrBundle)
+// class ICache(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
+//   val io = IO(new Bundle {
+//     val axi = new AXI
+//     val ready = Input(Bool())
+//     val inst = Output(UInt(32.W))
+//     val instValid = Output(Bool())
+//     val outFire = Input(Bool())
+//     val addr = Input(UInt(32.W))
+//     val addrValid = Input(Bool())
+//     val fenceI = Input(Bool())
+//     val refetch = Input(Bool())
+//   })
+//   io.axi := DontCare // walk around
+//   val addr = io.addr.asTypeOf(addrBundle)
   
-  val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
-  val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
+//   val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
+//   val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
-  // see 《SuperScalar RISC Processor Design》 P24
-  // 000     001(Tag Access)  010          011          100(Data Access) 101(Result Drive) 110 
-  val s_idle :: s_judge :: s_fetching :: s_wait_data :: s_data_access :: s_valid :: s_error :: Nil = Enum(7)
-  val state = RegInit(s_idle)
+//   // see 《SuperScalar RISC Processor Design》 P24
+//   // 000     001(Tag Access)  010          011          100(Data Access) 101(Result Drive) 110 
+//   val s_idle :: s_judge :: s_fetching :: s_wait_data :: s_data_access :: s_valid :: s_error :: Nil = Enum(7)
+//   val state = RegInit(s_idle)
 
-  val hitVec = VecInit(
-    metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
-  ).asUInt
-  val hit = hitVec.orR 
-  val hitfake = hitVec.orR
-  dontTouch(hitfake)
-  dontTouch(hit)
+//   val hitVec = VecInit(
+//     metaArray(addr.index).map(m => m.tag === addr.tag && m.valid === 1.U)
+//   ).asUInt
+//   val hit = hitVec.orR 
+//   val hitfake = hitVec.orR
+//   dontTouch(hitfake)
+//   dontTouch(hit)
 
-  val cacheData = Wire(UInt(32.W))
-  cacheData := DontCare
-  for (i <- 0 until Ways)
-    when(hitVec(i)) {
-      cacheData := dataArray(addr.index)(i)(addr.WordIndex) // TODO
-    }
-  io.inst := cacheData
+//   val cacheData = Wire(UInt(32.W))
+//   cacheData := DontCare
+//   for (i <- 0 until Ways)
+//     when(hitVec(i)) {
+//       cacheData := dataArray(addr.index)(i)(addr.WordIndex) // TODO
+//     }
+//   io.inst := cacheData
 
-  val refetchLatch = RegInit(false.B)
-  when(io.refetch) {refetchLatch := true.B} 
-  when(io.axi.rlast) {refetchLatch := false.B}
-  val refetch = io.refetch || refetchLatch
+//   val refetchLatch = RegInit(false.B)
+//   when(io.refetch) {refetchLatch := true.B} 
+//   when(io.axi.rlast) {refetchLatch := false.B}
+//   val refetch = io.refetch || refetchLatch
 
-  // hit: idle -> judge -> data_access -> result_drive
-  // miss: idle -+> judge -+> fetching -> wait_data -+---------- -------------------+-> s_judge -> s_data_access -+> result_drive
-  //             |         |                         +-> s_fetching -> s_wait_data -+                             | 
-  //      S1     |  S2     |                          S3                                                          |      S4 
-  state := MuxLookup(state, s_idle)(
-    Seq(
-      s_idle -> Mux(io.addrValid, s_judge, s_idle),
-      s_judge -> Mux(hit && ~refetch, s_data_access, s_fetching),
-      s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
-      s_wait_data -> Mux(io.axi.rlast, Mux(refetch, s_fetching, s_judge), s_wait_data),
-      s_data_access -> s_valid,
-      s_valid -> Mux(io.outFire, s_idle, s_valid) // Didn't stay
-    )
-  )
+//   // hit: idle -> judge -> data_access -> result_drive
+//   // miss: idle -+> judge -+> fetching -> wait_data -+---------- -------------------+-> s_judge -> s_data_access -+> result_drive
+//   //             |         |                         +-> s_fetching -> s_wait_data -+                             | 
+//   //      S1     |  S2     |                          S3                                                          |      S4 
+//   state := MuxLookup(state, s_idle)(
+//     Seq(
+//       s_idle -> Mux(io.addrValid, s_judge, s_idle),
+//       s_judge -> Mux(hit && ~refetch, s_data_access, s_fetching),
+//       s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
+//       s_wait_data -> Mux(io.axi.rlast, Mux(refetch, s_fetching, s_judge), s_wait_data),
+//       s_data_access -> s_valid,
+//       s_valid -> Mux(io.outFire, s_idle, s_valid) // Didn't stay
+//     )
+//   )
 
-  // axi read signals
-  io.axi.arvalid := state === s_fetching
-  io.axi.araddr := Cat(io.addr(31, OffsetBits), Fill(OffsetBits, 0.U(1.W)))
-  io.axi.arsize := "b010".U // burst size
-  io.axi.rready := true.B
-  // burst signals
-  io.axi.arlen := (LineBeats - 1).asUInt // Burst_Length = AxLEN[7:0] + 1
-  io.axi.arburst := "b01".U // INCR
+//   // axi read signals
+//   io.axi.arvalid := state === s_fetching
+//   io.axi.araddr := Cat(io.addr(31, OffsetBits), Fill(OffsetBits, 0.U(1.W)))
+//   io.axi.arsize := "b010".U // burst size
+//   io.axi.rready := true.B
+//   // burst signals
+//   io.axi.arlen := (LineBeats - 1).asUInt // Burst_Length = AxLEN[7:0] + 1
+//   io.axi.arburst := "b01".U // INCR
 
-  // save addr info for burst transation
-  val burst = RegInit(0.U(WordIndexBits.W))
+//   // save addr info for burst transation
+//   val burst = RegInit(0.U(WordIndexBits.W))
 
-  io.instValid := state === s_valid
-  // miss update
-  val rdata = io.axi.rdata
-  // rvalid in burst transaction
-  when(io.axi.rvalid && state === s_wait_data) {
-    burst := burst + 1.U
-    dataArray(addr.index)(0)(burst) := rdata // TODO
-  }
-  when(io.axi.rlast && state === s_wait_data) {
-    burst := 0.U
-    metaArray(addr.index)(0).tag := addr.tag
-    metaArray(addr.index)(0).valid := true.B
-  }
+//   io.instValid := state === s_valid
+//   // miss update
+//   val rdata = io.axi.rdata
+//   // rvalid in burst transaction
+//   when(io.axi.rvalid && state === s_wait_data) {
+//     burst := burst + 1.U
+//     dataArray(addr.index)(0)(burst) := rdata // TODO
+//   }
+//   when(io.axi.rlast && state === s_wait_data) {
+//     burst := 0.U
+//     metaArray(addr.index)(0).tag := addr.tag
+//     metaArray(addr.index)(0).valid := true.B
+//   }
 
-  when(io.fenceI) {
-    for (i <- 0 until Sets)
-      for (j <- 0 until Ways)
-        metaArray(i)(j).valid := false.B
-  }
-}
+//   when(io.fenceI) {
+//     for (i <- 0 until Sets)
+//       for (j <- 0 until Ways)
+//         metaArray(i)(j).valid := false.B
+//   }
+// }
 
 // hit: idle -> judge -> data_access -> result_drive
 // miss: idle -+> judge -+> fetching -> wait_data -+---------- -------------------+-> s_judge -> s_data_access -+> result_drive
@@ -258,26 +260,38 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     val out = Decoupled(new Stage1Out)
     val metaArrayWrite = Flipped(new metaArrayWriteBundle)
     val metaArrayTag = Output(UInt(TagBits.W))
+    val metaArrayValid = Output(Bool())
     val flush = Input(Bool())
   })
 
   val addr = io.in.addr.asTypeOf(addrBundle)
-  val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
-  when(reset.asBool) {
-    for (i <- 0 until Sets)
-      for (j <- 0 until Ways) {
-        metaArray(i)(j).valid := false.B
-        metaArray(i)(j).tag := 0.U
-      }
-  }
   val index = addr.index 
   val tag = addr.tag 
-  
-  io.metaArrayTag := metaArray(index)(0).tag
+
+  // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
+  val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
+  val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
+  val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+  val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(false.B))))
+  val is_collision = RegInit(false.B)
+  is_collision := io.metaArrayWrite.index === index && io.metaArrayWrite.valid
+  syncReadAddr := index
+  collison_data := VecInit(Seq.fill(Ways)(true.B))
+
+  // a 口只用于写入，b 口只用于读取
+  metaArray.io.clka := clock
+  metaArray.io.wea := io.metaArrayWrite.valid
+  metaArray.io.addra := io.metaArrayWrite.index
+  metaArray.io.dina := Cat(io.metaArrayWrite.tag)
+  metaArray.io.addrb := index
+
   when(io.metaArrayWrite.valid) {
-    metaArray(io.metaArrayWrite.index)(0).tag := io.metaArrayWrite.tag
-    metaArray(io.metaArrayWrite.index)(0).valid := true.B
+    metaValidArray(io.metaArrayWrite.index)(0) := true.B
   }
+  
+  val metaArrayInfo = metaArray.io.doutb
+  io.metaArrayTag := metaArrayInfo
+  io.metaArrayValid := Mux(is_collision, collison_data(0), metaValidArray(syncReadAddr)(0))
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
@@ -292,28 +306,34 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new Stage1Out))
     val metaArrayTag = Input(UInt(TagBits.W))
+    val metaArrayValid = Input(Bool())
     val out = Decoupled(new Stage2Out)
     val axi = new AXI
     val metaArrayWrite = new metaArrayWriteBundle
     val flush = Input(Bool())
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
+    val inFire = Input(Bool())
   })
-  io.axi := DontCare
-  val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
-  when(reset.asBool) {
-    for (i <- 0 until Sets)
-      for (j <- 0 until Ways)
-        for (k <- 0 until LineBeats) {
-          dataArray(i)(j)(k) := 0.U
-        }
-  }
-
   val addr = io.in.bits.addr
   val wordIndex = io.in.bits.wordIndex
   val index = io.in.bits.index 
   val tag = io.in.bits.tag
 
-  val hit = io.metaArrayTag === io.in.bits.tag && io.in.valid
+  io.axi := DontCare
+  // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
+  val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
+
+  dataArray.io.clka := clock
+  dataArray.io.wea := false.B // TODO: see below
+  dataArray.io.addra := index
+  dataArray.io.dina := DontCare
+  dataArray.io.addrb := index
+
+  val HIT = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
+  dontTouch(HIT)
+  val hitEn = RegNext(io.inFire)
+  val hitReg = RegEnable(HIT, hitEn) // RegEnable(nextValue, enable)
+  val hit = HIT || (hitReg && ~hitEn)
   dontTouch(hit)
 
   io.out.bits.hit := hit
@@ -321,10 +341,10 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.brPredictTaken := io.in.bits.brPredictTaken
 
   val cacheData = Wire(Vec(LineBeats, UInt(32.W)))
-  cacheData := dataArray(index)(0)//(wordIndex)
+  cacheData := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
   dontTouch(cacheData)
   val cacheDataVec = Wire(Vec(LineBeats, UInt(32.W)))
-  cacheDataVec := dataArray(index)(0)
+  cacheDataVec := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
   dontTouch(cacheDataVec)
   for (i <- 0 until LineBeats) {
     io.cacheDataVec(i) := cacheDataVec(i)
@@ -350,6 +370,19 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
     s_valid -> s_idle
   ))
+
+  // 命中率统计
+  val hitCount = RegInit(0.U(32.W))
+  val accessCount = RegInit(0.U(32.W))
+  dontTouch(hitCount)
+  dontTouch(accessCount)
+  when(hitEn) { 
+    // printf("addr = %x\n", io.in.bits.addr)
+    when(hit) {
+      hitCount := hitCount + 1.U
+    }
+    accessCount := accessCount + 1.U
+  }
 
   // axi read signals
   io.axi.arvalid := state === s_fetching
@@ -377,10 +410,12 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when((io.axi.rlast && io.axi.rvalid) && state === s_wait_data) {
     burst := 0.U
     // dataArray update 
-    dataArray(index)(0)(0) := axiDataLatch(0)
-    dataArray(index)(0)(1) := axiDataLatch(1)
-    dataArray(index)(0)(2) := axiDataLatch(2)
-    dataArray(index)(0)(3) := rdata
+    // dataArray(index)(0)(0) := axiDataLatch(0)
+    // dataArray(index)(0)(1) := axiDataLatch(1)
+    // dataArray(index)(0)(2) := axiDataLatch(2)
+    // dataArray(index)(0)(3) := rdata
+    dataArray.io.wea := true.B
+    dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
     io.metaArrayWrite.valid := true.B
     io.metaArrayWrite.index := index
@@ -417,6 +452,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val hit = io.in.bits.hit
   dontTouch(io.in.bits.hit)
   val flag = RegNext(io.inFire)
+  dontTouch(flag)
   val cacheDataVecLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
   when(flag){
     cacheDataVecLatch := cacheDataVec
@@ -476,7 +512,9 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   s3.io.flush := io.flush
 
   s2.io.metaArrayTag := s1.io.metaArrayTag
-  s3.io.inFire := s2.io.out.fire 
+  s2.io.metaArrayValid := s1.io.metaArrayValid
+  s2.io.inFire := s1.io.out.fire
+  s3.io.inFire := s2.io.out.fire
   for (i <- 0 until LineBeats) {
     s3.io.cacheDataVec(i) := s2.io.cacheDataVec(i)
   }
@@ -485,8 +523,8 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   s1.io.in := io.in
   s1.io.metaArrayWrite <> s2.io.metaArrayWrite
 
-  ICachePipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
-  ICachePipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
+  PipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
+  PipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
   s3.io.out <> io.out
   io.s1Fire := s1.io.out.fire
 }
