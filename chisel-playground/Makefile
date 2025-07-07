@@ -27,6 +27,8 @@ vivado:
 	mkdir -p $(BUILD_DIR)
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR) --use-diff=false --use-simu=false
 	find $(CHIPLAB_HOME)/IP/myCPU/ -type f ! -name 'core_top.v' -delete
+	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_FUNC_SRC)/ \;
+	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(VIVADO_PERF_SRC)/ \;
 	find $(BUILD_DIR) -name "*.sv" -exec cp {} $(CHIPLAB_HOME)/IP/myCPU/ \;
 	cp ./playground/src/core/frontend/temp_if/core_top.sv $(CHIPLAB_HOME)/IP/myCPU/
 
