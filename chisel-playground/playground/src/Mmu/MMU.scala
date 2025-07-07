@@ -194,10 +194,10 @@ class TLB extends Module {
   io.s2_interface1.d := Mux(io.s2_interface1.va_bit12.asBool, tlb(hit1_index).d1, tlb(hit1_index).d0)
   io.s2_interface1.v := Mux(io.s2_interface1.va_bit12.asBool, tlb(hit1_index).v1, tlb(hit1_index).v0)
 
-// tlb write
-  when(io.wen) {
-    tlb(io.w_index) := io.w
-  }
+// tlb write (不用管这个，当时没考虑太多，不应该有这个写逻辑)
+  // when(io.wen) {
+  //   tlb(io.w_index) := io.w
+  // }
 // tlb read
   io.r := tlb(io.r_index)
 
