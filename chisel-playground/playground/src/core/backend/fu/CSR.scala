@@ -93,7 +93,7 @@ class CSR extends Module {
 
   val io = IO(new Bundle {
     val read = Vec(2, new csr_read_bundle)
-    val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
+    val write = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
     val markIntrpt = Output(Bool())
@@ -277,7 +277,7 @@ class CSR extends Module {
   }
 
   // write
-  for(i <- 0 until 4) {
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.write(i).valid && csr_crmd.plv === 0.U) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {

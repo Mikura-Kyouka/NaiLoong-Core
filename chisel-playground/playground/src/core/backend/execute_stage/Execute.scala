@@ -11,7 +11,6 @@ class Execute extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new FuOut))
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
-    val robCommit = Input(Vec(4, Valid(new LSCommitInfo)))
     val RobLsuIn  = Flipped(DecoupledIO())
     val RobLsuOut = DecoupledIO()
     val flush = Input(Bool())

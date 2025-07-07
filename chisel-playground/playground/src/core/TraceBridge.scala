@@ -13,8 +13,8 @@ class TraceItem extends Bundle {
 }
 
 class TraceBridgeIO extends Bundle {
-  val in_valids  = Input(Vec(4, Bool()))
-  val in_items   = Input(Vec(4, new TraceItem))
+  val in_valids  = Input(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val in_items   = Input(Vec(RobConfig.ROB_CMT_NUM, new TraceItem))
   
   // 输出给trace比对模块
   val out_valid  = Output(Bool())
@@ -28,20 +28,20 @@ class TraceBridge extends Module {
   val globalSeqCounter = RegInit(0.U(32.W))
 
   // 每个写回一路 FIFO
-  val perItemFifo = Seq.fill(4)(Module(new Queue(new TraceItem, 8)))
-  for (i <- 0 until 4) {
+  val perItemFifo = Seq.fill(RobConfig.ROB_CMT_NUM)(Module(new Queue(new TraceItem, 8)))
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     perItemFifo(i).io.enq.bits := io.in_items(i)
     perItemFifo(i).io.enq.bits.valid := io.in_valids(i)
     perItemFifo(i).io.enq.bits.seq_num := globalSeqCounter
   }
   
-  when (io.in_items(0).valid || io.in_items(1).valid || io.in_items(2).valid || io.in_items(3).valid) {
-    for (i <- 0 until 4) {
+  when (io.in_items.map(_.valid).reduce(_ || _)) {
+    for (i <- 0 until RobConfig.ROB_CMT_NUM) {
       perItemFifo(i).io.enq.valid := io.in_valids(i)
       globalSeqCounter := globalSeqCounter + 1.U
     }
   }.otherwise {
-    for (i <- 0 until 4) {
+    for (i <- 0 until RobConfig.ROB_CMT_NUM) {
       perItemFifo(i).io.enq.valid := false.B
     }
   }
@@ -49,7 +49,7 @@ class TraceBridge extends Module {
   val roundRobinCounter = WireInit(0.U(3.W))
 
   // Initialize with ready signals from consumer
-  for (i <- 0 until 4) {
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     perItemFifo(i).io.deq.ready := false.B
   }
 
@@ -69,11 +69,11 @@ class TraceBridge extends Module {
       (!validDequeues(1) || seqNumbers(2) < seqNumbers(1))) {
     smallestIdxWire := 2.U
   }
-  when(validDequeues(3) && (!validDequeues(0) || seqNumbers(3) < seqNumbers(0)) && 
-      (!validDequeues(1) || seqNumbers(3) < seqNumbers(1)) && 
-      (!validDequeues(2) || seqNumbers(3) < seqNumbers(2))) {
-    smallestIdxWire := 3.U
-  }
+  // when(validDequeues(3) && (!validDequeues(0) || seqNumbers(3) < seqNumbers(0)) && 
+  //     (!validDequeues(1) || seqNumbers(3) < seqNumbers(1)) && 
+  //     (!validDequeues(2) || seqNumbers(3) < seqNumbers(2))) {
+  //   smallestIdxWire := 3.U
+  // }
 
   // Update roundRobinCounter to select the smallest sequence number
   roundRobinCounter := smallestIdxWire
@@ -98,7 +98,7 @@ class TraceBridge extends Module {
 
   io.out_item := Mux(current_deq_valid, validatedOutItem, 0.U.asTypeOf(validatedOutItem))
   
-  for (i <- 0 until 4) {
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     perItemFifo(i).io.deq.ready := io.out_ready && (roundRobinCounter === i.U) && current_deq_valid
   }
   

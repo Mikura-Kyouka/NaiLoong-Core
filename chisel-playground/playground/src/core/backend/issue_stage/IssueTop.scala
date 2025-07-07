@@ -11,10 +11,7 @@ class IssueTop extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new PipelineConnectIO))
 
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
-    // val cmtInstr = Flipped(Valid(new commit_inst_info))
-    val cmtInstr = Input(Vec(5, Valid(UInt(PHYS_REG_BITS.W))))// FIXME: 5 -> ISSUE_WIDTH
-    val rtrInstr = Flipped(Vec(4,Valid(new retire_inst_info)))
-    val busy_info = Input(Vec(5, new busy_info))
+    val rtrInstr = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new retire_inst_info)))
     val ex_bypass = Input(Vec(5, new bypass_info))
     val flush = Input(Bool())
   })
@@ -73,7 +70,7 @@ class IssueTop extends Module {
   }
 
   // retire inst
-  for(i <- 0 until 4) { // busyreg update
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) { // busyreg update
     // fu output update
     when(io.rtrInstr(i).valid) {
       busyreg(io.rtrInstr(i).bits.preg) := false.B

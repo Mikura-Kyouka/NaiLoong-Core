@@ -46,21 +46,6 @@ module DiffBridge(
   input [63:0] wdata_2,
   input        csr_rstat_2,
   input [31:0] csr_data_2,
-  
-  input [ 7:0] index_3,
-  input        Instrvalid_3,
-  input [63:0] the_pc_3,
-  input [31:0] instr_3,
-  input        skip_3,
-  input        is_TLBFILL_3,
-  input [ 4:0] TLBFILL_index_3,
-  input        is_CNTinst_3,
-  input [63:0] timer_64_value_3,
-  input        wen_3,
-  input [ 7:0] wdest_3,
-  input [63:0] wdata_3,
-  input        csr_rstat_3,
-  input [31:0] csr_data_3,
 
   input        excp_valid,
   input        eret,
@@ -203,25 +188,6 @@ DifftestInstrCommit DifftestInstrCommit_2(
   .wdata              (wdata_2        ),
   .csr_rstat          (csr_rstat_2    ),
   .csr_data           (csr_data_2     )
-);
-
-DifftestInstrCommit DifftestInstrCommit_3(
-  .clock              (clock          ),
-  .coreid             (coreid         ),
-  .index              (index_3        ),
-  .valid              (Instrvalid_3   ),
-  .pc                 (the_pc_3       ),
-  .instr              (instr_3        ),
-  .skip               (skip_3         ),
-  .is_TLBFILL         (is_TLBFILL_3   ),
-  .TLBFILL_index      (TLBFILL_index_3),
-  .is_CNTinst         (is_CNTinst_3   ),
-  .timer_64_value     (timer_64_value_3),
-  .wen                (wen_3          ),
-  .wdest              (wdest_3        ),
-  .wdata              (wdata_3        ),
-  .csr_rstat          (csr_rstat_3    ),
-  .csr_data           (csr_data_3     )
 );
 
 DifftestStoreEvent DifftestStoreEvent_1(
