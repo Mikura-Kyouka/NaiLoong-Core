@@ -126,7 +126,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(12)
     val state = RegInit(s_idle)
 
     // 暂时只支持 1 way
@@ -183,8 +183,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_fill_cache :: s_tlb :: Nil = Enum(12)
-    val state = RegInit(s_idle)
+
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
         s_tlb -> Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge),
