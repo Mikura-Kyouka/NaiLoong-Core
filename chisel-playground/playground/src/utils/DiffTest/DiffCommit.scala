@@ -5,7 +5,7 @@ import chisel3.util._
 class DiffCommit extends Module {
   val io = IO(new Bundle {
     // DifftestInstrCommit
-    val instr = Input(Vec(4, new DiffInstrBundle()))
+    val instr = Input(Vec(RobConfig.ROB_CMT_NUM, new DiffInstrBundle()))
 
     // DifftestExcpEvent
     val excp = Input(new DiffExcpBundle())
@@ -75,21 +75,6 @@ class DiffCommit extends Module {
   DiffBridge.io.wdata_2 := RegNext(io.instr(2).wdata, 0.U)
   DiffBridge.io.csr_rstat_2 := RegNext(io.instr(2).csr_rstat, 0.U)
   DiffBridge.io.csr_data_2 := RegNext(io.instr(2).csr_data, 0.U)
-
-  DiffBridge.io.index_3 := 3.U
-  DiffBridge.io.Instrvalid_3 := RegNext(io.instr(3).valid, 0.U)
-  DiffBridge.io.the_pc_3 := RegNext(io.instr(3).pc, 0.U)
-  DiffBridge.io.instr_3 := RegNext(io.instr(3).instr, 0.U)
-  DiffBridge.io.skip_3 := 0.U
-  DiffBridge.io.is_TLBFILL_3 := RegNext(io.instr(3).is_TLBFILL, 0.U)
-  DiffBridge.io.TLBFILL_index_3 := RegNext(io.instr(3).TLBFILL_index, 0.U)
-  DiffBridge.io.is_CNTinst_3 := RegNext(io.instr(3).is_CNTinst, 0.U)
-  DiffBridge.io.timer_64_value_3 := RegNext(io.instr(3).timer_64_value, 0.U)
-  DiffBridge.io.wen_3 := RegNext(io.instr(3).wen, 0.U)
-  DiffBridge.io.wdest_3 := RegNext(io.instr(3).wdest, 0.U)
-  DiffBridge.io.wdata_3 := RegNext(io.instr(3).wdata, 0.U)
-  DiffBridge.io.csr_rstat_3 := RegNext(io.instr(3).csr_rstat, 0.U)
-  DiffBridge.io.csr_data_3 := RegNext(io.instr(3).csr_data, 0.U)
 
   DiffBridge.io.excp_valid := RegNext(io.excp.excp_valid, 0.U)
   DiffBridge.io.eret := RegNext(io.excp.eret, 0.U)
@@ -184,21 +169,6 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val wdata_2 = Input(UInt(64.W))
     val csr_rstat_2 = Input(Bool())
     val csr_data_2 = Input(UInt(32.W))
-    
-    val index_3 = Input(UInt(8.W))
-    val Instrvalid_3 = Input(Bool())
-    val the_pc_3 = Input(UInt(64.W))
-    val instr_3 = Input(UInt(32.W))
-    val skip_3 = Input(Bool())
-    val is_TLBFILL_3 = Input(Bool())
-    val TLBFILL_index_3 = Input(UInt(5.W))
-    val is_CNTinst_3 = Input(Bool())
-    val timer_64_value_3 = Input(UInt(64.W))
-    val wen_3 = Input(Bool())
-    val wdest_3 = Input(UInt(8.W))
-    val wdata_3 = Input(UInt(64.W))
-    val csr_rstat_3 = Input(Bool())
-    val csr_data_3 = Input(UInt(32.W))
 
     val excp_valid = Input(Bool())
     val eret = Input(Bool())

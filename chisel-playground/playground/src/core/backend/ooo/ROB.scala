@@ -12,6 +12,7 @@ object RobConfig {
   val ROB_ENTRY_NUM = 64
   val ROB_INDEX_WIDTH = log2Ceil(ROB_ENTRY_NUM)
   val ROB_WRITEBACK_NUM = 5
+  val ROB_CMT_NUM = 3
 }
 
 class RobEntry extends Bundle {
@@ -110,7 +111,7 @@ class LSCommitInfo extends Bundle {
 
 // 提交接口
 class RobCommit extends Bundle {
-  val commit = Vec(4, Valid(new rtrBundle))
+  val commit = Vec(RobConfig.ROB_CMT_NUM, Valid(new rtrBundle))
 }
 
 class RobIO extends Bundle {
@@ -126,11 +127,11 @@ class RobIO extends Bundle {
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
-  val commitPC = Output(Vec(4, Valid(UInt(32.W))))         // 提交的PC
-  val commitInstr = Output(Vec(4, Valid(UInt(32.W))))      // 提交的指令
+  val commitPC = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))         // 提交的PC
+  val commitInstr = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))      // 提交的指令
   // for load/store difftest
-  val commitLS = Output(Vec(4, Valid(new LSCommitInfo)))   // 提交的load/store信息
-  val commitCSR = Vec(4, Valid(new csr_write_bundle))
+  val commitLS = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(new LSCommitInfo)))   // 提交的load/store信息
+  val commitCSR = Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle))
 
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
@@ -227,13 +228,13 @@ class Rob extends Module {
   }
   
   // 判断是否可以提交
-  val canCommit = Wire(Vec(4, Bool()))
-  val hasCsrRW = Wire(Vec(4, Bool()))
-  val hasBrMispred = Wire(Vec(4, Bool()))
-  val hasException = Wire(Vec(4, Bool()))
-  val hasStore = Wire(Vec(4, Bool()))
+  val canCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasCsrRW = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
 
-  for (i <- 0 until 4) {
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
       val preHasCommit = !robEntries(commitIdx - 1.U).valid
@@ -274,8 +275,8 @@ class Rob extends Module {
   val OutValid = RegInit(false.B)
   val InReady  = RegInit(false.B)
 
-  val shouldCommit = Wire(Vec(4, Bool()))
-  val hasCommit = Wire(Vec(4, Bool()))
+  val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
 
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
@@ -298,7 +299,7 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
 
-  for (i <- 0 until 4) {
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
     val entry = robEntries(commitIdx)
     
@@ -399,7 +400,7 @@ class Rob extends Module {
   io.RobLsuOut.valid := OutValid
   io.RobLsuIn.ready := InReady
 
-  for (i <- 0 until 4) {
+  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     hasCommit(i) := Mux(hasStore(i), st_state === st_retire && io.RobLsuIn.valid && shouldCommit(i), 
                         shouldCommit(i))
   }
