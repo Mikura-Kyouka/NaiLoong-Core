@@ -83,6 +83,8 @@ class Decoder extends Module {
                                Mux(csrOp === CSROp.cntvh, CsrName.CNTVH,
                                                           instr(23, 10))))
 
+    io.out.bits.ctrl.tlbInvOp := Mux(instr(4, 0) === 0.U, TlbInvOp.all, instr(4, 0))
+
     io.out.bits.ctrl.tlbOp := tlbOp
     
     //output signals 

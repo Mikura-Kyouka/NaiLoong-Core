@@ -333,6 +333,33 @@ class CSR extends Module {
         is(CsrName.DMW1) {
           csr_dmw1 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
         }
+        is(CsrName.TLBIDX) {
+          csr_tlbidx := io.write(i).bits.csr_data.asTypeOf(new csr_tlbidx_bundle)
+        }
+        is(CsrName.TLBEHI) {
+          csr_tlbehi := io.write(i).bits.csr_data.asTypeOf(new csr_tlbehi_bundle)
+        }
+        is(CsrName.TLBELO0) {
+          csr_tlbel0 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+        }
+        is(CsrName.TLBELO1) {
+          csr_tlbel1 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+        }
+        is(CsrName.ASID) {
+          csr_asid := io.write(i).bits.csr_data.asTypeOf(new csr_asid_bundle)
+        }
+        is(CsrName.PGDL) {
+          csr_pgdl := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.PGDH) {
+          csr_pgdh := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.PGD) {
+          csr_pgd := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.TLBRENTRY) {
+          csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
+        }
       }
     }
   }
@@ -427,6 +454,7 @@ class CSR extends Module {
       is(TlbOp.rd) {
         when(io.from_mmu.tlb_entry.e.asBool) {
           csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
+          csr_asid.asid := io.from_mmu.tlb_entry.asid
 
           csr_tlbel0.ppn := io.from_mmu.tlb_entry.ppn0
           csr_tlbel0.g := io.from_mmu.tlb_entry.g
@@ -443,20 +471,11 @@ class CSR extends Module {
           csr_tlbel1.v := io.from_mmu.tlb_entry.v1
         }.otherwise {
           csr_tlbidx.ne := 1.U
-          csr_tlbehi.vppn := 0.U
-          csr_tlbel0.ppn := 0.U
-          csr_tlbel0.g := 0.U
-          csr_tlbel0.mat := 0.U
-          csr_tlbel0.plv := 0.U
-          csr_tlbel0.d := 0.U
-          csr_tlbel0.v := 0.U
-
-          csr_tlbel1.ppn := 0.U
-          csr_tlbel1.g := 0.U
-          csr_tlbel1.mat := 0.U
-          csr_tlbel1.plv := 0.U
-          csr_tlbel1.d := 0.U
-          csr_tlbel1.v := 0.U
+          csr_tlbidx.ps := 0.U
+          csr_asid.asid := 0.U
+          csr_tlbehi := 0.U.asTypeOf(new csr_tlbehi_bundle)
+          csr_tlbel0 := 0.U.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel1 := 0.U.asTypeOf(new csr_tlbelo_bundle)
         }
       }
     }

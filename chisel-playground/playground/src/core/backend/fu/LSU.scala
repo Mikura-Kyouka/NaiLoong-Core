@@ -207,6 +207,7 @@ class AligendUnpipelinedLSU extends Module{
   )             
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
+  io.out.bits.tlbInfo := DontCare
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid || (io.in.valid && io.in.bits.valid && LSUOpType.isStore(io.in.bits.ctrl.fuOpType))

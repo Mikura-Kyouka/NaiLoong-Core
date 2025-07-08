@@ -7,6 +7,7 @@ import chisel3.util.experimental.decode.Minimizer
 import core.LSUOpType.sw
 import core.FuType.lsu
 import core.LSUOpType.isStore
+import core.MEMOpID.tlb
 
 object RobConfig {
   val ROB_ENTRY_NUM = 64
@@ -44,6 +45,7 @@ class RobEntry extends Bundle {
   val csrNum    = UInt(14.W)
   val csrNewData = UInt(32.W)
   val eret = Bool() 
+  val tlbInfo = new TlbInstBundle
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -77,6 +79,7 @@ class RobWritebackInfo extends Bundle {
   val fuType      = UInt(3.W)
   val optype      = UInt(7.W)
   val timer64     = UInt(64.W)
+  val tlbInfo     = new TlbInstBundle
 }
 
 class rtrBundle extends Bundle {
@@ -138,6 +141,9 @@ class RobIO extends Bundle {
 
   // 异常接口
   val exceptionInfo = Flipped(new csr_excp_bundle)
+
+  // TLB 操作接口
+  val tlbInfo = Output(new TlbInstBundle)
 
   val plv = Input(UInt(2.W)) // 当前特权级
 
@@ -224,6 +230,7 @@ class Rob extends Module {
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
       robEntries(idx).optype       := io.writeback(i).bits.optype
       robEntries(idx).timer64      := io.writeback(i).bits.timer64
+      robEntries(idx).tlbInfo      := io.writeback(i).bits.tlbInfo
     }
   }
   
@@ -233,6 +240,7 @@ class Rob extends Module {
   val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
@@ -251,6 +259,8 @@ class Rob extends Module {
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
+    hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
+                  robEntries(commitIdx).tlbInfo.inst_type =/= TlbOp.nop && canCommit(i) && !hasException(i)
   }
 
   val store_entry = robEntries(head +& PriorityEncoder(hasStore))
@@ -284,7 +294,9 @@ class Rob extends Module {
   val exception = hasException.reduce(_ || _)
   val exceptionIdx = PriorityEncoder(hasException)
 
-  
+  val tlbOperation = hasTlb.reduce(_ || _)
+  val tlbIdx = PriorityEncoder(hasTlb)
+
   val brMisPredTemp = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
   val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx) && st_state === st_retire && io.RobLsuIn.valid
@@ -306,8 +318,8 @@ class Rob extends Module {
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
 
     // 构造候选列表，只加入有效的事件及其下标
-    val candidates = Wire(Vec(3, UInt(2.W)))
-    val valids = Wire(Vec(3, Bool()))
+    val candidates = Wire(Vec(4, UInt(2.W)))
+    val valids = Wire(Vec(4, Bool()))
 
     candidates(0) := exceptionIdx
     valids(0) := exception
@@ -315,11 +327,14 @@ class Rob extends Module {
     valids(1) := brMisPred
     candidates(2) := csrWriteIdx
     valids(2) := csrWrite
+    candidates(3) := tlbIdx
+    valids(3) := tlbOperation
 
     val temp0 = Mux(valids(0), candidates(0), 3.U)
     val temp1 = Mux(valids(1) && candidates(1) < temp0, candidates(1), temp0)
     val temp2 = Mux(valids(2) && candidates(2) < temp1, candidates(2), temp1)
-    minIdx := temp2
+    val temp3 = Mux(valids(3) && candidates(3) < temp2, candidates(3), temp2)
+    minIdx := temp3
 
     // 是否存在至少一个特殊 commit
     val hasSpecialCommit = valids.reduce(_ || _)
@@ -362,7 +377,7 @@ class Rob extends Module {
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype
-    
+
     // 清除已提交的条目
     when (hasCommit(i)) {
       robEntries(commitIdx).valid := false.B
@@ -414,7 +429,6 @@ class Rob extends Module {
   io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
   io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).paddr     // FIXME: 物理地址作为异常虚拟地址
-
   //excp_ine 
     /*
     exceptionVec[0]  int
@@ -435,6 +449,9 @@ class Rob extends Module {
                 [15] pil     |
     */
 
+  io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
+  io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid
+
   val commitNum = PopCount(hasCommit)
 
   // 更新头指针
@@ -443,7 +460,7 @@ class Rob extends Module {
     head := nextHead
   }
 
-  when (exception || brMisPred || csrWrite) {
+  when (exception || brMisPred || csrWrite || tlbOperation) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
@@ -456,7 +473,7 @@ class Rob extends Module {
     }
   }
 
-  io.flush := exception || brMisPred || csrWrite
+  io.flush := exception || brMisPred || csrWrite || tlbOperation
   val flushEntry = robEntries(head +& minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 

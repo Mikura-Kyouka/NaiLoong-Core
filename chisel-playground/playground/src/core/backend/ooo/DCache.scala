@@ -126,7 +126,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(12)
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
     val state = RegInit(s_idle)
 
     // 暂时只支持 1 way
@@ -186,7 +186,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
-        s_tlb -> Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge),
+        s_tlb -> Mux(io.flush, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
         s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),

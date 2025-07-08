@@ -21,6 +21,7 @@ class CtrlSignalIO extends Bundle {
   val csrOp = Output(UInt(4.W)) // csr operation
   val csrNum = Output(UInt(14.W))
   val tlbOp = Output(TlbOp()) // TLB operation
+  val tlbInvOp = Output(UInt(3.W)) // TLB invalidation operation
 }
 
 class DataSrcIO extends Bundle {

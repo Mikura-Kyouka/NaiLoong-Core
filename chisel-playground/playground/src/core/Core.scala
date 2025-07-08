@@ -327,6 +327,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.optype := Ex.io.out(i).bits.optype
     rob.io.writeback(i).bits.fuType := Ex.io.out(i).bits.fuType
     rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
+    rob.io.writeback(i).bits.tlbInfo := Ex.io.out(i).bits.tlbInfo
   }
 
   // allocate rob entries in rename stage
@@ -364,7 +365,7 @@ class Core extends Module {
   mmu.io.wen := DontCare
   mmu.io.w_index := DontCare
   mmu.io.r_index := DontCare
-  mmu.io.tlb_inst := DontCare
+  mmu.io.tlb_inst := rob.io.tlbInfo
   mmu.io.out0.ready := true.B
   mmu.io.out1.ready := true.B
   mmu.io.out1.bits <> Ex.io.addr_trans_in

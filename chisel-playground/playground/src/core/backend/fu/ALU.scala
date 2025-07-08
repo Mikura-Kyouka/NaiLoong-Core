@@ -210,6 +210,7 @@ class FuOut extends Bundle {
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)
+  val tlbInfo = Output(new TlbInstBundle)
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
@@ -264,7 +265,12 @@ class AligendALU extends Module{
   io.out.bits.redirect := alu.io.redirect
   io.out.bits.csrNewData := Mux(io.in.bits.ctrl.csrOp === CSROp.xchg, 
               (io.in.bits.src1 & io.in.bits.src2) | (~io.in.bits.src1 & io.csrRead.csr_data), io.in.bits.src2)
-  
+  io.out.bits.tlbInfo.en := io.in.bits.ctrl.tlbOp =/= TlbOp.nop
+  io.out.bits.tlbInfo.inst_type := io.in.bits.ctrl.tlbOp
+  io.out.bits.tlbInfo.op := io.in.bits.ctrl.tlbInvOp
+  io.out.bits.tlbInfo.asid := io.in.bits.src1
+  io.out.bits.tlbInfo.va := io.in.bits.src2
+
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready
   io.out.valid := alu.io.out.valid && io.in.bits.valid

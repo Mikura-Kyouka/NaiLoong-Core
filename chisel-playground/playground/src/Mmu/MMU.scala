@@ -151,6 +151,8 @@ class TLB extends Module {
 
   val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
   io.to_csr := DontCare
+  io.to_csr.wen := false.B
+  dontTouch(io.to_csr)
 
 // 处理 Stage 1 : 判断是否命中 TLB，返回 hit_vec
   val hit0 = Wire(Vec(TLB_NUM, Bool()))
@@ -244,8 +246,6 @@ class TLB extends Module {
         tlb(io.from_csr.tlbidx.idx).v1 := io.from_csr.tlbelo1.v
       }
       is(TlbOp.fill) {
-        tlb_refill_idx := tlb_refill_idx + 1.U
-
         tlb(tlb_refill_idx).ps := io.from_csr.tlbidx.ps
         tlb(tlb_refill_idx).e := !io.from_csr.tlbidx.ne.asBool || is_tlb_refill
         tlb(tlb_refill_idx).vppn := io.from_csr.tlbehi.vppn
@@ -263,6 +263,8 @@ class TLB extends Module {
         tlb(tlb_refill_idx).mat1 := io.from_csr.tlbelo1.mat
         tlb(tlb_refill_idx).d1 := io.from_csr.tlbelo1.d
         tlb(tlb_refill_idx).v1 := io.from_csr.tlbelo1.v
+
+        tlb_refill_idx := tlb_refill_idx + 1.U
       }
       is(TlbOp.inv) {
         for(i <- 0 until TLB_NUM) {
