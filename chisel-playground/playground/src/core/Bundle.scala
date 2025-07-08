@@ -123,7 +123,7 @@ class PipelineConnectIO extends Bundle {
   val pc = Output(UInt(32.W))
   val valid = Output(Bool())
   // IF -> ID
-  val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
+  val pnpc = Output(UInt(32.W))
   val redirect = new RedirectIO
   val exceptionVec = Output(Vec(16, Bool()))
   val intrVec = Output(Vec(12, Bool()))
