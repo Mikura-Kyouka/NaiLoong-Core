@@ -452,7 +452,9 @@ class CSR extends Module {
         }
       }
       is(TlbOp.rd) {
-        when(io.from_mmu.tlb_entry.e.asBool) {
+        when(io.from_mmu.tlb_entry.e.asBool && !csr_tlbidx.idx(15, log2Ceil(MmuConfig.TLB_NUM)).orR) {
+          csr_tlbidx.ne := ~io.from_mmu.tlb_entry.e
+          csr_tlbidx.ps := io.from_mmu.tlb_entry.ps
           csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
           csr_asid.asid := io.from_mmu.tlb_entry.asid
 

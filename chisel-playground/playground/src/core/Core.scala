@@ -375,6 +375,8 @@ class Core extends Module {
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 
+    val tlb_refill_index = RegInit(0.U(log2Ceil(MmuConfig.TLB_NUM).W))
+
     // 1) 收集原始 4 路信号
     val diffValids = VecInit((0 until RobConfig.ROB_CMT_NUM).map { i =>
       rob.io.commitInstr(i).valid && rob.io.commit.commit(i).bits.inst_valid
@@ -388,6 +390,7 @@ class Core extends Module {
     val diffExcp      = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.excp))
     val diffTimer64   = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.timer64))
     val diffIsCNTinst = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitInstr(i).bits(31, 11) === "b000000000000000001100".U))
+    val diffIsTlbFill = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitInstr(i).bits(31, 10) === "b0000011001001000001101".U))
     val diffWens      = diffDests.map(_ =/= 0.U)
 
     // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
@@ -415,8 +418,8 @@ class Core extends Module {
       DiffCommit.io.instr(k).wen   := Mux1H(sel.zip(diffWens))
 
       DiffCommit.io.instr(k).skip          := DontCare
-      DiffCommit.io.instr(k).is_TLBFILL    := DontCare
-      DiffCommit.io.instr(k).TLBFILL_index := DontCare
+      DiffCommit.io.instr(k).is_TLBFILL    := Mux1H(sel.zip(diffIsTlbFill))
+      DiffCommit.io.instr(k).TLBFILL_index := tlb_refill_index
       DiffCommit.io.instr(k).is_CNTinst    := Mux1H(sel.zip(diffIsCNTinst))
       DiffCommit.io.instr(k).timer_64_value:= Mux1H(sel.zip(diffTimer64))
       DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
@@ -428,6 +431,10 @@ class Core extends Module {
       DiffCommit.io.excp.cause := csr.io.exceptionInfo.cause
       DiffCommit.io.excp.exceptionPC := rob.io.exceptionInfo.exceptionPC
       DiffCommit.io.excp.exceptionInst := rob.io.exceptionInfo.exceptionInst
+
+      when(DiffCommit.io.instr(k).valid && DiffCommit.io.instr(k).is_TLBFILL) {
+        tlb_refill_index := tlb_refill_index + 1.U
+      }
     }
 
     // 4) 其余接口

@@ -284,7 +284,7 @@ class TLB extends Module {
               when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
             }
             is(6.U) {
-              when((tlb(i).g === 0.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
+              when((tlb(i).g === 1.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
             }
           }
         }
