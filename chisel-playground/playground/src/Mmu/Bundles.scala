@@ -19,6 +19,8 @@ class AddrTrans extends Bundle {
   val mat = UInt(2.W)
   val d = UInt(1.W)
   val v = UInt(1.W)
+
+  val excp = new ExceptionBundle
 }
 
 class Stage1Interface extends Bundle {

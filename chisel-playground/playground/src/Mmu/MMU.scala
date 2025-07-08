@@ -323,9 +323,6 @@ class MMU extends Module {
     // MMU的输出，out0给ifu，out1给lsu
     val out0 = Decoupled(new AddrTrans)
     val out1 = Decoupled(new AddrTrans)
-    // 例外信息，返回给谁呢？
-    val excp0 = Output(new ExceptionBundle)
-    val excp1 = Output(new ExceptionBundle)
 
     val flush = Input(Bool())
     // mmu和csr的交互
@@ -404,43 +401,50 @@ class MMU extends Module {
   MMUPipelineConnect(s1.io.out0, s2.io.in0, s1.io.out0.fire, io.flush)
   MMUPipelineConnect(s1.io.out1, s2.io.in1, s1.io.out1.fire, io.flush)
 
-// 判断例外
+  // 判断例外
   // 赋个初始值
-  io.excp0 := 0.U.asTypeOf(new ExceptionBundle)
-  io.excp1 := 0.U.asTypeOf(new ExceptionBundle)
+  val excp0 = Wire(new ExceptionBundle)
+  val excp1 = Wire(new ExceptionBundle)
+
+  excp0 := 0.U.asTypeOf(new ExceptionBundle)
+  excp1 := 0.U.asTypeOf(new ExceptionBundle)
+
   when(!io.out0.bits.found.asBool) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.tlbr
+    excp0.en := true.B
+    excp0.ecode := Ecode.tlbr
   }
   when(!io.out0.bits.v) {
-    io.excp0.en := true.B
-    io.excp0.ecode := io.out0.bits.mem_type
+    excp0.en := true.B
+    excp0.ecode := io.out0.bits.mem_type
   }
   when(io.from_csr.crmd.plv > io.out0.bits.plv) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.ppi
+    excp0.en := true.B
+    excp0.ecode := Ecode.ppi
   }
   when(io.out0.bits.mem_type === MemType.store && !io.out0.bits.d.asBool) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.pme
+    excp0.en := true.B
+    excp0.ecode := Ecode.pme
   }
   // 与上面逻辑一样
   when(!io.out1.bits.found.asBool) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.tlbr
+    excp1.en := true.B
+    excp1.ecode := Ecode.tlbr
   }
   when(!io.out1.bits.v) {
-    io.excp1.en := true.B
-    io.excp1.ecode := io.out1.bits.mem_type
+    excp1.en := true.B
+    excp1.ecode := io.out1.bits.mem_type
   }
   when(io.from_csr.crmd.plv > io.out1.bits.plv) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.ppi
+    excp1.en := true.B
+    excp1.ecode := Ecode.ppi
   }
   when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.pme
+    excp1.en := true.B
+    excp1.ecode := Ecode.pme
   }
+
+  io.out0.bits.excp := excp0
+  io.out1.bits.excp := excp1
 }
 
 // object GenMMU extends App {

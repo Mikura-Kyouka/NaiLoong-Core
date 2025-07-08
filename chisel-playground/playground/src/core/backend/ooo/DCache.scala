@@ -186,7 +186,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
-        s_tlb -> Mux(io.flush, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
+        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
         s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
@@ -210,7 +210,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := req.addr
+    io.axi.araddr := paddr
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
     io.axi.arsize := "b010".U  // 32 bits
@@ -218,7 +218,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.rready := true.B
     // axi write chanel
     val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
-    io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
+    io.axi.awaddr := Mux(isMMIO, paddr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
@@ -308,13 +308,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray.io.dina := addr.tag // tag, dirty
       metaFlagArray(addr.index)(0) := Cat(true.B, true.B).asTypeOf(new MetaFlagBundle) // valid, dirty
 
-      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
       resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
-      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }
 
     io.resp.bits := resp
