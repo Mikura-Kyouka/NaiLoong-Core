@@ -198,10 +198,18 @@ class AligendUnpipelinedLSU extends Module{
 } 
 
 class storeQueueEntry extends Bundle {
-  val pc = UInt(32.W)
-  val isMMIO = Bool()
-  val valid = Bool()
-  val finished = Bool() 
+  val pc       = UInt(32.W)
+  // val prfidx   = UInt(prfAddrWidth.W) // for debug
+  // val brMask   = UInt(checkpointSize.W)
+  val wmask    = UInt(4.W) // for store queue forwarding
+  val vaddr    = UInt(32.W)
+  val paddr    = UInt(32.W)
+  val func     = UInt(7.W)
+  val size     = UInt(2.W)
+  val op       = UInt(7.W)
+  val data     = UInt(32.W)
+  val isMMIO   = Bool()
+  val valid    = Bool()
 }
 
 class moqEntry extends Bundle{
@@ -234,12 +242,12 @@ class LSU extends Module with HasLSUConst {
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     // dtlb
     val addr_trans_out = Output(new AddrTrans)
-    val addr_trans_in = Decoupled(new AddrTrans)
-    // dmem 
+    val addr_trans_in = Input(new AddrTrans)
+    // dmem
     val dmemReq = Decoupled(new reqBundle)
     val dmemResp = Flipped(Decoupled(new respBundle))
     val flush = Input(Bool())
-    val scommit = Input(Bool()) 
+    val scommit = Input(Bool())
     val out = Decoupled(new FuOut)
   })
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
@@ -486,8 +494,8 @@ class LSU extends Module with HasLSUConst {
   // TODO:
 
   io.dmemReq.bits.addr := Mux(dmemReqFrommoq, moq(moqDmemPtr).paddr, io.in.bits.src1 + io.in.bits.imm)
-  io.dmemReq.valid := 
-  io.dmemResp.valid := true.B
+  io.dmemReq.valid := true.B
+  io.dmemResp.ready := true.B
 
   //-------------------------------------------------------
   // Mem Resp
@@ -507,9 +515,9 @@ class LSU extends Module with HasLSUConst {
   val dataBack = dataBackVec.asUInt
   val forwardVec = VecInit(List.tabulate(storeQueueSize)(i => {
     i.U < storeHeadPtr && 
-    io.dmem.req.bits.addr(PAddrBits-1, log2Up(XLEN/8)) === storeQueue(i).paddr(PAddrBits-1, log2Up(XLEN/8)) && storeQueue(i).valid
+    io.dmemReq.bits.addr(31, 2) === storeQueue(i).paddr(31, 2) && storeQueue(i).valid
   }))
-  val forwardWmask = List.tabulate(storeQueueSize)(i => storeQueue(i).wmask & Fill(XLEN/8, forwardVec(i))).foldRight(0.U)((sum, i) => sum | i)
+  val forwardWmask = List.tabulate(storeQueueSize)(i => storeQueue(i).wmask & Fill(4, forwardVec(i))).foldRight(0.U)((sum, i) => sum | i)
 
   // for(j <- 0 to 3){
   //   dataBackVec(j) := MuxCase(

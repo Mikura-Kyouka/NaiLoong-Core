@@ -31,11 +31,10 @@ class Execute extends Module {
   val dmem = Module(new DCache()(new DCacheConfig(totalSize = 128 * 16, ways = 1)))
   dmem.io.axi <> io.lsAXI
   dmem.io.flush := io.flush
-  dmem.io.req <> lsu.io.dmem.req
-  dmem.io.resp <> lsu.io.dmem.resp
+  dmem.io.req <> lsu.io.dmemReq
+  dmem.io.resp <> lsu.io.dmemResp
 
-  lsu.io.RobLsuIn <> io.RobLsuIn
-  lsu.io.RobLsuOut <> io.RobLsuOut
+  lsu.io.scommit := true.B // FIXME:
   lsu.io.flush := io.flush
   lsu.io.addr_trans_out <> io.addr_trans_out
   lsu.io.addr_trans_in <> io.addr_trans_in
