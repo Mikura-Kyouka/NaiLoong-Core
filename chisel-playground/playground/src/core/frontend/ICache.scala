@@ -494,10 +494,10 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush 
 
-  io.out.bits(0).tlbr := DontCare
-  io.out.bits(1).tlbr := DontCare
-  io.out.bits(2).tlbr := DontCare
-  io.out.bits(3).tlbr := DontCare
+  io.out.bits(0).excp := DontCare
+  io.out.bits(1).excp := DontCare
+  io.out.bits(2).excp := DontCare
+  io.out.bits(3).excp := DontCare
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 

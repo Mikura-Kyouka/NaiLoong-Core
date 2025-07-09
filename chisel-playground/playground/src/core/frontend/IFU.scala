@@ -3,12 +3,17 @@ package core
 import chisel3._
 import chisel3.util._
 
+class fetchExcp extends Bundle {
+  val en = Bool() // 是否发生异常
+  val ecode = UInt(4.W) // 异常码
+}
+
 class IFU2IDU extends Bundle {
   val pc = Output(UInt(32.W))
   val inst = Output(UInt(32.W))
   val Valid = Output(Bool())
   val brPredict = Output(new RedirectIO)
-  val tlbr = Output(Bool()) // TLB reload excp
+  val excp = Output(new fetchExcp) // TLB reload excp
 }
 
 class IFU extends Module{
@@ -108,6 +113,7 @@ class IFU extends Module{
 
     io.addr_trans_out := DontCare
     io.addr_trans_out.vaddr := pc.io.nextPC
+    io.addr_trans_out.mem_type := MemType.fetch
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_in.ready := true.B
 
@@ -135,29 +141,30 @@ class IFU extends Module{
     adef.pc := pc.io.pc
     adef.inst := 0x03400000.U
     adef.brPredict := DontCare
-    adef.tlbr := DontCare
+    adef.excp := DontCare
     val nop = Wire(new IFU2IDU)
     nop.Valid := false.B
     nop.pc := 0.U
     nop.inst := 0.U
     nop.brPredict := DontCare
-    nop.tlbr := DontCare
-    val tlbr = Wire(new IFU2IDU)
-    tlbr.Valid := true.B
-    tlbr.pc := icache.io.out.bits(0).pc
-    tlbr.inst := 0x03400000.U // TLB reload instruction
-    tlbr.brPredict := DontCare
-    tlbr.tlbr := true.B
+    nop.excp := DontCare
+    val nopWithExcp = Wire(new IFU2IDU)
+    nopWithExcp.Valid := true.B
+    nopWithExcp.pc := RegNext(io.addr_trans_out.vaddr)
+    nopWithExcp.inst := 0x03400000.U
+    nopWithExcp.brPredict := DontCare
+    nopWithExcp.excp.en := true.B
+    nopWithExcp.excp.ecode := io.addr_trans_in.bits.excp.ecode
 
     val hasBrPredictOut = icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid).reduce(_ || _)
     val brPredictIdxOut = PriorityEncoder(icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid))
 
     val out_temp = WireInit(icache.io.out.bits)
 
-    out_temp(0) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(0))
-    out_temp(1) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(1))
-    out_temp(2) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(2))
-    out_temp(3) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(3))
+    out_temp(0) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(0))
+    out_temp(1) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(1))
+    out_temp(2) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(2))
+    out_temp(3) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(3))
 
     io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, out_temp(0))
     io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, out_temp(1))

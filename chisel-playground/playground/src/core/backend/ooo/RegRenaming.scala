@@ -267,6 +267,7 @@ class RegRenaming extends Module {
     val rd = input.ctrl.rfDest
     val rfWen = input.ctrl.rfWen
     
+    entry := DontCare
     entry.pc := input.pc
     entry.instr := input.instr
     entry.rd := rd
@@ -279,20 +280,6 @@ class RegRenaming extends Module {
     entry.inst_valid := input.inst_valid
     entry.csrOp := input.ctrl.csrOp
     entry.csrNum := input.ctrl.csrNum
-    
-    // 这些字段在后面的指令执行阶段设置
-    entry.finished := DontCare
-    entry.exception := DontCare
-    entry.exceptionVec := DontCare
-    entry.eret := DontCare
-    entry.intrVec := DontCare
-    entry.brMispredict := DontCare
-    entry.brTarget := DontCare
-    entry.result := DontCare
-    entry.csrNewData := DontCare
-    entry.timer64 := DontCare
-    entry.brTaken := DontCare
-    entry.tlbInfo := DontCare
   }
 
   // 连接到ROB分配接口

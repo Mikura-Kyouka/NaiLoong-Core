@@ -118,10 +118,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.addr_trans_out := DontCare
     io.addr_trans_out.vaddr := io.req.bits.addr
     io.addr_trans_out.trans_en := io.req.valid
-
-    io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := io.req.bits.addr
-    io.addr_trans_out.trans_en := io.req.valid
+    io.addr_trans_out.mem_type := Mux(req.cmd, MemType.store, MemType.load)
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 

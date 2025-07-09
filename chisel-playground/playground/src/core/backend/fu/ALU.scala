@@ -212,6 +212,7 @@ class FuOut extends Bundle {
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
+  val vaddr = Output(UInt(32.W))
   val wdata = Output(UInt(32.W))
   val fuType = Output(UInt(7.W))
   val optype = Output(UInt(7.W))
@@ -268,6 +269,7 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.op := io.in.bits.ctrl.tlbInvOp
   io.out.bits.tlbInfo.asid := io.in.bits.src1
   io.out.bits.tlbInfo.va := io.in.bits.src2
+  io.out.bits.vaddr := DontCare
 
   alu.io.in.valid := io.in.valid
   io.in.ready := alu.io.in.ready

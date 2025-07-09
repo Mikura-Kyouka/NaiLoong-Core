@@ -49,7 +49,7 @@ class CtrlFlowIO extends Bundle {
   val crossPageIPFFix = Output(Bool())
   val runahead_checkpoint_id = Output(UInt(64.W))
   val isBranch = Output(Bool())
-  val tlbr = Output(Bool()) // TLB reload exception
+  val excp = Output(new fetchExcp)
 }
 
 class DecodeIO extends Bundle {

@@ -206,19 +206,24 @@ class AligendUnpipelinedLSU extends Module{
   //                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
   //                        io.in.bits.exceptionVec.asUInt(8, 0)
   // )             
-  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 12),
+  val exceptionVec = Cat(lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.pil,
+                        lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.pis,
+                        lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.ppi,
+                        lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.pme,
                         lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.tlbr,
                         io.in.bits.exceptionVec.asUInt(10),
                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
                         io.in.bits.exceptionVec.asUInt(8, 0)
   )
-  
+
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
   io.out.bits.tlbInfo := DontCare
+  io.out.bits.vaddr := io.addr_trans_out.vaddr
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
-  io.out.valid := lsu.io.out.valid || (io.in.valid && io.in.bits.valid && LSUOpType.isStore(io.in.bits.ctrl.fuOpType)) || exceptionVec(11)
+  io.out.valid := lsu.io.out.valid || (RegNext(io.in.valid && io.in.bits.valid) && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType) ||
+                                                                                    exceptionVec(11)))
   lsu.io.out.ready := io.out.ready
 
   // for difftest

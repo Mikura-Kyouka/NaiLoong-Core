@@ -328,6 +328,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.fuType := Ex.io.out(i).bits.fuType
     rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
     rob.io.writeback(i).bits.tlbInfo := Ex.io.out(i).bits.tlbInfo
+    rob.io.writeback(i).bits.vaddr := Ex.io.out(i).bits.vaddr
   }
 
   // allocate rob entries in rename stage
