@@ -25,10 +25,15 @@ class Execute extends Module {
   val alu1 = Module(new AligendALU)
   val alu2 = Module(new AligendALU)
   val mdu  = Module(new AlignedMDU)
-  val lsu  = Module(new AligendUnpipelinedLSU)
+  val lsu  = Module(new LSU)
   val bru  = Module(new AligendALU) // TODO
 
-  lsu.io.lsAXI <> io.lsAXI
+  val dmem = Module(new DCache()(new DCacheConfig(totalSize = 128 * 16, ways = 1)))
+  dmem.io.axi <> io.lsAXI
+  dmem.io.flush := io.flush
+  dmem.io.req <> lsu.io.dmem.req
+  dmem.io.resp <> lsu.io.dmem.resp
+
   lsu.io.RobLsuIn <> io.RobLsuIn
   lsu.io.RobLsuOut <> io.RobLsuOut
   lsu.io.flush := io.flush
