@@ -61,7 +61,6 @@ class Rename extends Module {
 
     io.out.bits(i).instr := io.in.bits(i).instr
     io.out.bits(i).pc := io.in.bits(i).pc
-    io.out.bits(i).pnpc := io.in.bits(i).pnpc
     io.out.bits(i).redirect := io.in.bits(i).redirect
     io.out.bits(i).exceptionVec := io.in.bits(i).exceptionVec
     io.out.bits(i).intrVec := io.in.bits(i).intrVec

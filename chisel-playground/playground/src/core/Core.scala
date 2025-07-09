@@ -358,7 +358,7 @@ class Core extends Module {
   csr.io.to_mmu <> mmu.io.from_csr
 
   // FIXME: mmu io is empty!
-  mmu.io.in0 := DontCare
+  mmu.io.in0 <> If.io.addr_trans_out
   mmu.io.in1 <> Ex.io.addr_trans_out
   mmu.io.flush := DontCare
   mmu.io.w := DontCare
@@ -367,6 +367,7 @@ class Core extends Module {
   mmu.io.r_index := DontCare
   mmu.io.tlb_inst := rob.io.tlbInfo
   mmu.io.out0.ready := true.B
+  mmu.io.out0 <> If.io.addr_trans_in
   mmu.io.out1.ready := true.B
   mmu.io.out1.bits <> Ex.io.addr_trans_in
 

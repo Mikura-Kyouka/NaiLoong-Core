@@ -206,10 +206,13 @@ class AligendUnpipelinedLSU extends Module{
   //                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
   //                        io.in.bits.exceptionVec.asUInt(8, 0)
   // )             
-  val exceptionVec = WireInit(io.in.bits.exceptionVec.asUInt)
-  exceptionVec(9) := lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned // 9: ale
-  exceptionVec(11) := lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.tlbr // 11: tlbr
-
+  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 12),
+                        lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.tlbr,
+                        io.in.bits.exceptionVec.asUInt(10),
+                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
+                        io.in.bits.exceptionVec.asUInt(8, 0)
+  )
+  
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
   io.out.bits.tlbInfo := DontCare

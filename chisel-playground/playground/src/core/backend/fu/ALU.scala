@@ -91,7 +91,6 @@ object cpucfg {
 // class CtrlFlowIO extends Bundle {
 //   val instr = Output(UInt(32.W))
 //   val pc = Output(UInt(32.W)) // TODO:VAddrBits
-//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
 //   val redirect = new RedirectIO
 //   val exceptionVec = Output(Vec(16, Bool()))
 //   val intrVec = Output(Vec(12, Bool()))
@@ -163,7 +162,6 @@ class ALU extends Module {
   // else(b, bl, jirl) we use adderRes which calculate dnpc.
   val target = Mux(isBranch, io.pc + io.offset, adderRes)
   dontTouch(target)
-  // val predictWrong = Mux(!taken && isBranch, io.cfIn.brIdx(0), !io.cfIn.brIdx(0) || (io.redirect.target =/= io.cfIn.pnpc)) //是分支指令但是不跳转
   // TODO: Temperarily no branch prediction , we assume predictWrong is always true
   val predictWrong = true.B
 

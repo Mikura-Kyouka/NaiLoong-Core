@@ -42,7 +42,6 @@ class RedirectIO extends Bundle {
 class CtrlFlowIO extends Bundle {
   val instr = Output(UInt(32.W))
   val pc = Output(UInt(32.W)) // TODO:VAddrBits
-  val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
   val redirect = new RedirectIO
   val exceptionVec = Output(Vec(16, Bool()))
   val intrVec = Output(Vec(12, Bool()))
@@ -50,6 +49,7 @@ class CtrlFlowIO extends Bundle {
   val crossPageIPFFix = Output(Bool())
   val runahead_checkpoint_id = Output(UInt(64.W))
   val isBranch = Output(Bool())
+  val tlbr = Output(Bool()) // TLB reload exception
 }
 
 class DecodeIO extends Bundle {
@@ -124,7 +124,6 @@ class PipelineConnectIO extends Bundle {
   val pc = Output(UInt(32.W))
   val valid = Output(Bool())
   // IF -> ID
-  val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
   val redirect = new RedirectIO
   val exceptionVec = Output(Vec(16, Bool()))
   val intrVec = Output(Vec(12, Bool()))

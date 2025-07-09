@@ -409,14 +409,11 @@ class MMU extends Module {
   excp0 := 0.U.asTypeOf(new ExceptionBundle)
   excp1 := 0.U.asTypeOf(new ExceptionBundle)
 
-  when(!io.out0.bits.found.asBool) {
-    excp0.en := true.B
-    excp0.ecode := Ecode.tlbr
-  }
-  when(!io.out0.bits.v) {
-    excp0.en := true.B
-    excp0.ecode := io.out0.bits.mem_type
-  }
+
+  // when(!io.out0.bits.v) {
+  //   excp0.en := true.B
+  //   excp0.ecode := io.out0.bits.mem_type
+  // }
   when(io.from_csr.crmd.plv > io.out0.bits.plv) {
     excp0.en := true.B
     excp0.ecode := Ecode.ppi
@@ -425,15 +422,16 @@ class MMU extends Module {
     excp0.en := true.B
     excp0.ecode := Ecode.pme
   }
+  when(!io.out0.bits.found.asBool) {
+    excp0.en := true.B
+    excp0.ecode := Ecode.tlbr
+  }
+  when(io.from_csr.crmd.da.asBool === true.B && io.from_csr.crmd.pg.asBool === false.B) {
+    excp0.en := false.B
+    excp0.ecode := DontCare
+  }
+
   // 与上面逻辑一样
-  when(!io.out1.bits.found.asBool) {
-    excp1.en := true.B
-    excp1.ecode := Ecode.tlbr
-  }
-  when(!io.out1.bits.v) {
-    excp1.en := true.B
-    excp1.ecode := io.out1.bits.mem_type
-  }
   when(io.from_csr.crmd.plv > io.out1.bits.plv) {
     excp1.en := true.B
     excp1.ecode := Ecode.ppi
@@ -442,6 +440,16 @@ class MMU extends Module {
     excp1.en := true.B
     excp1.ecode := Ecode.pme
   }
+  when(!io.out1.bits.found.asBool) {
+    excp1.en := true.B
+    excp1.ecode := Ecode.tlbr
+  }
+  when(io.from_csr.crmd.da.asBool === true.B && io.from_csr.crmd.pg.asBool === false.B) {
+    excp1.en := false.B
+    excp1.ecode := DontCare
+  }
+
+  dontTouch(excp0)
 
   io.out0.bits.excp := excp0
   io.out1.bits.excp := excp1

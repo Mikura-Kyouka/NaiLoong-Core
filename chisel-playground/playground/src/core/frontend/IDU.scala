@@ -143,7 +143,6 @@ class IDU extends Module {
 
 //   val instr = Output(UInt(32.W))
 //   val pc = Output(UInt(32.W)) // TODO:VAddrBits
-//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
 //   val redirect = new RedirectIO
 //   val exceptionVec = Output(Vec(16, Bool()))
 //   val intrVec = Output(Vec(12, Bool()))
@@ -156,11 +155,14 @@ class IDU extends Module {
     decoder2.io.in.valid := io.in.valid
     decoder3.io.in.valid := io.in.valid
     decoder4.io.in.valid := io.in.valid
+    decoder1.io.in.bits.tlbr := io.in.bits(0).tlbr
+    decoder2.io.in.bits.tlbr := io.in.bits(1).tlbr
+    decoder3.io.in.bits.tlbr := io.in.bits(2).tlbr
+    decoder4.io.in.bits.tlbr := io.in.bits(3).tlbr
     io.in.ready := decoder1.io.in.ready && decoder2.io.in.ready && decoder3.io.in.ready && decoder4.io.in.ready
 
     decoder1.io.in.bits.instr := io.in.bits(0).inst
     decoder1.io.in.bits.pc := io.in.bits(0).pc
-    decoder1.io.in.bits.pnpc := DontCare
     decoder1.io.in.bits.redirect := DontCare
     decoder1.io.in.bits.exceptionVec := DontCare
     decoder1.io.in.bits.intrVec := DontCare
@@ -170,7 +172,6 @@ class IDU extends Module {
     decoder1.io.in.bits.isBranch := DontCare
     decoder2.io.in.bits.instr := io.in.bits(1).inst
     decoder2.io.in.bits.pc := io.in.bits(1).pc
-    decoder2.io.in.bits.pnpc := DontCare
     decoder2.io.in.bits.redirect := DontCare
     decoder2.io.in.bits.exceptionVec := DontCare
     decoder2.io.in.bits.intrVec := DontCare
@@ -180,7 +181,6 @@ class IDU extends Module {
     decoder2.io.in.bits.isBranch := DontCare
     decoder3.io.in.bits.instr := io.in.bits(2).inst
     decoder3.io.in.bits.pc := io.in.bits(2).pc
-    decoder3.io.in.bits.pnpc := DontCare
     decoder3.io.in.bits.redirect := DontCare
     decoder3.io.in.bits.exceptionVec := DontCare
     decoder3.io.in.bits.intrVec := DontCare
@@ -190,7 +190,6 @@ class IDU extends Module {
     decoder3.io.in.bits.isBranch := DontCare
     decoder4.io.in.bits.instr := io.in.bits(3).inst
     decoder4.io.in.bits.pc := io.in.bits(3).pc
-    decoder4.io.in.bits.pnpc := DontCare
     decoder4.io.in.bits.redirect := DontCare
     decoder4.io.in.bits.exceptionVec := DontCare
     decoder4.io.in.bits.intrVec := DontCare
@@ -208,7 +207,6 @@ class IDU extends Module {
     io.out.bits(0).instr := decoder1.io.out.bits.cf.instr
     io.out.bits(0).pc := decoder1.io.out.bits.cf.pc
     io.out.bits(0).valid := io.in.bits(0).Valid
-    io.out.bits(0).pnpc := decoder1.io.out.bits.cf.pnpc
     io.out.bits(0).redirect := decoder1.io.out.bits.cf.redirect
     io.out.bits(0).exceptionVec := decoder1.io.out.bits.cf.exceptionVec
     io.out.bits(0).intrVec := decoder1.io.out.bits.cf.intrVec
@@ -224,7 +222,6 @@ class IDU extends Module {
     io.out.bits(1).instr := decoder2.io.out.bits.cf.instr
     io.out.bits(1).pc := decoder2.io.out.bits.cf.pc
     io.out.bits(1).valid := io.in.bits(1).Valid
-    io.out.bits(1).pnpc := decoder2.io.out.bits.cf.pnpc
     io.out.bits(1).redirect := decoder2.io.out.bits.cf.redirect
     io.out.bits(1).exceptionVec := decoder2.io.out.bits.cf.exceptionVec
     io.out.bits(1).intrVec := decoder2.io.out.bits.cf.intrVec
@@ -240,7 +237,6 @@ class IDU extends Module {
     io.out.bits(2).instr := decoder3.io.out.bits.cf.instr
     io.out.bits(2).pc := decoder3.io.out.bits.cf.pc
     io.out.bits(2).valid := io.in.bits(2).Valid
-    io.out.bits(2).pnpc := decoder3.io.out.bits.cf.pnpc
     io.out.bits(2).redirect := decoder3.io.out.bits.cf.redirect
     io.out.bits(2).exceptionVec := decoder3.io.out.bits.cf.exceptionVec
     io.out.bits(2).intrVec := decoder3.io.out.bits.cf.intrVec
@@ -256,7 +252,6 @@ class IDU extends Module {
     io.out.bits(3).instr := decoder4.io.out.bits.cf.instr
     io.out.bits(3).pc := decoder4.io.out.bits.cf.pc
     io.out.bits(3).valid := io.in.bits(3).Valid
-    io.out.bits(3).pnpc := decoder4.io.out.bits.cf.pnpc
     io.out.bits(3).redirect := decoder4.io.out.bits.cf.redirect
     io.out.bits(3).exceptionVec := decoder4.io.out.bits.cf.exceptionVec
     io.out.bits(3).intrVec := decoder4.io.out.bits.cf.intrVec
@@ -292,7 +287,6 @@ class IDU extends Module {
 //   val pc = Output(UInt(32.W))
 //   val valid = Output(Bool())
 //   // IF -> ID
-//   val pnpc = Output(UInt(32.W)) // TODO:VAddrBits
 //   val redirect = new RedirectIO
 //   val exceptionVec = Output(Vec(16, Bool()))
 //   val intrVec = Output(Vec(12, Bool()))
