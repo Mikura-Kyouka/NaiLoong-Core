@@ -224,6 +224,7 @@ class AligendALU extends Module{
     val out = Decoupled(new FuOut)
     val csrRead = Flipped(new csr_read_bundle)
     val markIntrpt = Input(Bool())
+    val cacop = Output(new CACOPIO)
   })
   
   dontTouch(io.in.bits)
@@ -276,6 +277,16 @@ class AligendALU extends Module{
   io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
   io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
+  
+  when(io.in.bits.ctrl.cacopOp =/= CACOPOp.nop && io.in.bits.ctrl.cType === CACOPType.i) {
+    io.cacop.en := true.B
+    io.cacop.op := io.in.bits.ctrl.cacopOp
+    io.cacop.VA := alu.io.out.bits
+  } .otherwise {
+    io.cacop.en := false.B
+    io.cacop.op := 0.U
+    io.cacop.VA := 0.U
+  }
 
   // for difftest
   io.out.bits.paddr := DontCare

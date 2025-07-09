@@ -224,6 +224,8 @@ class Stage1In extends Bundle {
   val mat = Input(UInt(2.W))
   val brPredictTaken = Input(Vec(4, new RedirectIO))
   val valid = Input(Bool())
+  // cacop signal
+  val cacop = Input(new CACOPIO)
 }
 
 class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {

@@ -111,8 +111,22 @@ object FuOpType {
   def apply() = UInt(7.W)
 }
 
+object CACOPType {
+  def i = 1.U(1.W)
+  def d = 1.U(1.W)
+  def apply() = UInt(1.W)
+}
+
+object CACOPOp {
+  def nop = 0.U(2.W)
+  def op0 = 1.U(2.W)
+  def op1 = 2.U(2.W)
+  def op2 = 3.U(2.W)
+  def apply() = UInt(2.W)
+}
+
 object Instructions {
   def NOP = 0x03400000.U   // andi r0, r0, 0
-  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n, CSROp.nop, TlbOp.nop)  
+  val DecodeDefault = List(ImmType.nop, FuType.alu, ALUOpType.add, SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.n, CSROp.nop, TlbOp.nop, CACOPType.i, CACOPOp.nop)  
   def DecodeTable = Inst.table
 }

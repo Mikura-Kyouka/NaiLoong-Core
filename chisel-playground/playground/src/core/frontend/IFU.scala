@@ -39,6 +39,9 @@ class IFU extends Module{
         val addr_trans_out = Output(new AddrTrans)
         val addr_trans_in = Flipped(Decoupled(new AddrTrans))
 
+        // cacop signal
+        val cacop = Input(new CACOPIO)
+
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
         val debug0_wb_rf_wnum =Output(UInt(5.W))
@@ -122,6 +125,7 @@ class IFU extends Module{
     icache.io.in.addr := io.addr_trans_in.bits.paddr
     icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
     icache.io.in.mat := io.addr_trans_in.bits.mat
+    icache.io.in.cacop := io.cacop // TODO: cacop op3 needs addr translation in IFU
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B
