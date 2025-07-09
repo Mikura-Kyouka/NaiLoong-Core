@@ -151,6 +151,8 @@ class TLB extends Module {
 
   val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
   io.to_csr := DontCare
+  io.to_csr.wen := false.B
+  dontTouch(io.to_csr)
 
 // 处理 Stage 1 : 判断是否命中 TLB，返回 hit_vec
   val hit0 = Wire(Vec(TLB_NUM, Bool()))
@@ -194,10 +196,10 @@ class TLB extends Module {
   io.s2_interface1.d := Mux(io.s2_interface1.va_bit12.asBool, tlb(hit1_index).d1, tlb(hit1_index).d0)
   io.s2_interface1.v := Mux(io.s2_interface1.va_bit12.asBool, tlb(hit1_index).v1, tlb(hit1_index).v0)
 
-// tlb write
-  when(io.wen) {
-    tlb(io.w_index) := io.w
-  }
+// tlb write (不用管这个，当时没考虑太多，不应该有这个写逻辑)
+  // when(io.wen) {
+  //   tlb(io.w_index) := io.w
+  // }
 // tlb read
   io.r := tlb(io.r_index)
 
@@ -244,8 +246,6 @@ class TLB extends Module {
         tlb(io.from_csr.tlbidx.idx).v1 := io.from_csr.tlbelo1.v
       }
       is(TlbOp.fill) {
-        tlb_refill_idx := tlb_refill_idx + 1.U
-
         tlb(tlb_refill_idx).ps := io.from_csr.tlbidx.ps
         tlb(tlb_refill_idx).e := !io.from_csr.tlbidx.ne.asBool || is_tlb_refill
         tlb(tlb_refill_idx).vppn := io.from_csr.tlbehi.vppn
@@ -263,6 +263,8 @@ class TLB extends Module {
         tlb(tlb_refill_idx).mat1 := io.from_csr.tlbelo1.mat
         tlb(tlb_refill_idx).d1 := io.from_csr.tlbelo1.d
         tlb(tlb_refill_idx).v1 := io.from_csr.tlbelo1.v
+
+        tlb_refill_idx := tlb_refill_idx + 1.U
       }
       is(TlbOp.inv) {
         for(i <- 0 until TLB_NUM) {
@@ -282,7 +284,7 @@ class TLB extends Module {
               when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
             }
             is(6.U) {
-              when((tlb(i).g === 0.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
+              when((tlb(i).g === 1.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
             }
           }
         }
@@ -321,9 +323,6 @@ class MMU extends Module {
     // MMU的输出，out0给ifu，out1给lsu
     val out0 = Decoupled(new AddrTrans)
     val out1 = Decoupled(new AddrTrans)
-    // 例外信息，返回给谁呢？
-    val excp0 = Output(new ExceptionBundle)
-    val excp1 = Output(new ExceptionBundle)
 
     val flush = Input(Bool())
     // mmu和csr的交互
@@ -402,43 +401,58 @@ class MMU extends Module {
   MMUPipelineConnect(s1.io.out0, s2.io.in0, s1.io.out0.fire, io.flush)
   MMUPipelineConnect(s1.io.out1, s2.io.in1, s1.io.out1.fire, io.flush)
 
-// 判断例外
+  // 判断例外
   // 赋个初始值
-  io.excp0 := 0.U.asTypeOf(new ExceptionBundle)
-  io.excp1 := 0.U.asTypeOf(new ExceptionBundle)
-  when(!io.out0.bits.found.asBool) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.tlbr
-  }
-  when(!io.out0.bits.v) {
-    io.excp0.en := true.B
-    io.excp0.ecode := io.out0.bits.mem_type
-  }
+  val excp0 = Wire(new ExceptionBundle)
+  val excp1 = Wire(new ExceptionBundle)
+
+  excp0 := 0.U.asTypeOf(new ExceptionBundle)
+  excp1 := 0.U.asTypeOf(new ExceptionBundle)
+
+
+  // when(!io.out0.bits.v) {
+  //   excp0.en := true.B
+  //   excp0.ecode := io.out0.bits.mem_type
+  // }
   when(io.from_csr.crmd.plv > io.out0.bits.plv) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.ppi
+    excp0.en := true.B
+    excp0.ecode := Ecode.ppi
   }
   when(io.out0.bits.mem_type === MemType.store && !io.out0.bits.d.asBool) {
-    io.excp0.en := true.B
-    io.excp0.ecode := Ecode.pme
+    excp0.en := true.B
+    excp0.ecode := Ecode.pme
   }
+  when(!io.out0.bits.found.asBool) {
+    excp0.en := true.B
+    excp0.ecode := Ecode.tlbr
+  }
+  when(io.from_csr.crmd.da.asBool === true.B && io.from_csr.crmd.pg.asBool === false.B) {
+    excp0.en := false.B
+    excp0.ecode := DontCare
+  }
+
   // 与上面逻辑一样
-  when(!io.out1.bits.found.asBool) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.tlbr
-  }
-  when(!io.out1.bits.v) {
-    io.excp1.en := true.B
-    io.excp1.ecode := io.out1.bits.mem_type
-  }
   when(io.from_csr.crmd.plv > io.out1.bits.plv) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.ppi
+    excp1.en := true.B
+    excp1.ecode := Ecode.ppi
   }
   when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool) {
-    io.excp1.en := true.B
-    io.excp1.ecode := Ecode.pme
+    excp1.en := true.B
+    excp1.ecode := Ecode.pme
   }
+  when(!io.out1.bits.found.asBool) {
+    excp1.en := true.B
+    excp1.ecode := Ecode.tlbr
+  }
+  when(io.from_csr.crmd.da.asBool === true.B && io.from_csr.crmd.pg.asBool === false.B) {
+    excp1.en := false.B
+    excp1.ecode := DontCare
+  }
+
+  dontTouch(excp0)
+
+  io.out0.bits.excp := excp0
+  io.out1.bits.excp := excp1
 }
 
 // object GenMMU extends App {

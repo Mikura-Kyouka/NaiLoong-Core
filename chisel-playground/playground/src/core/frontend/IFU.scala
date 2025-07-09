@@ -8,6 +8,7 @@ class IFU2IDU extends Bundle {
   val inst = Output(UInt(32.W))
   val Valid = Output(Bool())
   val brPredict = Output(new RedirectIO)
+  val tlbr = Output(Bool()) // TLB reload excp
 }
 
 class IFU extends Module{
@@ -29,6 +30,9 @@ class IFU extends Module{
         val reg_num    =Input(UInt(5.W))
         val ws_valid   =Output(Bool())
         val rf_rdata   =Output(UInt(32.W))
+
+        val addr_trans_out = Output(new AddrTrans)
+        val addr_trans_in = Flipped(Decoupled(new AddrTrans))
 
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
@@ -69,24 +73,47 @@ class IFU extends Module{
 
     val pc = Module(new PC())
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
-    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid) && !io.flush // TODO
+    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && !io.flush // TODO
 
-    val predictValid = !RegNext(io.flush) && RegNext(icache.io.s1Fire)
-
-    val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _) && predictValid 
+    val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
     val predictTarget = PriorityMux(io.BrPredictTaken.map(_.predictTaken), io.BrPredictTaken.map(_.predictTarget))
+    val predictInfo = io.BrPredictTaken
+    
+    val predictTakenReg = RegInit(false.B)
+    val predictIndexReg = RegInit(0.U(2.W))
+    val predictTargetReg = RegInit("h00000000".U(32.W))
+    val predictInfoReg = RegInit(VecInit(Seq.fill(4)(0.U.asTypeOf(new RedirectIO))))
+
+    when(icache.io.s1Fire) {
+        predictTakenReg := false.B
+    }
+    when(predictTaken && !icache.io.s1Fire) {
+        predictTakenReg := true.B
+        predictIndexReg := predictIndex
+        predictTargetReg := predictTarget
+        predictInfoReg := predictInfo
+    }
+
+    when(io.flush) {
+        predictTakenReg := false.B
+    }
 
     pc.io.PCSrc := io.pcSel
-    pc.io.PCPredictTaken := predictTaken
-    pc.io.dnpc := Mux(io.pcSel, io.dnpc, predictTarget)
+    pc.io.PCPredictTaken := predictTaken || predictTakenReg && !icache.io.s1Fire
+    pc.io.dnpc := Mux(io.pcSel, io.dnpc, Mux(predictTaken, predictTarget, predictTargetReg))
     pc.io.stall := ~icache.io.s1Fire
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
+    io.addr_trans_out := DontCare
+    io.addr_trans_out.vaddr := pc.io.nextPC
+    io.addr_trans_out.trans_en := true.B
+    io.addr_trans_in.ready := true.B
+
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
-    icache.io.in.addr := pc.io.pc
+    icache.io.in.addr := io.addr_trans_in.bits.paddr
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B
@@ -96,28 +123,44 @@ class IFU extends Module{
     notValidPredict.actuallyTaken := false.B
     notValidPredict.actuallyTarget := 0.U
 
-    icache.io.in.brPredictTaken := Mux(predictValid, io.BrPredictTaken, VecInit(Seq.fill(4)(notValidPredict)))
+    icache.io.in.brPredictTaken := Mux(predictTaken, io.BrPredictTaken, 
+                                       Mux(predictTakenReg, predictInfoReg, 
+                                           VecInit(Seq.fill(4)(notValidPredict))))
 
     icache.io.flush := io.flush
-    icache.io.in.valid := io.out.ready && !io.flush // TODO
+    icache.io.in.valid := io.out.ready && !io.flush && !io.addr_trans_in.bits.excp.en && io.addr_trans_in.valid // TODO
     // io.out.bits.inst := icache.io.out.bits.rdata
     val adef = Wire(new IFU2IDU)
     adef.Valid := true.B
     adef.pc := pc.io.pc
     adef.inst := 0x03400000.U
     adef.brPredict := DontCare
+    adef.tlbr := DontCare
     val nop = Wire(new IFU2IDU)
     nop.Valid := false.B
     nop.pc := 0.U
     nop.inst := 0.U
     nop.brPredict := DontCare
+    nop.tlbr := DontCare
+    val tlbr = Wire(new IFU2IDU)
+    tlbr.Valid := true.B
+    tlbr.pc := icache.io.out.bits(0).pc
+    tlbr.inst := 0x03400000.U // TLB reload instruction
+    tlbr.brPredict := DontCare
+    tlbr.tlbr := true.B
 
     val hasBrPredictOut = icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid).reduce(_ || _)
     val brPredictIdxOut = PriorityEncoder(icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid))
-    io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, icache.io.out.bits(0))
-    io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, icache.io.out.bits(1))
-    io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, icache.io.out.bits(2))
-    io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, icache.io.out.bits(3))
+
+    val out_temp = WireInit(icache.io.out.bits)
+
+    out_temp(0) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(0))
+    out_temp(1) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(1))
+    out_temp(2) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(2))
+    out_temp(3) := Mux(io.addr_trans_in.bits.excp.en && io.addr_trans_in.bits.excp.ecode === Ecode.tlbr, tlbr, icache.io.out.bits(3))
+
+    io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, out_temp(0))
+    io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, out_temp(1))
+    io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, out_temp(2))
+    io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, out_temp(3))
 }
-
-

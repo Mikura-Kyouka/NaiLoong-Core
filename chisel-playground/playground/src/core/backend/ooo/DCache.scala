@@ -2,7 +2,6 @@ package core
 
 import chisel3._
 import chisel3.util._
-import dataclass.data
 import core.ALUOpType.add
 
 class reqBundle extends Bundle{
@@ -107,11 +106,28 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val RobLsuIn  = Flipped(DecoupledIO())
         val RobLsuOut = DecoupledIO()
         val flush = Input(Bool())
+        val addr_trans_out = Output(new AddrTrans)
+        val addr_trans_in = Input(new AddrTrans)
     })
+    val paddr = io.addr_trans_in.paddr
     val req = io.req.bits
     val resp = Wire(new respBundle)
     resp := DontCare
-    val addr = req.addr.asTypeOf(addrBundle)
+    val addr = paddr.asTypeOf(addrBundle)
+
+    io.addr_trans_out := DontCare
+    io.addr_trans_out.vaddr := io.req.bits.addr
+    io.addr_trans_out.trans_en := io.req.valid
+
+    io.addr_trans_out := DontCare
+    io.addr_trans_out.vaddr := io.req.bits.addr
+    io.addr_trans_out.trans_en := io.req.valid
+
+    val isMMIO = req.addr(31, 16) === "hbfaf".U
+
+    //   000        001          010          011               100               101            110          111
+    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
+    val state = RegInit(s_idle)
 
     // 暂时只支持 1 way
     val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits)))
@@ -132,10 +148,16 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     dataArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    val metaFlagData = RegNext(metaFlagArray(addr.index))
-    val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
+    val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+    val is_collision = RegInit(false.B)
+    val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
+    syncReadAddr := addr.index
+    is_collision := io.axi.rvalid && state === s_read_mem2 && !isMMIO || state === s_write_cache
+    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(Cat(true.B, false.B).asTypeOf(new MetaFlagBundle))), 
+                                                                            VecInit(Seq.fill(Ways)(Cat(true.B, true.B).asTypeOf(new MetaFlagBundle))))
 
-    val isMMIO = req.addr(31, 16) === "hbfaf".U
+    val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
+    val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val hitVec = VecInit(
       metaReadData.zipWithIndex.map { case (meta, i) =>
@@ -143,10 +165,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       }
     ).asUInt
     val hit = hitVec.orR
-    dontTouch(hit)
 
     val dirty = metaFlagData(0).dirty
-    dontTouch(dirty)
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
     when(io.req.valid) {
@@ -163,10 +183,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
     //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(10)
-    val state = RegInit(s_idle)
+
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge), s_idle)),
+        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
+        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
         s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
@@ -179,7 +199,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     ))
     io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
                     (!io.req.valid || io.resp.fire)
-    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && !flushed
+    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || io.addr_trans_in.excp.en) && !flushed 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
@@ -190,7 +210,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := req.addr
+    io.axi.araddr := paddr
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
     io.axi.arsize := "b010".U  // 32 bits
@@ -198,7 +218,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.rready := true.B
     // axi write chanel
     val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
-    io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
+    io.axi.awaddr := Mux(isMMIO, paddr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
@@ -242,7 +262,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 新的数据寄存器
     val newWord = Wire(UInt(32.W))
     newWord := origWord // 默认保持原值
-    dontTouch(newWord)
 
     when(state === s_write_cache) {
       when(req.wmask === "b1111".U) {
@@ -289,13 +308,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray.io.dina := addr.tag // tag, dirty
       metaFlagArray(addr.index)(0) := Cat(true.B, true.B).asTypeOf(new MetaFlagBundle) // valid, dirty
 
-      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
       resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
-      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }
 
     io.resp.bits := resp

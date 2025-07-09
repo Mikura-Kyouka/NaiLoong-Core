@@ -8,7 +8,7 @@ class DiffInstrBundle extends Bundle{
   val instr = UInt(32.W)                          // 当前提交指令的指令码
   val skip = Bool()                               // 跳过当前指令的比对（没实现）
   val is_TLBFILL = Bool()                         // tlbfill指令使能
-  val TLBFILL_index = UInt(log2Ceil(32).W)   // tlbfill指令对应的tlb表项索引
+  val TLBFILL_index = UInt(log2Ceil(32).W)        // tlbfill指令对应的tlb表项索引
   val is_CNTinst = Bool()                         // 与计时器相关的指令，提交指令为rdcntv{l/h}.w 或 rdcntid 时该位拉高
   val timer_64_value = UInt(64.W)                 // 当前指令读出的64位计数器值(StableCounter)
   val wen = Bool()                                // 提交指令通用寄存器写使能

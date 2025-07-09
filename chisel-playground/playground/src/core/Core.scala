@@ -287,16 +287,15 @@ class Core extends Module {
   // Issue.io.out(3).ready := true.B
   // Issue.io.out(4).ready := true.B
 
-  Issue.io.cmtInstr := DontCare
   Issue.io.rtrInstr := DontCare
-  Issue.io.busy_info := Dispatch.io.busy_info
+  
   for(i <- 0 until 5) {
     Issue.io.ex_bypass(i).valid := Ex.io.out(i).valid
     Issue.io.ex_bypass(i).dest := Ex.io.out(i).bits.preg
     Issue.io.ex_bypass(i).data := Ex.io.out(i).bits.data
   }
 
-  for(i <- 0 until 4) {
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
     Issue.io.rtrInstr(i).bits.data := rob.io.commit.commit(i).bits.data
     Issue.io.rtrInstr(i).valid := rob.io.commitInstr(i).valid
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
@@ -328,17 +327,13 @@ class Core extends Module {
     rob.io.writeback(i).bits.optype := Ex.io.out(i).bits.optype
     rob.io.writeback(i).bits.fuType := Ex.io.out(i).bits.fuType
     rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
-
-    // <busy reg> update
-    Issue.io.cmtInstr(i).valid := Ex.io.out(i).valid
-    Issue.io.cmtInstr(i).bits := Ex.io.out(i).bits.robIdx
+    rob.io.writeback(i).bits.tlbInfo := Ex.io.out(i).bits.tlbInfo
   }
 
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
 
   // lsu <=> rob
-  Ex.io.robCommit := rob.io.commitLS
   Ex.io.RobLsuIn <> rob.io.RobLsuOut
   Ex.io.RobLsuOut <> rob.io.RobLsuIn
   Ex.io.flush := flush
@@ -363,49 +358,54 @@ class Core extends Module {
   csr.io.to_mmu <> mmu.io.from_csr
 
   // FIXME: mmu io is empty!
-  mmu.io.in0 := DontCare
-  mmu.io.in1 := DontCare
+  mmu.io.in0 <> If.io.addr_trans_out
+  mmu.io.in1 <> Ex.io.addr_trans_out
   mmu.io.flush := DontCare
   mmu.io.w := DontCare
   mmu.io.wen := DontCare
   mmu.io.w_index := DontCare
   mmu.io.r_index := DontCare
-  mmu.io.tlb_inst := DontCare
+  mmu.io.tlb_inst := rob.io.tlbInfo
   mmu.io.out0.ready := true.B
+  mmu.io.out0 <> If.io.addr_trans_in
   mmu.io.out1.ready := true.B
+  mmu.io.out1.bits <> Ex.io.addr_trans_in
 
   rob.io.plv := csr.io.plv
 
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 
+    val tlb_refill_index = RegInit(0.U(log2Ceil(MmuConfig.TLB_NUM).W))
+
     // 1) 收集原始 4 路信号
-    val diffValids = VecInit((0 until 4).map { i =>
+    val diffValids = VecInit((0 until RobConfig.ROB_CMT_NUM).map { i =>
       rob.io.commitInstr(i).valid && rob.io.commit.commit(i).bits.inst_valid
     })
-    val diffPCs       = VecInit((0 until 4).map(i => rob.io.commitPC(i).bits))
-    val diffInsts     = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits))
-    val diffDests     = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.dest))
-    val diffDatas     = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.data))
-    val diffcsr_rstat = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_rstat))
-    val diffcsr_data  = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.csr_data))
-    val diffExcp      = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.excp))
-    val diffTimer64   = VecInit((0 until 4).map(i => rob.io.commit.commit(i).bits.timer64))
-    val diffIsCNTinst = VecInit((0 until 4).map(i => rob.io.commitInstr(i).bits(31, 11) === "b000000000000000001100".U))
+    val diffPCs       = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitPC(i).bits))
+    val diffInsts     = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitInstr(i).bits))
+    val diffDests     = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.dest))
+    val diffDatas     = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.data))
+    val diffcsr_rstat = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.csr_rstat))
+    val diffcsr_data  = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.csr_data))
+    val diffExcp      = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.excp))
+    val diffTimer64   = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commit.commit(i).bits.timer64))
+    val diffIsCNTinst = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitInstr(i).bits(31, 11) === "b000000000000000001100".U))
+    val diffIsTlbFill = VecInit((0 until RobConfig.ROB_CMT_NUM).map(i => rob.io.commitInstr(i).bits(31, 10) === "b0000011001001000001101".U))
     val diffWens      = diffDests.map(_ =/= 0.U)
 
     // 2) 计算 prefixSum：prefixSum(j) = 前 j 路中有多少 valid
     //    prefixSum(0)=0, prefixSum(1)=valid(0), prefixSum(2)=valid(0)+valid(1), ...
-    val prefixSum = Wire(Vec(4, UInt(3.W)))
+    val prefixSum = Wire(Vec(RobConfig.ROB_CMT_NUM, UInt(3.W)))
     prefixSum(0) := 0.U
-    for (j <- 1 until 4) {
+    for (j <- 1 until RobConfig.ROB_CMT_NUM) {
       prefixSum(j) := prefixSum(j-1) + diffValids(j-1).asUInt
     }
 
     // 3) 对每一路输出 k，选出原始中第 k 个 valid 为真的输入
-    for (k <- 0 until 4) {
+    for (k <- 0 until RobConfig.ROB_CMT_NUM) {
       // sel(j) = “第 j 路输入 valid，并且在它之前正好有 k 条 valid”
-      val sel = VecInit((0 until 4).map { j =>
+      val sel = VecInit((0 until RobConfig.ROB_CMT_NUM).map { j =>
         diffValids(j) && (prefixSum(j) === k.U)
       })
       // 输出 valid
@@ -419,8 +419,8 @@ class Core extends Module {
       DiffCommit.io.instr(k).wen   := Mux1H(sel.zip(diffWens))
 
       DiffCommit.io.instr(k).skip          := DontCare
-      DiffCommit.io.instr(k).is_TLBFILL    := DontCare
-      DiffCommit.io.instr(k).TLBFILL_index := DontCare
+      DiffCommit.io.instr(k).is_TLBFILL    := Mux1H(sel.zip(diffIsTlbFill))
+      DiffCommit.io.instr(k).TLBFILL_index := tlb_refill_index
       DiffCommit.io.instr(k).is_CNTinst    := Mux1H(sel.zip(diffIsCNTinst))
       DiffCommit.io.instr(k).timer_64_value:= Mux1H(sel.zip(diffTimer64))
       DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
@@ -432,6 +432,10 @@ class Core extends Module {
       DiffCommit.io.excp.cause := csr.io.exceptionInfo.cause
       DiffCommit.io.excp.exceptionPC := rob.io.exceptionInfo.exceptionPC
       DiffCommit.io.excp.exceptionInst := rob.io.exceptionInfo.exceptionInst
+
+      when(DiffCommit.io.instr(k).valid && DiffCommit.io.instr(k).is_TLBFILL) {
+        tlb_refill_index := tlb_refill_index + 1.U
+      }
     }
 
     // 4) 其余接口
@@ -451,8 +455,6 @@ class Core extends Module {
       stInfo := rob.io.commitLS(1).bits
     }.elsewhen (isValidSt(2)) {
       stInfo := rob.io.commitLS(2).bits
-    }.elsewhen (isValidSt(3)) {
-      stInfo := rob.io.commitLS(3).bits
     }.otherwise {
       stInfo := 0.U.asTypeOf(new LSCommitInfo)
     }

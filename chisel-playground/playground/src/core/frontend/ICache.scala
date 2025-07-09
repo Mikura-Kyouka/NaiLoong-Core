@@ -3,6 +3,8 @@ package core
 import chisel3._
 import chisel3.util._
 
+import utils._
+
 case class ICacheConfig(
     totalSize: Int = 4 * 16, // Bytes
     ways: Int = 1
@@ -48,11 +50,11 @@ sealed abstract class ICacheModule(implicit cacheConfig: ICacheConfig)
 sealed class ICacheMetaBundle(implicit val cacheConfig: ICacheConfig)
     extends ICacheBundle {
   val tag = Output(UInt(TagBits.W))
-  // val valid = Output(UInt(1.W))
+  val valid = Output(UInt(1.W))
 
   def apply(tag: UInt, valid: UInt) = {
     this.tag := tag
-    // this.valid := valid
+    this.valid := valid
     this
   }
 }
@@ -268,22 +270,28 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
-  val metaValid = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))  // TODO: valid
+  val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
+  val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+  val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(false.B))))
+  val is_collision = RegInit(false.B)
+  is_collision := io.metaArrayWrite.index === index && io.metaArrayWrite.valid
+  syncReadAddr := index
+  collison_data := VecInit(Seq.fill(Ways)(true.B))
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
   metaArray.io.wea := io.metaArrayWrite.valid
   metaArray.io.addra := io.metaArrayWrite.index
-  metaArray.io.dina := io.metaArrayWrite.tag
+  metaArray.io.dina := Cat(io.metaArrayWrite.tag)
   metaArray.io.addrb := index
 
   when(io.metaArrayWrite.valid) {
-    metaValid(io.metaArrayWrite.index)(0) := true.B
+    metaValidArray(io.metaArrayWrite.index)(0) := true.B
   }
   
-  val metaArrayTag = metaArray.io.doutb.asTypeOf(new ICacheMetaBundle)
-  io.metaArrayTag := metaArrayTag.tag
-  io.metaArrayValid := RegNext(metaValid(index)(0))
+  val metaArrayInfo = metaArray.io.doutb
+  io.metaArrayTag := metaArrayInfo
+  io.metaArrayValid := Mux(is_collision, collison_data(0), metaValidArray(syncReadAddr)(0))
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
@@ -304,6 +312,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     val metaArrayWrite = new metaArrayWriteBundle
     val flush = Input(Bool())
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
+    val inFire = Input(Bool())
   })
   val addr = io.in.bits.addr
   val wordIndex = io.in.bits.wordIndex
@@ -320,7 +329,11 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dataArray.io.dina := DontCare
   dataArray.io.addrb := index
 
-  val hit = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
+  val HIT = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
+  dontTouch(HIT)
+  val hitEn = RegNext(io.inFire)
+  val hitReg = RegEnable(HIT, hitEn) // RegEnable(nextValue, enable)
+  val hit = HIT || (hitReg && ~hitEn)
   dontTouch(hit)
 
   io.out.bits.hit := hit
@@ -357,6 +370,19 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
     s_valid -> s_idle
   ))
+
+  // 命中率统计
+  val hitCount = RegInit(0.U(32.W))
+  val accessCount = RegInit(0.U(32.W))
+  dontTouch(hitCount)
+  dontTouch(accessCount)
+  when(hitEn) { 
+    // printf("addr = %x\n", io.in.bits.addr)
+    when(hit) {
+      hitCount := hitCount + 1.U
+    }
+    accessCount := accessCount + 1.U
+  }
 
   // axi read signals
   io.axi.arvalid := state === s_fetching
@@ -426,6 +452,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val hit = io.in.bits.hit
   dontTouch(io.in.bits.hit)
   val flag = RegNext(io.inFire)
+  dontTouch(flag)
   val cacheDataVecLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
   when(flag){
     cacheDataVecLatch := cacheDataVec
@@ -466,6 +493,11 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush 
+
+  io.out.bits(0).tlbr := DontCare
+  io.out.bits(1).tlbr := DontCare
+  io.out.bits(2).tlbr := DontCare
+  io.out.bits(3).tlbr := DontCare
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 
@@ -486,7 +518,8 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
 
   s2.io.metaArrayTag := s1.io.metaArrayTag
   s2.io.metaArrayValid := s1.io.metaArrayValid
-  s3.io.inFire := s2.io.out.fire 
+  s2.io.inFire := s1.io.out.fire
+  s3.io.inFire := s2.io.out.fire
   for (i <- 0 until LineBeats) {
     s3.io.cacheDataVec(i) := s2.io.cacheDataVec(i)
   }
@@ -495,8 +528,8 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   s1.io.in := io.in
   s1.io.metaArrayWrite <> s2.io.metaArrayWrite
 
-  ICachePipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
-  ICachePipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
+  PipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
+  PipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
   s3.io.out <> io.out
   io.s1Fire := s1.io.out.fire
 }

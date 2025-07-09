@@ -61,7 +61,6 @@ class Rename extends Module {
 
     io.out.bits(i).instr := io.in.bits(i).instr
     io.out.bits(i).pc := io.in.bits(i).pc
-    io.out.bits(i).pnpc := io.in.bits(i).pnpc
     io.out.bits(i).redirect := io.in.bits(i).redirect
     io.out.bits(i).exceptionVec := io.in.bits(i).exceptionVec
     io.out.bits(i).intrVec := io.in.bits(i).intrVec
@@ -170,7 +169,7 @@ class RegRenaming extends Module {
     val io = IO(new Bundle {
       val allocReq  = Vec(4, Flipped(Valid(UInt(RegConfig.PHYS_REG_BITS.W))))
       val allocResp = Vec(4, DecoupledIO(UInt(RegConfig.PHYS_REG_BITS.W)))
-      val free      = Flipped(Vec(4, ValidIO(UInt(RegConfig.PHYS_REG_BITS.W))))
+      val free      = Flipped(Vec(RobConfig.ROB_CMT_NUM, ValidIO(UInt(RegConfig.PHYS_REG_BITS.W))))
       val count     = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
       val rollback  = Input(Valid(new FreeListState))
       val flHead    = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
@@ -293,6 +292,7 @@ class RegRenaming extends Module {
     entry.csrNewData := DontCare
     entry.timer64 := DontCare
     entry.brTaken := DontCare
+    entry.tlbInfo := DontCare
   }
 
   // 连接到ROB分配接口
@@ -457,7 +457,7 @@ class RegRenaming extends Module {
   freeList.io.rollback.valid := io.flush
 
   // retire 
-  for(i <- 0 until 4) {
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
       // write arf 
       arf(io.rob.commit(i).bits.dest) := io.rob.commit(i).bits.data

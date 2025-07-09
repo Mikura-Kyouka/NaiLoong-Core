@@ -64,6 +64,8 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val loadAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
   val storeAddrMisaligned = Output(Bool()) // TODO: refactor it for new backend
   val flush = Input(Bool())
+  val addr_trans_out = Output(new AddrTrans)
+  val addr_trans_in = Input(new AddrTrans)
 }
 
 class UnpipelinedLSU extends Module with HasLSUConst {
@@ -79,6 +81,8 @@ class UnpipelinedLSU extends Module with HasLSUConst {
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
   dcache.io.axi <> io.dmem
+  dcache.io.addr_trans_out <> io.addr_trans_out
+  dcache.io.addr_trans_in <> io.addr_trans_in
   dcache.io.req.valid := io.in.valid && !io.loadAddrMisaligned && !io.storeAddrMisaligned
   dcache.io.RobLsuIn <> io.RobLsuIn
   dcache.io.RobLsuOut <> io.RobLsuOut
@@ -135,8 +139,13 @@ class AligendUnpipelinedLSU extends Module{
     val RobLsuIn  = Flipped(DecoupledIO())
     val RobLsuOut = DecoupledIO()
     val flush = Input(Bool())
+    val addr_trans_out = Output(new AddrTrans)
+    val addr_trans_in = Input(new AddrTrans)
   })
   val lsu = Module(new UnpipelinedLSU)
+
+  io.addr_trans_out <> lsu.io.addr_trans_out
+  io.addr_trans_in <> lsu.io.addr_trans_in
   // load
   io.out.valid := lsu.io.complete
 
@@ -160,15 +169,24 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
   io.out.bits.preg := io.in.bits.preg
-  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
-                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
-                         io.in.bits.exceptionVec.asUInt(8, 0)
-  )             
+
+  // val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
+  //                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
+  //                        io.in.bits.exceptionVec.asUInt(8, 0)
+  // )             
+  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 12),
+                        lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.tlbr,
+                        io.in.bits.exceptionVec.asUInt(10),
+                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
+                        io.in.bits.exceptionVec.asUInt(8, 0)
+  )
+  
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
+  io.out.bits.tlbInfo := DontCare
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
-  io.out.valid := lsu.io.out.valid || (io.in.valid && io.in.bits.valid && LSUOpType.isStore(io.in.bits.ctrl.fuOpType))
+  io.out.valid := lsu.io.out.valid || (io.in.valid && io.in.bits.valid && LSUOpType.isStore(io.in.bits.ctrl.fuOpType)) || exceptionVec(11)
   lsu.io.out.ready := io.out.ready
 
   // for difftest

@@ -19,6 +19,8 @@ class AddrTrans extends Bundle {
   val mat = UInt(2.W)
   val d = UInt(1.W)
   val v = UInt(1.W)
+
+  val excp = new ExceptionBundle
 }
 
 class Stage1Interface extends Bundle {
@@ -86,7 +88,7 @@ class TlbInstBundle extends Bundle {
   val en = Bool()
   val op = UInt(5.W) // TlbOp
   val asid = UInt(10.W)
-  val vppn = UInt((ADDR_WIDTH - PAGE_WIDTH - 1).W)
+  // val vppn = UInt((ADDR_WIDTH - PAGE_WIDTH - 1).W)
   val va = UInt(ADDR_WIDTH.W)
   val inst_type = UInt(3.W)
 }

@@ -93,7 +93,7 @@ class CSR extends Module {
 
   val io = IO(new Bundle {
     val read = Vec(2, new csr_read_bundle)
-    val write = Flipped(Vec(4, Valid(new csr_write_bundle)))
+    val write = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
     val markIntrpt = Output(Bool())
@@ -277,7 +277,7 @@ class CSR extends Module {
   }
 
   // write
-  for(i <- 0 until 4) {
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.write(i).valid && csr_crmd.plv === 0.U) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
@@ -326,6 +326,39 @@ class CSR extends Module {
         }
         is(CsrName.TICLR) {
           csr_estat.is11 := 0.U   // 清除定时器中断标志
+        }
+        is(CsrName.DMW0) {
+          csr_dmw0 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+        }
+        is(CsrName.DMW1) {
+          csr_dmw1 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+        }
+        is(CsrName.TLBIDX) {
+          csr_tlbidx := io.write(i).bits.csr_data.asTypeOf(new csr_tlbidx_bundle)
+        }
+        is(CsrName.TLBEHI) {
+          csr_tlbehi := io.write(i).bits.csr_data.asTypeOf(new csr_tlbehi_bundle)
+        }
+        is(CsrName.TLBELO0) {
+          csr_tlbel0 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+        }
+        is(CsrName.TLBELO1) {
+          csr_tlbel1 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+        }
+        is(CsrName.ASID) {
+          csr_asid := io.write(i).bits.csr_data.asTypeOf(new csr_asid_bundle)
+        }
+        is(CsrName.PGDL) {
+          csr_pgdl := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.PGDH) {
+          csr_pgdh := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.PGD) {
+          csr_pgd := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+        }
+        is(CsrName.TLBRENTRY) {
+          csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
         }
       }
     }
@@ -419,8 +452,11 @@ class CSR extends Module {
         }
       }
       is(TlbOp.rd) {
-        when(io.from_mmu.tlb_entry.e.asBool) {
+        when(io.from_mmu.tlb_entry.e.asBool && !csr_tlbidx.idx(15, log2Ceil(MmuConfig.TLB_NUM)).orR) {
+          csr_tlbidx.ne := ~io.from_mmu.tlb_entry.e
+          csr_tlbidx.ps := io.from_mmu.tlb_entry.ps
           csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
+          csr_asid.asid := io.from_mmu.tlb_entry.asid
 
           csr_tlbel0.ppn := io.from_mmu.tlb_entry.ppn0
           csr_tlbel0.g := io.from_mmu.tlb_entry.g
@@ -437,20 +473,11 @@ class CSR extends Module {
           csr_tlbel1.v := io.from_mmu.tlb_entry.v1
         }.otherwise {
           csr_tlbidx.ne := 1.U
-          csr_tlbehi.vppn := 0.U
-          csr_tlbel0.ppn := 0.U
-          csr_tlbel0.g := 0.U
-          csr_tlbel0.mat := 0.U
-          csr_tlbel0.plv := 0.U
-          csr_tlbel0.d := 0.U
-          csr_tlbel0.v := 0.U
-
-          csr_tlbel1.ppn := 0.U
-          csr_tlbel1.g := 0.U
-          csr_tlbel1.mat := 0.U
-          csr_tlbel1.plv := 0.U
-          csr_tlbel1.d := 0.U
-          csr_tlbel1.v := 0.U
+          csr_tlbidx.ps := 0.U
+          csr_asid.asid := 0.U
+          csr_tlbehi := 0.U.asTypeOf(new csr_tlbehi_bundle)
+          csr_tlbel0 := 0.U.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel1 := 0.U.asTypeOf(new csr_tlbelo_bundle)
         }
       }
     }

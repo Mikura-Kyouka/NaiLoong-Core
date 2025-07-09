@@ -79,6 +79,16 @@ object TlbOp {
   def apply() = UInt(3.W)
 }
 
+object TlbInvOp {
+  def nop = 0.U(3.W)
+  def all = 1.U(3.W)
+  def g1 = 2.U(3.W)
+  def g0 = 3.U(3.W)
+  def g0Asid = 4.U(3.W)
+  def g0AsidVa = 5.U(3.W)
+  def g1AsidVa = 6.U(3.W)
+}
+
 object Ecode {
   def int = 0.U(6.W)
   def pil = 1.U(6.W)

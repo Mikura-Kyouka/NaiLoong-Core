@@ -233,7 +233,6 @@ class TempIf extends Module {
 
   // dontcare
   for(i <- 0 until 4) {
-    io.to.bits(i).pnpc := DontCare
     io.to.bits(i).redirect := DontCare
     io.to.bits(i).exceptionVec := DontCare
     io.to.bits(i).intrVec := DontCare

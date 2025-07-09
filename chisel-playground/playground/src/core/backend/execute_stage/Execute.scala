@@ -11,13 +11,15 @@ class Execute extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new FuOut))
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
-    val robCommit = Input(Vec(4, Valid(new LSCommitInfo)))
     val RobLsuIn  = Flipped(DecoupledIO())
     val RobLsuOut = DecoupledIO()
     val flush = Input(Bool())
 
     val csrRead = Flipped(Vec(2, new csr_read_bundle))
     val markIntrpt = Input(Bool())
+
+    val addr_trans_out = Output(new AddrTrans)
+    val addr_trans_in = Input(new AddrTrans)
   })
 
   val alu1 = Module(new AligendALU)
@@ -30,6 +32,8 @@ class Execute extends Module {
   lsu.io.RobLsuIn <> io.RobLsuIn
   lsu.io.RobLsuOut <> io.RobLsuOut
   lsu.io.flush := io.flush
+  lsu.io.addr_trans_out <> io.addr_trans_out
+  lsu.io.addr_trans_in <> io.addr_trans_in
 
   alu1.io.in <> io.in(0)
   alu2.io.in <> io.in(1)
