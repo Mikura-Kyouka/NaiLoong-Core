@@ -33,11 +33,16 @@ class Execute extends Module {
   dmem.io.flush := io.flush
   dmem.io.req <> lsu.io.dmemReq
   dmem.io.resp <> lsu.io.dmemResp
+  dmem.io.RobLsuIn <> io.RobLsuIn
+  dmem.io.RobLsuOut <> io.RobLsuOut
 
   lsu.io.scommit := true.B // FIXME:
   lsu.io.flush := io.flush
   lsu.io.addr_trans_out <> io.addr_trans_out
   lsu.io.addr_trans_in <> io.addr_trans_in
+
+  io.RobLsuIn.ready := DontCare // FIXME:
+  io.RobLsuOut.valid := DontCare // FIXME:
 
   alu1.io.in <> io.in(0)
   alu2.io.in <> io.in(1)

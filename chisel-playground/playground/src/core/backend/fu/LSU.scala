@@ -81,8 +81,6 @@ class UnpipelinedLSU extends Module with HasLSUConst {
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
   dcache.io.axi <> io.dmem
-  dcache.io.addr_trans_out <> io.addr_trans_out
-  dcache.io.addr_trans_in <> io.addr_trans_in
   dcache.io.req.valid := io.in.valid && !io.loadAddrMisaligned && !io.storeAddrMisaligned
   dcache.io.RobLsuIn <> io.RobLsuIn
   dcache.io.RobLsuOut <> io.RobLsuOut
@@ -252,6 +250,10 @@ class LSU extends Module with HasLSUConst {
   })
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
   
+  io.in.ready := io.out.ready
+  io.out := DontCare
+  io.addr_trans_out := DontCare
+  io.dmemReq := DontCare
   // val dmem = io.dmem
   val opResp = 0.U // default load op, for debug
   val moqidxResp = 0.U
@@ -460,14 +462,14 @@ class LSU extends Module with HasLSUConst {
   // Send request to dtlb
   val dtlbMoqIdx = Mux(havePendingDtlbReq, moqDtlbPtr, moqHeadPtr)
   io.addr_trans_out.trans_en := havePendingDtlbReq || io.in.fire
-  io.addr_trans_in.ready := true.B 
-  when(io.addr_trans_in.valid){
-    moq(dtlbMoqIdx).paddr := io.addr_trans_in.bits.paddr // FIXIT
+  // io.addr_trans_in.ready := true.B 
+  // when(io.addr_trans_in.valid){
+    moq(dtlbMoqIdx).paddr := io.addr_trans_in.paddr // FIXIT
     moq(dtlbMoqIdx).tlbfin := true.B
     moq(dtlbMoqIdx).isMMIO := paddrIsMMIO
     moq(dtlbMoqIdx).loadPageFault := false.B
     moq(dtlbMoqIdx).storePageFault := false.B
-  }
+  // }
 
   //-------------------------------------------------------
   // Mem Req
@@ -519,19 +521,19 @@ class LSU extends Module with HasLSUConst {
   }))
   val forwardWmask = List.tabulate(storeQueueSize)(i => storeQueue(i).wmask & Fill(4, forwardVec(i))).foldRight(0.U)((sum, i) => sum | i)
 
-  // for(j <- 0 to 3){
-  //   dataBackVec(j) := MuxCase(
-  //     // default = dmem.resp.bits.rdata(8*(j+1)-1, 8*j),
-  //     default = 0.U,
-  //     mapping = List.tabulate(storeQueueSize)(i => {
-  //       (forwardVec(i) && storeQueue(i).wmask(j), storeQueue(i).data(8*(j+1)-1, 8*j))
-  //     }).reverse
-  //   )
-  // }
+  for(j <- 0 to 3){
+    dataBackVec(j) := MuxCase(
+      // default = dmem.resp.bits.rdata(8*(j+1)-1, 8*j),
+      default = 0.U,
+      mapping = List.tabulate(storeQueueSize)(i => {
+        (forwardVec(i) && storeQueue(i).wmask(j), storeQueue(i).data(8*(j+1)-1, 8*j))
+      }).reverse
+    )
+  }
 
   // val storeNeedRollback 
 
-  // // write back to load queue
+  // write back to load queue
   // when(dmem.req.fire && MEMOpID.needLoad(opReq)){
   //   moq(moqDmemPtr).fdata := dataBack
   //   moq(moqDmemPtr).fmask := forwardWmask
