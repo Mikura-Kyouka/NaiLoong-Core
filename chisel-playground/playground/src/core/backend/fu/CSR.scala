@@ -338,6 +338,7 @@ class CSR extends Module {
         }
         is(CsrName.TLBEHI) {
           csr_tlbehi := io.write(i).bits.csr_data.asTypeOf(new csr_tlbehi_bundle)
+          csr_tlbehi.zero12_0 := 0.U
         }
         is(CsrName.TLBELO0) {
           csr_tlbel0 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
@@ -413,8 +414,34 @@ class CSR extends Module {
     when(cause === 9.U) {
       csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐
     }
+    when(cause === 63.U) {                // TLB 重填
+      csr_crmd.da := 1.U
+      csr_crmd.pg := 0.U
+      csr_badv := io.exceptionInfo.exceptionVAddr
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+    }
+    when(cause === 1.U) {                // load 操作页无效
+      csr_badv := io.exceptionInfo.exceptionVAddr 
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+    }
+    when(cause === 2.U) {                // store 操作页无效
+      csr_badv := io.exceptionInfo.exceptionVAddr 
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+    }
+    when(cause === 3.U) {                // 取指页无效
+      csr_badv := io.exceptionInfo.exceptionPC 
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
+    }
+    when(cause === 4.U) {                // 页特权等级错
+      csr_badv := io.exceptionInfo.exceptionVAddr 
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+    }
+    when(cause === 7.U) {                // 页修改
+      csr_badv := io.exceptionInfo.exceptionVAddr 
+      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+    }
   }
-  io.exceptionInfo.exceptionNewPC := csr_eentry.asUInt
+  io.exceptionInfo.exceptionNewPC := Mux(cause === 63.U, csr_tlbrentry.asUInt, csr_eentry.asUInt)
   io.exceptionInfo.intrNo := Cat(csr_estat.is12, csr_estat.is11, csr_estat.zero10, csr_estat.is9_2)
 
   when(io.exceptionInfo.eret) {

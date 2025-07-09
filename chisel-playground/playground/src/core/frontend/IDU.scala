@@ -123,6 +123,12 @@ class Decoder extends Module {
         io.out.bits.cf.exceptionVec(1) := true.B // adef
     }.elsewhen(isLegal === IsLegal.n || tlbOp === TlbOp.inv && instr(4, 0) > 6.U) {
         io.out.bits.cf.exceptionVec(7) := true.B // ine
+    }.elsewhen(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.pif) {
+        io.out.bits.cf.exceptionVec(3) := true.B // pif
+    }.elsewhen(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.ppi) {
+        io.out.bits.cf.exceptionVec(12) := true.B // ppi
+    }.elsewhen(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.tlbr) {
+        io.out.bits.cf.exceptionVec(2) := true.B // tlbr
     }.elsewhen(instr(31, 15) === "b00000000001010100".U) {
         io.out.bits.cf.exceptionVec(6) := true.B // brk
     }.elsewhen(csrOp === CSROp.syscall) {
@@ -155,10 +161,10 @@ class IDU extends Module {
     decoder2.io.in.valid := io.in.valid
     decoder3.io.in.valid := io.in.valid
     decoder4.io.in.valid := io.in.valid
-    decoder1.io.in.bits.tlbr := io.in.bits(0).tlbr
-    decoder2.io.in.bits.tlbr := io.in.bits(1).tlbr
-    decoder3.io.in.bits.tlbr := io.in.bits(2).tlbr
-    decoder4.io.in.bits.tlbr := io.in.bits(3).tlbr
+    decoder1.io.in.bits.excp := io.in.bits(0).excp
+    decoder2.io.in.bits.excp := io.in.bits(1).excp
+    decoder3.io.in.bits.excp := io.in.bits(2).excp
+    decoder4.io.in.bits.excp := io.in.bits(3).excp
     io.in.ready := decoder1.io.in.ready && decoder2.io.in.ready && decoder3.io.in.ready && decoder4.io.in.ready
 
     decoder1.io.in.bits.instr := io.in.bits(0).inst

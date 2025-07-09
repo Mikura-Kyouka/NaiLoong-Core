@@ -112,6 +112,7 @@ class MMUStage2 extends Module {
   io.out0.bits.plv := io.tlb_interface0.plv
   io.out0.bits.mat := io.tlb_interface0.mat
   io.out0.bits.d := io.tlb_interface0.d
+  io.out0.bits.v := io.tlb_interface0.v
   io.out1.bits.found := io.tlb_interface1.found
   io.out1.bits.index := io.tlb_interface1.index
   io.out1.bits.ppn := io.tlb_interface1.ppn
@@ -119,6 +120,7 @@ class MMUStage2 extends Module {
   io.out1.bits.plv := io.tlb_interface1.plv
   io.out1.bits.mat := io.tlb_interface1.mat
   io.out1.bits.d := io.tlb_interface1.d
+  io.out1.bits.v := io.tlb_interface1.v
 
   io.in0.ready := io.out0.ready
   io.out0.valid := io.in0.valid
@@ -371,8 +373,12 @@ class MMU extends Module {
   val pg_mode_0 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
   val da_mode_0 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
 
-  val dmw0_hit_0 = io.from_csr.dmw0.vseg === vseg_0
-  val dmw1_hit_0 = io.from_csr.dmw1.vseg === vseg_0
+  val dmw0_hit_0 = io.from_csr.dmw0.vseg === vseg_0 && 
+                   (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw0.plv0.asBool ||
+                    io.from_csr.crmd.plv === 3.U && io.from_csr.dmw0.plv3.asBool)
+  val dmw1_hit_0 = io.from_csr.dmw1.vseg === vseg_0 && 
+                   (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw1.plv0.asBool ||
+                    io.from_csr.crmd.plv === 3.U && io.from_csr.dmw1.plv3.asBool)
   val direct_map_0 = pg_mode_0 & (dmw0_hit_0 | dmw1_hit_0)
   val tlb_map_0 = pg_mode_0 & (~dmw0_hit_0 & ~dmw1_hit_0)
   // 并行逻辑
@@ -382,13 +388,21 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
+  io.out0.bits.mat := Mux(direct_map_0.asBool, io.from_csr.crmd.datf, 
+    Mux(dmw0_hit_0, io.from_csr.dmw0.mat,
+    Mux(dmw1_hit_0, io.from_csr.dmw1.mat, s2.io.out0.bits.mat)))
+
   // 与上面逻辑一样
   val vseg_1 = s2.io.out1.bits.vaddr(31, 29)
   assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
   val pg_mode_1 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
   val da_mode_1 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
-  val dmw0_hit_1 = io.from_csr.dmw0.vseg === vseg_1
-  val dmw1_hit_1 = io.from_csr.dmw1.vseg === vseg_1
+  val dmw0_hit_1 = io.from_csr.dmw0.vseg === vseg_1 && 
+                   (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw0.plv0.asBool ||
+                    io.from_csr.crmd.plv === 3.U && io.from_csr.dmw0.plv3.asBool)
+  val dmw1_hit_1 = io.from_csr.dmw1.vseg === vseg_1 && 
+                   (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw1.plv0.asBool ||
+                    io.from_csr.crmd.plv === 3.U && io.from_csr.dmw1.plv3.asBool)
   val direct_map_1 = pg_mode_1 & (dmw0_hit_1 | dmw1_hit_1)
   val tlb_map_1 = pg_mode_1 & (~dmw0_hit_1 & ~dmw1_hit_1)
   io.out1.bits.paddr := (
@@ -397,6 +411,9 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_1) & Cat(io.from_csr.dmw1.pseg, s2.io.out1.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_1) & Cat(s2.io.out1.bits.ppn, s2.io.out1.bits.vaddr(11, 0)))
   )
+  io.out1.bits.mat := Mux(direct_map_1.asBool, io.from_csr.crmd.datm, 
+    Mux(dmw0_hit_1, io.from_csr.dmw0.mat,
+    Mux(dmw1_hit_1, io.from_csr.dmw1.mat, s2.io.out1.bits.mat)))
 
   MMUPipelineConnect(s1.io.out0, s2.io.in0, s1.io.out0.fire, io.flush)
   MMUPipelineConnect(s1.io.out1, s2.io.in1, s1.io.out1.fire, io.flush)
@@ -409,20 +426,15 @@ class MMU extends Module {
   excp0 := 0.U.asTypeOf(new ExceptionBundle)
   excp1 := 0.U.asTypeOf(new ExceptionBundle)
 
-
-  // when(!io.out0.bits.v) {
-  //   excp0.en := true.B
-  //   excp0.ecode := io.out0.bits.mem_type
-  // }
   when(io.from_csr.crmd.plv > io.out0.bits.plv) {
     excp0.en := true.B
     excp0.ecode := Ecode.ppi
   }
-  when(io.out0.bits.mem_type === MemType.store && !io.out0.bits.d.asBool) {
+  when(io.out0.bits.mem_type === MemType.fetch && !io.out0.bits.v) {
     excp0.en := true.B
-    excp0.ecode := Ecode.pme
+    excp0.ecode := Ecode.pif
   }
-  when(!io.out0.bits.found.asBool) {
+  when(!io.out0.bits.found.asBool && !(dmw0_hit_0 || dmw1_hit_0)) {
     excp0.en := true.B
     excp0.ecode := Ecode.tlbr
   }
@@ -432,15 +444,23 @@ class MMU extends Module {
   }
 
   // 与上面逻辑一样
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
+    excp1.en := true.B
+    excp1.ecode := Ecode.pme
+  }
   when(io.from_csr.crmd.plv > io.out1.bits.plv) {
     excp1.en := true.B
     excp1.ecode := Ecode.ppi
   }
-  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool) {
+  when(io.out1.bits.mem_type === MemType.load && !io.out1.bits.v) {
     excp1.en := true.B
-    excp1.ecode := Ecode.pme
+    excp1.ecode := Ecode.pil
   }
-  when(!io.out1.bits.found.asBool) {
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.v) {
+    excp1.en := true.B
+    excp1.ecode := Ecode.pis
+  }
+  when(!io.out1.bits.found.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.tlbr
   }

@@ -49,6 +49,7 @@ class RobEntry extends Bundle {
 
   // for load/store difftest
   val paddr      = UInt(32.W)
+  val vaddr      = UInt(32.W)
   val wdata      = UInt(32.W)
   val optype     = UInt(7.W)
   val timer64    = UInt(64.W)
@@ -75,6 +76,7 @@ class RobWritebackInfo extends Bundle {
 
   // for load/store difftest
   val paddr       = UInt(32.W)
+  val vaddr       = UInt(32.W)
   val wdata       = UInt(32.W)
   val fuType      = UInt(3.W)
   val optype      = UInt(7.W)
@@ -227,6 +229,7 @@ class Rob extends Module {
       // for load/store difftest
       robEntries(idx).fuType       := io.writeback(i).bits.fuType
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
+      robEntries(idx).vaddr        := io.writeback(i).bits.vaddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
       robEntries(idx).optype       := io.writeback(i).bits.optype
       robEntries(idx).timer64      := io.writeback(i).bits.timer64
@@ -428,7 +431,7 @@ class Rob extends Module {
   io.exceptionInfo.exceptionInst := robEntries(head + exceptionIdx).instr
   io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
-  io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).paddr     // FIXME: 物理地址作为异常虚拟地址
+  io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).vaddr
   //excp_ine 
     /*
     exceptionVec[0]  int
