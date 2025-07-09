@@ -120,6 +120,8 @@ class IFU extends Module{
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
     icache.io.in.addr := io.addr_trans_in.bits.paddr
+    icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
+    icache.io.in.mat := io.addr_trans_in.bits.mat
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B

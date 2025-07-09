@@ -388,6 +388,10 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
+  io.out0.bits.mat := Mux(direct_map_0.asBool, io.from_csr.crmd.datf, 
+    Mux(dmw0_hit_0, io.from_csr.dmw0.mat,
+    Mux(dmw1_hit_0, io.from_csr.dmw1.mat, s2.io.out0.bits.mat)))
+
   // 与上面逻辑一样
   val vseg_1 = s2.io.out1.bits.vaddr(31, 29)
   assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
@@ -407,6 +411,9 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_1) & Cat(io.from_csr.dmw1.pseg, s2.io.out1.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_1) & Cat(s2.io.out1.bits.ppn, s2.io.out1.bits.vaddr(11, 0)))
   )
+  io.out1.bits.mat := Mux(direct_map_1.asBool, io.from_csr.crmd.datm, 
+    Mux(dmw0_hit_1, io.from_csr.dmw0.mat,
+    Mux(dmw1_hit_1, io.from_csr.dmw1.mat, s2.io.out1.bits.mat)))
 
   MMUPipelineConnect(s1.io.out0, s2.io.in0, s1.io.out0.fire, io.flush)
   MMUPipelineConnect(s1.io.out1, s2.io.in1, s1.io.out1.fire, io.flush)
@@ -427,7 +434,7 @@ class MMU extends Module {
     excp0.en := true.B
     excp0.ecode := Ecode.pif
   }
-  when(!io.out0.bits.found.asBool) {
+  when(!io.out0.bits.found.asBool && !(dmw0_hit_0 || dmw1_hit_0)) {
     excp0.en := true.B
     excp0.ecode := Ecode.tlbr
   }
@@ -437,7 +444,7 @@ class MMU extends Module {
   }
 
   // 与上面逻辑一样
-  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool) {
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.pme
   }
@@ -453,7 +460,7 @@ class MMU extends Module {
     excp1.en := true.B
     excp1.ecode := Ecode.pis
   }
-  when(!io.out1.bits.found.asBool) {
+  when(!io.out1.bits.found.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.tlbr
   }

@@ -220,12 +220,16 @@ object ICachePipelineConnect {
 // Stage1: Tag Access 
 class Stage1In extends Bundle {
   val addr = Input(UInt(32.W))
+  val pc = Input(UInt(32.W))
+  val mat = Input(UInt(2.W))
   val brPredictTaken = Input(Vec(4, new RedirectIO))
   val valid = Input(Bool())
 }
 
 class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
+  val pc = Output(UInt(32.W))
+  val mat = Output(UInt(2.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
@@ -235,6 +239,7 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
 // Stage2: Data Access
 class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
+  val pc = Output(UInt(32.W))
   val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
   val wordIndex = Output(UInt(WordIndexBits.W))
@@ -244,6 +249,7 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
 // Stage3: Result Drive
 class Stage3Out extends Bundle {
   val addr = Output(UInt(32.W))
+  val pc = Output(UInt(32.W))
   val rdata = Output(UInt(32.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
 }
@@ -295,6 +301,8 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
+  io.out.bits.pc := io.in.pc
+  io.out.bits.mat := io.in.mat
   io.out.bits.index := index 
   io.out.bits.tag := tag
   io.out.bits.brPredictTaken := io.in.brPredictTaken
@@ -339,6 +347,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.hit := hit
   io.out.bits.wordIndex := wordIndex
   io.out.bits.brPredictTaken := io.in.bits.brPredictTaken
+  io.out.bits.pc := io.in.bits.pc
 
   val cacheData = Wire(Vec(LineBeats, UInt(32.W)))
   cacheData := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
@@ -417,7 +426,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     dataArray.io.wea := true.B
     dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
-    io.metaArrayWrite.valid := true.B
+    io.metaArrayWrite.valid := io.in.bits.mat === 1.U // 一致可缓存
     io.metaArrayWrite.index := index
     io.metaArrayWrite.tag := tag
   }
@@ -472,22 +481,22 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // 0 0000, 4 0100, 8 1000, c 1100
   io.out.bits(0).inst := rdata(0)
-  io.out.bits(0).pc := Cat(io.in.bits.addr(31, 4), "h0".U(4.W))
+  io.out.bits(0).pc := Cat(io.in.bits.pc(31, 4), "h0".U(4.W))
   io.out.bits(0).Valid := ValidVec(0)
   io.out.bits(0).brPredict := io.in.bits.brPredictTaken(0)
 
   io.out.bits(1).inst := rdata(1)
-  io.out.bits(1).pc := Cat(io.in.bits.addr(31, 4), "h4".U(4.W))
+  io.out.bits(1).pc := Cat(io.in.bits.pc(31, 4), "h4".U(4.W))
   io.out.bits(1).Valid := ValidVec(1)
   io.out.bits(1).brPredict := io.in.bits.brPredictTaken(1)
 
   io.out.bits(2).inst := rdata(2)
-  io.out.bits(2).pc := Cat(io.in.bits.addr(31, 4), "h8".U(4.W))
+  io.out.bits(2).pc := Cat(io.in.bits.pc(31, 4), "h8".U(4.W))
   io.out.bits(2).Valid := ValidVec(2)
   io.out.bits(2).brPredict := io.in.bits.brPredictTaken(2)
 
   io.out.bits(3).inst := rdata(3)
-  io.out.bits(3).pc := Cat(io.in.bits.addr(31, 4), "hc".U(4.W))
+  io.out.bits(3).pc := Cat(io.in.bits.pc(31, 4), "hc".U(4.W))
   io.out.bits(3).Valid := ValidVec(3)
   io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 
