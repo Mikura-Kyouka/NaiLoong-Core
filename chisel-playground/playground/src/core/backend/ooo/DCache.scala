@@ -204,6 +204,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
     io.RobLsuIn.ready := state === s_wait_rob
 
+    val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
@@ -223,8 +224,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
-    io.axi.wstrb := "b1111".U
-    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
+    io.axi.wstrb := req.wmask << req.addr(1, 0)
+    io.axi.wdata := Mux(isMMIO, req.wdata << offset, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
@@ -252,7 +253,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaFlagArray(addr.index)(0) := Cat(true.B, false.B).asTypeOf(new MetaFlagBundle) // valid, dirty
     }
 
-    val offset = req.addr(1, 0) << 3
     // 读取当前字
     val origWord = dataReadData(0)(0)
 
@@ -312,6 +312,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     when(state === s_read_cache){
       resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
       io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
+    }
+
+    when(isMMIO) {
+      resp.rdata := io.axi.rdata >> offset
     }
 
     io.resp.bits := resp
