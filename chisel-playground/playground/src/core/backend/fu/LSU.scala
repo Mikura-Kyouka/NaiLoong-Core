@@ -214,14 +214,19 @@ class moqEntry extends Bundle{
 class LSU extends Module with HasLSUConst {
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
-    // val dtlb = 
+    // dtlb
+    val addr_trans_out = Output(new AddrTrans)
+    val addr_trans_in = Decoupled(new AddrTrans)
+    // dmem 
+    val dmemReq = Decoupled(new reqBundle)
+    val dmemResp = Flipped(Decoupled(new respBundle))
     val flush = Input(Bool())
-    val dmem = new AXI
-    val out = Decoupled()
+    val scommit = Input(Bool()) 
+    val out = Decoupled(new FuOut)
   })
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
   
-  val dmem = io.dmem
+  // val dmem = io.dmem
   val opResp = 0.U // default load op, for debug
   val moqidxResp = 0.U
 
@@ -257,7 +262,7 @@ class LSU extends Module with HasLSUConst {
   val havePendingDmemReq = MEMOpID.needLoad(moq(moqDmemPtr).op) && !moq(moqDmemPtr).loadPageFault && !moq(moqDmemPtr).storePageFault && !moq(moqDmemPtr).loadAddrMisaligned && !moq(moqDmemPtr).storeAddrMisaligned && !moq(moqDmemPtr).finished && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
   val havePendingStoreEnq = MEMOpID.needStore(moq(moqDmemPtr).op) && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
   val dmemReqFrommoq = havePendingDmemReq || havePendingStoreEnq // 是否有需要从 moq 中发起对 dmem 的请求
-  val haveLoadResp = io.dmem.bvalid && MEMOpID.commitToCDB(opResp) && moq(moqidxResp).valid //FIXIT: to use non blocking
+  val haveLoadResp = io.dmemResp.fire && MEMOpID.commitToCDB(opResp) && moq(moqidxResp).valid //FIXIT: to use non blocking
   val havePendingCDBCmt = (0 until moqSize).map(i => moq(i).finished && moq(i).valid).reduce(_ | _)
   val pendingCDBCmtSelect = PriorityEncoder(VecInit((0 until moqSize).map(i => moq(i).finished && moq(i).valid))) // 给出了当前可以提交到 CDB 的 moq entry 的编号，优先选择队列中最前面的已完成且有效的指令进行提交
   val writebackSelect = Wire(UInt(log2Up(moqSize).W))
@@ -348,8 +353,55 @@ class LSU extends Module with HasLSUConst {
   val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid
   val haveUnfinishedStore = 0.U =/= storeHeadPtr
   val storeQueueFull = storeHeadPtr === storeQueueSize.U
-  // io.haveUnfinishedStore := haveUnfinishedStore
-  // storeQueueEnqueue := havePendingStoreEnq && !storeQueueFull || !havePendingDmemReq && tlbRespStoreEnq && !storeQueueFull
+  // io.haveUnfinishedStore := haveUnfinishedStore // FIXME: 
+
+  // alloc a slot when a store tlb request is sent
+  // val storeQueueAlloc = dmem.req.fire && MEMOpID.commitToCDB(opReq) && MEMOpID.needStore(opReq)
+  // after a store inst get its paddr from TLB, add it to store queue
+  val dtlbRespUser = 0.U // io.dtlb.resp.bits.user.get.asTypeOf(new DCacheUserBundle)
+  val tlbRespStoreEnq = false.B
+  storeQueueEnqueue := havePendingStoreEnq && !storeQueueFull || !havePendingDmemReq && tlbRespStoreEnq && !storeQueueFull
+
+  val storeQueueConfirm = io.scommit // TODO: Argo only support 1 scommit / cycle
+  // when a store inst actually writes data to dmem, mark it as `waiting for dmem resp`
+  val storeQueueReqsend = io.dmemReq.fire //  && MEMOpID.commitToSTQ(opReq)
+  // when dmem try to commit to store queue, i.e. dmem report a write op is finished, dequeue
+  // FIXIT: in current case, we can always assume a store is succeed after req.fire
+  // therefore storeQueueDequeue is not necessary
+  val storeQueueDequeue = storeQueueReqsend
+  when(storeQueueDequeue){
+    // storeQueue := Cat(storeQueue(0), storeQueue(storeQueueSize-1, 1))
+    // 将队列中第 1 ~ N 项依次赋值给第 0 ~ N-1 项，所有元素整体前移一位
+    List.tabulate(storeQueueSize - 1)(i => {
+      storeQueue(i) := storeQueue(i+1)
+    })
+    // 队尾的 entry 标记为无效，表示该位置现在是空的
+    storeQueue(storeQueueSize-1).valid := false.B
+  }
+
+  // move storeCmtPtr ptr
+  nextStoreCmtPtr := storeCmtPtr
+  // 如果发生出队（且不是跳过无效项），但没有新的 store 指令退休，则提交指针向前移动（减1），因为队列长度减少了。
+  when(storeQueueDequeue && !storeQueueConfirm){nextStoreCmtPtr := storeCmtPtr - 1.U}
+  // 如果没有出队（或只是跳过无效项），但有新的 store 指令退休，则提交指针向后移动（加1），因为队列长度增加了。
+  when(!storeQueueDequeue && storeQueueConfirm){nextStoreCmtPtr := storeCmtPtr + 1.U}
+  storeCmtPtr := nextStoreCmtPtr
+ 
+  // move storeHeadPtr ptr
+  // 如果发生出队，且本周期没有入队，则队列长度减少，storeHeadPtr 向前移动（减1）。
+  when(storeQueueDequeue && !storeQueueEnqueue){storeHeadPtr := storeHeadPtr - 1.U}
+  // 如果没有出队，但有入队，则队列长度增加，storeHeadPtr 向后移动（加1）。
+  when(!storeQueueDequeue && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
+  // 保证分支恢复后，Store Queue 只保留已经提交的 store 指令，后面的全部丢弃。
+  val flushStoreHeadPtr = PriorityMux(
+    (nextStoreCmtPtr === 0.U) +: (0 until storeQueueSize).map(i => {
+      PopCount(VecInit((0 to i).map(j => storeQueue(j).valid))) === nextStoreCmtPtr
+    }),
+    (0 to storeQueueSize).map(i => i.U)
+  )
+  when(io.flush){storeHeadPtr := flushStoreHeadPtr}
+
+  // 
 
   //-------------------------------------------------------
   // Load / Store Pipeline
@@ -367,7 +419,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-
+  findLoadAddrMisaligned  := valid && !storeReq && !addrAligned
+  findStoreAddrMisaligned := valid && storeReq && !addrAligned
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -379,7 +432,16 @@ class LSU extends Module with HasLSUConst {
   // DTLB Access
   //-------------------------------------------------------
   // Send request to dtlb
-
+  val dtlbMoqIdx = Mux(havePendingDtlbReq, moqDtlbPtr, moqHeadPtr)
+  io.addr_trans_out.trans_en := havePendingDtlbReq || io.in.fire
+  io.addr_trans_in.ready := true.B 
+  when(io.addr_trans_in.valid){
+    moq(dtlbMoqIdx).paddr := io.addr_trans_in.bits.paddr // FIXIT
+    moq(dtlbMoqIdx).tlbfin := true.B
+    moq(dtlbMoqIdx).isMMIO := paddrIsMMIO
+    moq(dtlbMoqIdx).loadPageFault := loadPF
+    moq(dtlbMoqIdx).storePageFault := storePF
+  }
 
   //-------------------------------------------------------
   // Mem Req
@@ -495,4 +557,3 @@ class LSU extends Module with HasLSUConst {
   //   }
   // }
 }
-
