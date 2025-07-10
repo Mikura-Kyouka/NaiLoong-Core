@@ -110,7 +110,7 @@ class IFU extends Module{
     pc.io.PCSrc := io.pcSel
     pc.io.PCPredictTaken := predictTaken || predictTakenReg && !icache.io.s1Fire
     pc.io.dnpc := Mux(io.pcSel, io.dnpc, Mux(predictTaken, predictTarget, predictTargetReg))
-    pc.io.stall := ~icache.io.s1Fire
+    pc.io.stall := ~icache.io.s1Fire // s1Fire并且fire的时候不是cacop，放在了cache里处理
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
@@ -123,7 +123,7 @@ class IFU extends Module{
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
     icache.io.in.addr := io.addr_trans_in.bits.paddr
-    icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
+    icache.io.in.pc := Mux(io.cacop.en, io.cacop.VA, RegNext(io.addr_trans_out.vaddr))
     icache.io.in.mat := io.addr_trans_in.bits.mat
     icache.io.in.cacop := io.cacop // TODO: cacop op3 needs addr translation in IFU
 

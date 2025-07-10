@@ -236,6 +236,8 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
+  val isCACOP = Output(Bool()) // cacop signal
+  val cacopOp = Output(UInt(2.W)) // cacop op
 }
 
 // Stage2: Data Access
@@ -246,6 +248,8 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val hit = Output(Bool())
   val wordIndex = Output(UInt(WordIndexBits.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
+  val isCACOP = Output(Bool()) // cacop signal
+  val cacopOp = Output(UInt(2.W)) // cacop op
 }
 
 // Stage3: Result Drive
@@ -308,6 +312,20 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.index := index 
   io.out.bits.tag := tag
   io.out.bits.brPredictTaken := io.in.brPredictTaken
+
+  // cacop
+  val way = io.in.addr(log2Ceil(Ways), 0) // VA[Way - 1: 0] 路
+  val line = io.in.addr(IndexBits + log2Ceil(Ways * LineBeats) - 1, log2Ceil(Ways * LineBeats)) // VA[Index + Offset - 1: Offset] Cache行
+  when(io.in.cacop.en && io.in.cacop.op === CACOPOp.op0) {
+    metaArray.io.wea := true.B
+    metaArray.io.addra := line
+    metaArray.io.dina := 0.U((TagBits + 1).W) // Write 0 to the line
+  }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
+    metaValidArray(line)(way) := false.B
+  }
+
+  io.out.bits.isCACOP := io.in.cacop.en
+  io.out.bits.cacopOp := io.in.cacop.op
 
   io.out.valid := io.in.valid && !io.flush
 }
@@ -445,6 +463,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   }
 
   io.out.bits.addr := io.in.bits.addr
+  io.out.bits.isCACOP := io.in.bits.isCACOP
+  io.out.bits.cacopOp := io.in.bits.cacopOp
   io.out.valid := ((hit && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
 }
@@ -502,8 +522,8 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits(3).Valid := ValidVec(3)
   io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 
-  io.in.ready := !io.in.valid || io.out.fire
-  io.out.valid := io.in.valid && !io.flush 
+  io.in.ready := (!io.in.valid || io.out.fire) || io.in.bits.isCACOP
+  io.out.valid := io.in.valid && !io.flush && !io.in.bits.isCACOP // stall but ready to receive 
 
   io.out.bits(0).excp := DontCare
   io.out.bits(1).excp := DontCare
@@ -542,6 +562,6 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
   PipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
   PipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
   s3.io.out <> io.out
-  io.s1Fire := s1.io.out.fire
+  io.s1Fire := s1.io.out.fire && !s1.io.out.bits.isCACOP // 用于控制pc stall
 }
 
