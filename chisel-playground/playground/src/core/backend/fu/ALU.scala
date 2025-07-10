@@ -277,9 +277,9 @@ class AligendALU extends Module{
   io.out.valid := alu.io.out.valid && io.in.bits.valid
   alu.io.out.ready := io.out.ready
   io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
-  
+
   when(io.in.bits.ctrl.cacopOp =/= CACOPOp.nop && io.in.bits.ctrl.cType === CACOPType.i) {
-    io.cacop.en := true.B
+    io.cacop.en := true.B && io.in.valid
     io.cacop.op := io.in.bits.ctrl.cacopOp
     io.cacop.VA := alu.io.out.bits
   } .otherwise {
