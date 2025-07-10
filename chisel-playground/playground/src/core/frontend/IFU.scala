@@ -41,6 +41,7 @@ class IFU extends Module{
 
         // cacop signal
         val cacop = Input(new CACOPIO)
+        val cacopCanReceive = Output(Bool()) // 是否可以接收cacop
 
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
@@ -114,6 +115,24 @@ class IFU extends Module{
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
+    val cacopLatch = RegInit(0.U(35.W)).asTypeOf(new CACOPIO)
+    val cacopCanReceive = RegInit(true.B)
+
+    when(io.cacop.en && io.cacop.op =/= CACOPOp.nop && io.cacopCanReceive) {
+        cacopLatch := io.cacop
+        cacopCanReceive := false.B
+    } .elsewhen(icache.io.s1Fire) {
+        cacopCanReceive := true.B
+    }
+
+    val RealCacop = Wire(new CACOPIO)
+    when (cacopCanReceive) {
+        RealCacop := io.cacop
+    } .otherwise {
+        RealCacop := cacopLatch
+    }
+    io.cacopCanReceive := cacopCanReceive
+
     io.addr_trans_out := DontCare
     io.addr_trans_out.vaddr := pc.io.nextPC
     io.addr_trans_out.mem_type := MemType.fetch
@@ -125,7 +144,7 @@ class IFU extends Module{
     icache.io.in.addr := io.addr_trans_in.bits.paddr
     icache.io.in.pc := Mux(io.cacop.en, io.cacop.VA, RegNext(io.addr_trans_out.vaddr))
     icache.io.in.mat := io.addr_trans_in.bits.mat
-    icache.io.in.cacop := io.cacop // TODO: cacop op3 needs addr translation in IFU
+    icache.io.in.cacop := RealCacop // TODO: cacop op3 needs addr translation in IFU
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B

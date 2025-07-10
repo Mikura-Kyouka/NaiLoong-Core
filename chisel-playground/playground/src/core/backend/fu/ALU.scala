@@ -225,6 +225,7 @@ class AligendALU extends Module{
     val csrRead = Flipped(new csr_read_bundle)
     val markIntrpt = Input(Bool())
     val cacop = Output(new CACOPIO)
+    val cacopCanReceive = Input(Bool()) // 是否可以接收cacop
   })
   
   dontTouch(io.in.bits)
@@ -272,14 +273,20 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.va := io.in.bits.src2
   io.out.bits.vaddr := DontCare
 
-  alu.io.in.valid := io.in.valid
-  io.in.ready := alu.io.in.ready
-  io.out.valid := alu.io.out.valid && io.in.bits.valid
-  alu.io.out.ready := io.out.ready
-  io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
 
-  when(io.in.bits.ctrl.cacopOp =/= CACOPOp.nop && io.in.bits.ctrl.cType === CACOPType.i) {
-    io.cacop.en := true.B && io.in.valid
+  val notReceived = RegInit(true.B)
+  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop
+
+  when(io.in.valid && isCACOP) {
+    notReceived := true.B // 晚于in.valid一个周期
+  }
+
+  when(io.cacopCanReceive) {
+    notReceived := false.B // 被接收了
+  }
+
+  when(isCACOP) {
+    io.cacop.en := true.B && (notReceived || io.in.valid)
     io.cacop.op := io.in.bits.ctrl.cacopOp
     io.cacop.VA := alu.io.out.bits
   } .otherwise {
@@ -287,6 +294,12 @@ class AligendALU extends Module{
     io.cacop.op := 0.U
     io.cacop.VA := 0.U
   }
+
+  alu.io.in.valid := io.in.valid
+  io.in.ready := alu.io.in.ready && !(notReceived && isCACOP) // 是cacop，并且'没有被接收'，ready不能为高
+  io.out.valid := alu.io.out.valid && io.in.bits.valid
+  alu.io.out.ready := io.out.ready
+  io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
 
   // for difftest
   io.out.bits.paddr := DontCare

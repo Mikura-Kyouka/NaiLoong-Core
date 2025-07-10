@@ -22,6 +22,7 @@ class Execute extends Module {
     val addr_trans_in = Input(new AddrTrans)
 
     val cacop = Output(new CACOPIO)
+    val cacopCanReceive = Input(Bool()) // 是否可以接收cacop
   })
 
   val alu1 = Module(new AligendALU)
@@ -62,4 +63,8 @@ class Execute extends Module {
   mdu.io.flush := io.flush
 
   io.cacop := bru.io.cacop
+  bru.io.cacopCanReceive := io.cacopCanReceive
+
+  alu1.io.cacopCanReceive := DontCare
+  alu2.io.cacopCanReceive := DontCare
 }
