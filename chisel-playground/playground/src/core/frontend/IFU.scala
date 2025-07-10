@@ -41,7 +41,8 @@ class IFU extends Module{
 
         // cacop signal
         val cacop = Input(new CACOPIO)
-        val cacopCanReceive = Output(Bool()) // 是否可以接收cacop
+        val excp_en = Output(Bool())
+        val ecode = Output(Ecode())
 
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
@@ -111,30 +112,12 @@ class IFU extends Module{
     pc.io.PCSrc := io.pcSel
     pc.io.PCPredictTaken := predictTaken || predictTakenReg && !icache.io.s1Fire
     pc.io.dnpc := Mux(io.pcSel, io.dnpc, Mux(predictTaken, predictTarget, predictTargetReg))
-    pc.io.stall := ~icache.io.s1Fire // s1Fire并且fire的时候不是cacop，放在了cache里处理
+    pc.io.stall := ~icache.io.s1Fire // s1Fire，注意：如果是cacop指令，s1的valid是不会拉高的
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
-    val cacopLatch = RegInit(0.U(35.W)).asTypeOf(new CACOPIO)
-    val cacopCanReceive = RegInit(true.B)
-
-    when(io.cacop.en && io.cacop.op =/= CACOPOp.nop && io.cacopCanReceive) {
-        cacopLatch := io.cacop
-        cacopCanReceive := false.B
-    } .elsewhen(icache.io.s1Fire) {
-        cacopCanReceive := true.B
-    }
-
-    val RealCacop = Wire(new CACOPIO)
-    when (cacopCanReceive) {
-        RealCacop := io.cacop
-    } .otherwise {
-        RealCacop := cacopLatch
-    }
-    io.cacopCanReceive := cacopCanReceive
-
     io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := pc.io.nextPC
+    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, pc.io.nextPC)
     io.addr_trans_out.mem_type := MemType.fetch
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_in.ready := true.B
@@ -142,9 +125,12 @@ class IFU extends Module{
     icache.io.axi <> io.axi
     icache.io.out.ready := io.out.ready
     icache.io.in.addr := io.addr_trans_in.bits.paddr
-    icache.io.in.pc := Mux(io.cacop.en, io.cacop.VA, RegNext(io.addr_trans_out.vaddr))
+    icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
     icache.io.in.mat := io.addr_trans_in.bits.mat
-    icache.io.in.cacop := RealCacop // TODO: cacop op3 needs addr translation in IFU
+    icache.io.in.cacop := io.cacop
+
+    io.excp_en := io.addr_trans_in.bits.excp.en
+    io.ecode := io.addr_trans_in.bits.excp.ecode
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B

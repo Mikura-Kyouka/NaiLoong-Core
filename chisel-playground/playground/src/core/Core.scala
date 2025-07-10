@@ -310,7 +310,8 @@ class Core extends Module {
   Ex.io.out(4).ready := true.B
 
   Ex.io.cacop <> If.io.cacop
-  Ex.io.cacopCanReceive := If.io.cacopCanReceive
+  Ex.io.excp_en := If.io.excp_en
+  Ex.io.ecode := If.io.ecode
   
   // FIXME: ROB need 5 writeback channel
   dontTouch(Ex.io.out)

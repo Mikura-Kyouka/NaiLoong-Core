@@ -111,14 +111,20 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
         val cacop = Input(new CACOPIO)
     })
+    val cacopOp0 = io.cacop.en && io.cacop.op === CACOPOp.op0
+    val cacopOp1 = io.cacop.en && io.cacop.op === CACOPOp.op1
+
     val paddr = io.addr_trans_in.paddr
     val req = io.req.bits
     val resp = Wire(new respBundle)
     resp := DontCare
     val addr = paddr.asTypeOf(addrBundle)
+    when(cacopOp1){
+      addr := io.cacop.VA.asTypeOf(addrBundle) // TODO: cacop op1
+    }
 
     io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := io.req.bits.addr
+    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_out.mem_type := Mux(req.cmd, MemType.store, MemType.load)
 
@@ -184,13 +190,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   000        001          010          011               100               101            110          111
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
+        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(cacopOp0, s_idle, Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), s_tlb)), s_idle)),
         s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
         s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
-        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
+        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
@@ -205,6 +211,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 通知 ROB: Store 指令已经退休
     io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
     io.RobLsuIn.ready := state === s_wait_rob
+
+    val VA = io.cacop.VA.asTypeOf(addrBundle)
+    when(cacopOp0) {
+      metaArray.io.wea := true.B
+      metaArray.io.addra := VA.index
+      metaArray.io.dina := 0.U
+    }
 
     val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)

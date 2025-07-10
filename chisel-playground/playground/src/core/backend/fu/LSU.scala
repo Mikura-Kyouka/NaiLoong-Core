@@ -221,7 +221,7 @@ class AligendUnpipelinedLSU extends Module{
                         io.in.bits.exceptionVec.asUInt(10),
                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
                         io.in.bits.exceptionVec.asUInt(8, 0)
-  )
+                        )
 
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
