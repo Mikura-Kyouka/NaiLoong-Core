@@ -112,9 +112,10 @@ object FuOpType {
 }
 
 object CACOPType {
-  def i = 1.U(1.W)
-  def d = 1.U(1.W)
-  def apply() = UInt(1.W)
+  def nop = 0.U(2.W)
+  def i = 1.U(2.W)
+  def d = 2.U(2.W)
+  def apply() = UInt(2.W)
 }
 
 object CACOPOp {

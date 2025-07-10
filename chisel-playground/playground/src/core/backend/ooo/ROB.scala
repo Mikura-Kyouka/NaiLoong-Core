@@ -46,6 +46,8 @@ class RobEntry extends Bundle {
   val csrNewData = UInt(32.W)
   val eret = Bool() 
   val tlbInfo = new TlbInstBundle
+  val cacopOp = UInt(2.W)
+  val cType = UInt(2.W)
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -262,8 +264,10 @@ class Rob extends Module {
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
-    hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
-                  robEntries(commitIdx).tlbInfo.inst_type =/= TlbOp.nop && canCommit(i) && !hasException(i)
+    hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&      // FIXME: cacop as tlb operation
+                  (robEntries(commitIdx).tlbInfo.inst_type =/= TlbOp.nop ||
+                   (robEntries(commitIdx).cacopOp =/= CACOPOp.nop) && robEntries(commitIdx).cType === CACOPType.i) &&
+                  canCommit(i) && !hasException(i)
   }
 
   val store_entry = robEntries(head +& PriorityEncoder(hasStore))
@@ -453,7 +457,7 @@ class Rob extends Module {
     */
 
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
-  io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid
+  io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
   val commitNum = PopCount(hasCommit)
 
