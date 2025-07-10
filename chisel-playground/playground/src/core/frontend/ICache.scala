@@ -314,14 +314,14 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.brPredictTaken := io.in.brPredictTaken
 
   // cacop
-  val way = io.in.addr(log2Ceil(Ways), 0) // VA[Way - 1: 0] 路
+  val way = io.in.addr(log2Ceil(Ways) - 1, 0) // VA[Way - 1: 0] 路
   val line = io.in.addr(IndexBits + log2Ceil(Ways * LineBeats) - 1, log2Ceil(Ways * LineBeats)) // VA[Index + Offset - 1: Offset] Cache行
-  dontTouch(way)
+  // dontTouch(way)
   dontTouch(line)
   when(io.in.cacop.en && io.in.cacop.op === CACOPOp.op0) {
     metaArray.io.wea := true.B
     metaArray.io.addra := line
-    metaArray.io.dina := 0.U((TagBits + 1).W) // Write 0 to the line
+    metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
   }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
     metaValidArray(line)(way) := false.B
   }
@@ -329,8 +329,7 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.isCACOP := io.in.cacop.en
   io.out.bits.cacopOp := io.in.cacop.op
 
-  val stallOfCacop = io.in.cacop.en && (io.in.cacop.op === CACOPOp.op0 || io.in.cacop.op === CACOPOp.op1)
-  io.out.valid := io.in.valid && !io.flush && !stallOfCacop
+  io.out.valid := io.in.valid && !io.flush
 }
 
 class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
@@ -503,6 +502,10 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
       3.U -> "b1000".U
     )
   )
+
+  when(io.in.bits.isCACOP){
+    ValidVec := "b0000".U // cacop 时不返回指令
+  }
 
   // 0 0000, 4 0100, 8 1000, c 1100
   io.out.bits(0).inst := rdata(0)
