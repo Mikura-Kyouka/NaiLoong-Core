@@ -314,8 +314,8 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.brPredictTaken := io.in.brPredictTaken
 
   // cacop
-  val way = io.in.addr(log2Ceil(Ways) - 1, 0) // VA[Way - 1: 0] 路
-  val line = io.in.addr(IndexBits + log2Ceil(Ways * LineSize) - 1, log2Ceil(Ways * LineSize)) // VA[Index + Offset - 1: Offset] Cache行 // TODO: parameterize 
+  val way = io.in.cacop.VA(log2Ceil(Ways) - 1, 0) // VA[Way - 1: 0] 路
+  val line = io.in.cacop.VA.asTypeOf(addrBundle).index
   // dontTouch(way)
   dontTouch(line)
   when(io.in.cacop.en && io.in.cacop.op === CACOPOp.op0) {
