@@ -108,6 +108,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val flush = Input(Bool())
         val addr_trans_out = Output(new AddrTrans)
         val addr_trans_in = Input(new AddrTrans)
+
+        val cacop = Input(new CACOPIO)
     })
     val paddr = io.addr_trans_in.paddr
     val req = io.req.bits

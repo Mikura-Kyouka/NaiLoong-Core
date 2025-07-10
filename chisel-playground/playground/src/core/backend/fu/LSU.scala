@@ -98,6 +98,8 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val flush = Input(Bool())
   val addr_trans_out = Output(new AddrTrans)
   val addr_trans_in = Input(new AddrTrans)
+
+  val cacop = Input(new CACOPIO)
 }
 
 class UnpipelinedLSU extends Module with HasLSUConst {
@@ -112,6 +114,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io.storeAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.sw ||
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
+  dcache.io.cacop := io.cacop
   dcache.io.axi <> io.dmem
   dcache.io.addr_trans_out <> io.addr_trans_out
   dcache.io.addr_trans_in <> io.addr_trans_in
@@ -201,6 +204,10 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.data := lsu.io.out.bits
   io.out.bits.robIdx := io.in.bits.robIdx
   io.out.bits.preg := io.in.bits.preg
+
+  lsu.io.cacop.en := io.in.bits.ctrl.cType === CACOPType.d
+  lsu.io.cacop.op := io.in.bits.ctrl.cacopOp
+  lsu.io.cacop.VA := DontCare // dcache req addr
 
   // val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
   //                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
