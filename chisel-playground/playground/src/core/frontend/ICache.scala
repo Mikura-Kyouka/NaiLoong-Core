@@ -327,7 +327,8 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.isCACOP := io.in.cacop.en
   io.out.bits.cacopOp := io.in.cacop.op
 
-  io.out.valid := io.in.valid && !io.flush
+  val stallOfCacop = io.in.cacop.en && (io.in.cacop.op === CACOPOp.op0  || io.in.cacop.op === CACOPOp.op1)
+  io.out.valid := io.in.valid && !io.flush && !stallOfCacop
 }
 
 class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
@@ -522,8 +523,8 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits(3).Valid := ValidVec(3)
   io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 
-  io.in.ready := (!io.in.valid || io.out.fire) || io.in.bits.isCACOP
-  io.out.valid := io.in.valid && !io.flush && !io.in.bits.isCACOP // stall but ready to receive 
+  io.in.ready := !io.in.valid || io.out.fire
+  io.out.valid := io.in.valid && !io.flush
 
   io.out.bits(0).excp := DontCare
   io.out.bits(1).excp := DontCare
