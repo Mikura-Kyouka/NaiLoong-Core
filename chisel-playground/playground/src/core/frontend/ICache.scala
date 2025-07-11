@@ -313,6 +313,11 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.tag := tag
   io.out.bits.brPredictTaken := io.in.brPredictTaken
 
+  val cacopOp2Reg = RegNext(io.in.cacop.en && io.in.cacop.op === CACOPOp.op2)
+  when(io.flush) {
+    cacopOp2Reg := false.B // Reset cacop op2 register
+  }
+
   // cacop
   val way = io.in.cacop.VA(log2Ceil(Ways) - 1, 0) // VA[Way - 1: 0] 路
   val line = io.in.cacop.VA.asTypeOf(addrBundle).index
@@ -324,10 +329,14 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
   }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
     metaValidArray(line)(way) := false.B
+  }.elsewhen(cacopOp2Reg) {
+    val line2 = io.in.addr.asTypeOf(addrBundle).index
+    val way2 = io.in.addr(log2Ceil(Ways) - 1, 0)
+    metaValidArray(line2)(way2) := false.B
   }
 
-  io.out.bits.isCACOP := io.in.cacop.en
-  io.out.bits.cacopOp := io.in.cacop.op
+  io.out.bits.isCACOP := (io.in.cacop.en && !io.in.cacop.op === CACOPOp.op2) || cacopOp2Reg
+  io.out.bits.cacopOp := Mux(cacopOp2Reg, CACOPOp.op2, io.in.cacop.op)
 
   io.out.valid := io.in.valid && !io.flush
 }
@@ -544,6 +553,7 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
     val out = Decoupled(Vec(4, new IFU2IDU))
     val axi = new AXI
     val s1Fire = Output(Bool())
+    val s1Cacop = Output(Bool())
     val flush = Input(Bool())
   })
   val s1 = Module(new Stage1)
@@ -567,7 +577,12 @@ class PipelinedICache(implicit val cacheConfig: ICacheConfig) extends ICacheModu
 
   PipelineConnect(s1.io.out, s2.io.in, s2.io.out.fire, io.flush)
   PipelineConnect(s2.io.out, s3.io.in, s3.io.out.fire, io.flush)
-  s3.io.out <> io.out
-  io.s1Fire := s1.io.out.fire && !s1.io.out.bits.isCACOP // 用于控制pc stall
+
+  io.out.bits := s3.io.out.bits
+  io.out.valid := s3.io.out.valid && !s1.io.out.bits.isCACOP
+  s3.io.out.ready := io.out.ready
+
+  io.s1Fire := s1.io.out.fire || s1.io.out.bits.isCACOP // 用于控制pc stall
+  io.s1Cacop := s1.io.out.bits.isCACOP // 用于控制pc stall
 }
 

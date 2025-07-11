@@ -83,7 +83,8 @@ class IFU extends Module{
 
     val pc = Module(new PC())
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
-    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && !io.flush // TODO
+    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && 
+                    !io.flush && !icache.io.s1Cacop
 
     val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
@@ -118,7 +119,7 @@ class IFU extends Module{
 
     io.addr_trans_out := DontCare
     io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, pc.io.nextPC)
-    io.addr_trans_out.mem_type := MemType.fetch
+    io.addr_trans_out.mem_type := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, MemType.load, MemType.fetch)
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_in.ready := true.B
 

@@ -272,7 +272,7 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.op := io.in.bits.ctrl.tlbInvOp
   io.out.bits.tlbInfo.asid := io.in.bits.src1
   io.out.bits.tlbInfo.va := io.in.bits.src2
-  io.out.bits.vaddr := DontCare
+  io.out.bits.vaddr := io.cacop.VA
 
   val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop
   val cacopOp2 = isCACOP && io.in.bits.ctrl.cacopOp === CACOPOp.op2
@@ -287,8 +287,10 @@ class AligendALU extends Module{
     io.cacop.VA := 0.U
   }
 
+  val op2Reg = RegNext(io.in.bits.ctrl.cacopOp === CACOPOp.op2)
+
   alu.io.in.valid := io.in.valid
-  io.in.ready := alu.io.in.ready // FIXME 是cacop，并且'没有被接收'，ready不能为高
+  io.in.ready := alu.io.in.ready && !(cacopOp2 && !op2Reg) // FIXME 是cacop，并且'没有被接收'，ready不能为高
 
   io.out.valid := Mux(cacopOp2, 
                       RegNext(alu.io.out.valid && io.in.bits.valid), // 延迟一拍再发送
