@@ -473,7 +473,7 @@ class Core extends Module {
 
     DiffCommit.io.store.valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
     DiffCommit.io.store.paddr := stInfo.paddr
-    DiffCommit.io.store.vaddr := stInfo.paddr
+    DiffCommit.io.store.vaddr := stInfo.vaddr
     DiffCommit.io.store.data  := stInfo.wdata
   }
 }

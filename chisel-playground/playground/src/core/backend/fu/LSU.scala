@@ -235,7 +235,7 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.out.ready := io.out.ready
 
   // for difftest
-  io.out.bits.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  io.out.bits.paddr := io.addr_trans_in.paddr
   io.out.bits.wdata := lsu.io.diffData
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := io.in.bits.ctrl.fuOpType

@@ -112,6 +112,7 @@ class BrMisPredInfo extends Bundle {
 
 class LSCommitInfo extends Bundle {
   val paddr = UInt(32.W) // 物理地址
+  val vaddr = UInt(32.W) // 虚拟地址
   val wdata = UInt(32.W) // 写入数据
   val optype = UInt(7.W) // 操作类型
 }
@@ -382,6 +383,7 @@ class Rob extends Module {
     // for load/store difftest
     io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
     io.commitLS(i).bits.paddr := entry.paddr
+    io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype
 
