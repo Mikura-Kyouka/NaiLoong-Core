@@ -48,7 +48,7 @@ object cpucfg {
   def word1 = Cat( 0.U(13.W),    // not used [31:20]
                   31.U( 8.W),    // VALEN    [19:12]
                   31.U( 8.W),    // PALEN    [11: 4]
-                   0.U( 1.W),    // PGMMU    [ 3: 3]
+                   1.U( 1.W),    // PGMMU    [ 3: 3]
                    0.U( 2.W))    // ARCH     [ 2: 1]
   
   def word2 = Cat( 0.U(29.W),    // not used [31: 3]

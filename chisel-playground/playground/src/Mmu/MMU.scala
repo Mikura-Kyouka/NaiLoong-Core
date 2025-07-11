@@ -151,7 +151,7 @@ class TLB extends Module {
     val tlb_inst = Input(new TlbInstBundle)
   })
 
-  val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
+  val tlb = RegInit(VecInit(Seq.fill(TLB_NUM)(0.U.asTypeOf(new TlbBundle))))
   io.to_csr := DontCare
   io.to_csr.wen := false.B
   dontTouch(io.to_csr)
