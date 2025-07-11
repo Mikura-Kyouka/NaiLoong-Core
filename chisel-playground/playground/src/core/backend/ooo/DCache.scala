@@ -113,20 +113,24 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     })
     val cacopOp0 = io.cacop.en && io.cacop.op === CACOPOp.op0
     val cacopOp1 = io.cacop.en && io.cacop.op === CACOPOp.op1
+    val cacopOp2 = io.cacop.en && io.cacop.op === CACOPOp.op2
 
     val paddr = io.addr_trans_in.paddr
     val req = io.req.bits
     val resp = Wire(new respBundle)
     resp := DontCare
     val addr = paddr.asTypeOf(addrBundle)
-    when(cacopOp1){
-      addr := io.cacop.VA.asTypeOf(addrBundle) // TODO: cacop op1
+    when(cacopOp1) {
+      addr := io.cacop.VA.asTypeOf(addrBundle)
+    }
+    when(cacopOp2) {
+      addr := io.addr_trans_in.paddr.asTypeOf(addrBundle)
     }
 
     io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
+    io.addr_trans_out.vaddr := Mux(cacopOp2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
     io.addr_trans_out.trans_en := true.B
-    io.addr_trans_out.mem_type := Mux(req.cmd, MemType.store, MemType.load)
+    io.addr_trans_out.mem_type := Mux(cacopOp2, MemType.load, Mux(req.cmd, MemType.store, MemType.load))
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
 
@@ -192,7 +196,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(cacopOp0, s_idle, Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), s_tlb)), s_idle)),
         s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
-        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
+        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_wait_rob, s_read_cache)), Mux(!cacopOp2 && req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),

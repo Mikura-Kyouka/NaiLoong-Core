@@ -115,6 +115,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
   dcache.io.cacop := io.cacop
+  dcache.io.cacop.VA := addr
   dcache.io.axi <> io.dmem
   dcache.io.addr_trans_out <> io.addr_trans_out
   dcache.io.addr_trans_in <> io.addr_trans_in
