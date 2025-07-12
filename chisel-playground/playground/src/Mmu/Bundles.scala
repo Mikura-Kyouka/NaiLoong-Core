@@ -3,6 +3,12 @@ import chisel3._
 import chisel3.util._
 import MmuConfig._
 
+class CACOPIO extends Bundle {
+  val en = Input(Bool())
+  val op = Input(UInt(2.W))
+  val VA = Input(UInt(32.W)) // 虚拟地址
+}
+
 // 所有可能用到的信号都打包在一起，某个阶段没用的信号会被circt优化掉
 class AddrTrans extends Bundle {
   val trans_en = Bool()

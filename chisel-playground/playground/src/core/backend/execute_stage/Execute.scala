@@ -20,6 +20,10 @@ class Execute extends Module {
 
     val addr_trans_out = Output(new AddrTrans)
     val addr_trans_in = Input(new AddrTrans)
+
+    val cacop = Output(new CACOPIO)
+    val excp_en = Input(Bool()) // 是否发生异常
+    val ecode = Input(Ecode()) // 异常码
   })
 
   val alu1 = Module(new AligendALU)
@@ -67,4 +71,12 @@ class Execute extends Module {
   alu1.io.markIntrpt := io.markIntrpt
   alu2.io.markIntrpt := io.markIntrpt
   mdu.io.flush := io.flush
+
+  io.cacop := bru.io.cacop
+  bru.io.excp_en := io.excp_en
+  bru.io.ecode := io.ecode
+  alu1.io.excp_en := DontCare
+  alu1.io.ecode := DontCare
+  alu2.io.excp_en := DontCare
+  alu2.io.ecode := DontCare
 }

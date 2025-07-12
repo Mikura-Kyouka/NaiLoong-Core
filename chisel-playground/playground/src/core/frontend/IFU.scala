@@ -39,6 +39,11 @@ class IFU extends Module{
         val addr_trans_out = Output(new AddrTrans)
         val addr_trans_in = Flipped(Decoupled(new AddrTrans))
 
+        // cacop signal
+        val cacop = Input(new CACOPIO)
+        val excp_en = Output(Bool())
+        val ecode = Output(Ecode())
+
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
         val debug0_wb_rf_wnum =Output(UInt(5.W))
@@ -78,7 +83,8 @@ class IFU extends Module{
 
     val pc = Module(new PC())
     val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
-    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && !io.flush // TODO
+    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && 
+                    !io.flush && !icache.io.s1Cacop
 
     val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
@@ -107,13 +113,13 @@ class IFU extends Module{
     pc.io.PCSrc := io.pcSel
     pc.io.PCPredictTaken := predictTaken || predictTakenReg && !icache.io.s1Fire
     pc.io.dnpc := Mux(io.pcSel, io.dnpc, Mux(predictTaken, predictTarget, predictTargetReg))
-    pc.io.stall := ~icache.io.s1Fire
+    pc.io.stall := ~icache.io.s1Fire // s1Fire，注意：如果是cacop指令，s1的valid是不会拉高的
     io.nextPC := pc.io.nextPC
     // io.out.bits.pc := icache.io.out.bits.addr
 
     io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := pc.io.nextPC
-    io.addr_trans_out.mem_type := MemType.fetch
+    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, pc.io.nextPC)
+    io.addr_trans_out.mem_type := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, MemType.load, MemType.fetch)
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_in.ready := true.B
 
@@ -122,6 +128,10 @@ class IFU extends Module{
     icache.io.in.addr := io.addr_trans_in.bits.paddr
     icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
     icache.io.in.mat := io.addr_trans_in.bits.mat
+    icache.io.in.cacop := io.cacop
+
+    io.excp_en := io.addr_trans_in.bits.excp.en
+    io.ecode := io.addr_trans_in.bits.excp.ecode
 
     val notValidPredict = Wire(new RedirectIO)
     notValidPredict.valid := false.B

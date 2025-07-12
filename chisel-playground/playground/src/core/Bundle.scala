@@ -12,7 +12,6 @@ class CtrlSignalIO extends Bundle {
   val rfSrc2 = Output(UInt(5.W))
   val rfWen = Output(Bool())
   val rfDest = Output(UInt(5.W))
-  val isNutCoreTrap = Output(Bool())
   val isSrc1Forward = Output(Bool())
   val isSrc2Forward = Output(Bool())
   val noSpecExec = Output(Bool())  // This inst can not be speculated
@@ -22,6 +21,8 @@ class CtrlSignalIO extends Bundle {
   val csrNum = Output(UInt(14.W))
   val tlbOp = Output(TlbOp()) // TLB operation
   val tlbInvOp = Output(UInt(3.W)) // TLB invalidation operation
+  val cType = Output(CACOPType())
+  val cacopOp = Output(CACOPOp())
 }
 
 class DataSrcIO extends Bundle {

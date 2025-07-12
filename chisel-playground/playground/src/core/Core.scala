@@ -308,6 +308,10 @@ class Core extends Module {
   Ex.io.out(2).ready := true.B
   Ex.io.out(3).ready := true.B
   Ex.io.out(4).ready := true.B
+
+  Ex.io.cacop <> If.io.cacop
+  Ex.io.excp_en := If.io.excp_en
+  Ex.io.ecode := If.io.ecode
   
   // FIXME: ROB need 5 writeback channel
   dontTouch(Ex.io.out)
@@ -469,7 +473,7 @@ class Core extends Module {
 
     DiffCommit.io.store.valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
     DiffCommit.io.store.paddr := stInfo.paddr
-    DiffCommit.io.store.vaddr := stInfo.paddr
+    DiffCommit.io.store.vaddr := stInfo.vaddr
     DiffCommit.io.store.data  := stInfo.wdata
   }
 }

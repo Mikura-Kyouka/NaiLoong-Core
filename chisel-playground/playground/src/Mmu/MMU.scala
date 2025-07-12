@@ -151,7 +151,7 @@ class TLB extends Module {
     val tlb_inst = Input(new TlbInstBundle)
   })
 
-  val tlb = Reg(Vec(TLB_NUM, new TlbBundle))
+  val tlb = RegInit(VecInit(Seq.fill(TLB_NUM)(0.U.asTypeOf(new TlbBundle))))
   io.to_csr := DontCare
   io.to_csr.wen := false.B
   dontTouch(io.to_csr)
@@ -430,9 +430,13 @@ class MMU extends Module {
     excp0.en := true.B
     excp0.ecode := Ecode.ppi
   }
-  when(io.out0.bits.mem_type === MemType.fetch && !io.out0.bits.v) {
+  when(io.out0.bits.mem_type === MemType.fetch && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0)) {
     excp0.en := true.B
     excp0.ecode := Ecode.pif
+  }
+  when(io.out0.bits.mem_type === MemType.load && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0)) {
+    excp0.en := true.B
+    excp0.ecode := Ecode.pil
   }
   when(!io.out0.bits.found.asBool && !(dmw0_hit_0 || dmw1_hit_0)) {
     excp0.en := true.B
@@ -448,15 +452,15 @@ class MMU extends Module {
     excp1.en := true.B
     excp1.ecode := Ecode.pme
   }
-  when(io.from_csr.crmd.plv > io.out1.bits.plv) {
+  when(io.from_csr.crmd.plv > io.out1.bits.plv && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.ppi
   }
-  when(io.out1.bits.mem_type === MemType.load && !io.out1.bits.v) {
+  when(io.out1.bits.mem_type === MemType.load && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.pil
   }
-  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.v) {
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1)) {
     excp1.en := true.B
     excp1.ecode := Ecode.pis
   }

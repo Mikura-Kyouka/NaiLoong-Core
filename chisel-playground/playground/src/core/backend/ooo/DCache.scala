@@ -106,12 +106,33 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val RobLsuIn  = Flipped(DecoupledIO())
         val RobLsuOut = DecoupledIO()
         val flush = Input(Bool())
+        val addr_trans_out = Output(new AddrTrans)
+        val addr_trans_in = Input(new AddrTrans)
+
+        val cacop = Input(new CACOPIO)
     })
+    val cacopOp0 = io.cacop.en && io.cacop.op === CACOPOp.op0
+    val cacopOp1 = io.cacop.en && io.cacop.op === CACOPOp.op1
+    val cacopOp2 = io.cacop.en && io.cacop.op === CACOPOp.op2
+
+    val paddr = io.addr_trans_in.paddr
     val req = io.req.bits
     val resp = Wire(new respBundle)
     resp := DontCare
-    val isMMIO = req.addr(31, 16) === "hbfaf".U
-    val addr = req.addr.asTypeOf(addrBundle)
+    val addr = paddr.asTypeOf(addrBundle)
+    when(cacopOp1) {
+      addr := io.cacop.VA.asTypeOf(addrBundle)
+    }
+    when(cacopOp2) {
+      addr := io.addr_trans_in.paddr.asTypeOf(addrBundle)
+    }
+
+    io.addr_trans_out := DontCare
+    io.addr_trans_out.vaddr := Mux(cacopOp2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
+    io.addr_trans_out.trans_en := true.B
+    io.addr_trans_out.mem_type := Mux(cacopOp2, MemType.load, Mux(req.cmd, MemType.store, MemType.load))
+
+    val isMMIO = req.addr(31, 16) === "hbfaf".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
 
     //   000        001          010          011               100               101            110          111
     val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
@@ -173,13 +194,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   000        001          010          011               100               101            110          111
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, s_tlb, s_idle)),
-        s_tlb -> Mux(io.flush, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
-        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd, s_wait_rob, s_read_cache), Mux(req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
+        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(cacopOp0, s_idle, Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), s_tlb)), s_idle)),
+        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
+        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_wait_rob, s_read_cache)), Mux(!cacopOp2 && req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
-        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO, s_idle, s_read_mem1), s_write_mem3),
+        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
@@ -187,7 +208,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     ))
     io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
                     (!io.req.valid || io.resp.fire)
-    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && !flushed 
+    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
+                      io.addr_trans_in.excp.en || (io.req.valid && cacopOp0 && state === s_idle)) && !flushed 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
@@ -195,6 +217,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
     io.RobLsuIn.ready := state === s_wait_rob
 
+    val VA = io.cacop.VA.asTypeOf(addrBundle)
+    when(cacopOp0) {
+      metaArray.io.wea := true.B
+      metaArray.io.addra := VA.index
+      metaArray.io.dina := 0.U
+    }
+
+    val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
@@ -214,8 +244,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
-    io.axi.wstrb := "b1111".U
-    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
+    io.axi.wstrb := req.wmask << req.addr(1, 0)
+    io.axi.wdata := Mux(isMMIO, req.wdata << offset, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
@@ -243,7 +273,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaFlagArray(addr.index)(0) := Cat(true.B, false.B).asTypeOf(new MetaFlagBundle) // valid, dirty
     }
 
-    val offset = req.addr(1, 0) << 3
     // 读取当前字
     val origWord = dataReadData(0)(0)
 
@@ -302,7 +331,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
       resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
-      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
+    }
+
+    when(isMMIO) {
+      resp.rdata := io.axi.rdata >> offset
     }
 
     io.resp.bits := resp

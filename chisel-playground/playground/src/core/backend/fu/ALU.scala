@@ -48,7 +48,7 @@ object cpucfg {
   def word1 = Cat( 0.U(13.W),    // not used [31:20]
                   31.U( 8.W),    // VALEN    [19:12]
                   31.U( 8.W),    // PALEN    [11: 4]
-                   0.U( 1.W),    // PGMMU    [ 3: 3]
+                   1.U( 1.W),    // PGMMU    [ 3: 3]
                    0.U( 2.W))    // ARCH     [ 2: 1]
   
   def word2 = Cat( 0.U(29.W),    // not used [31: 3]
@@ -224,6 +224,9 @@ class AligendALU extends Module{
     val out = Decoupled(new FuOut)
     val csrRead = Flipped(new csr_read_bundle)
     val markIntrpt = Input(Bool())
+    val cacop = Output(new CACOPIO)
+    val excp_en = Input(Bool()) // 是否发生异常
+    val ecode = Input(Ecode()) // 异常码
   })
   
   dontTouch(io.in.bits)
@@ -269,14 +272,44 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.op := io.in.bits.ctrl.tlbInvOp
   io.out.bits.tlbInfo.asid := io.in.bits.src1
   io.out.bits.tlbInfo.va := io.in.bits.src2
-  io.out.bits.vaddr := DontCare
+  io.out.bits.vaddr := io.cacop.VA
+
+  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop
+  val cacopOp2 = isCACOP && io.in.bits.ctrl.cacopOp === CACOPOp.op2
+
+  when(isCACOP) {
+    io.cacop.en := true.B && (io.in.valid || RegNext(io.in.valid && cacopOp2))
+    io.cacop.op := io.in.bits.ctrl.cacopOp
+    io.cacop.VA := alu.io.out.bits
+  } .otherwise {
+    io.cacop.en := false.B
+    io.cacop.op := 0.U
+    io.cacop.VA := 0.U
+  }
+
+  val op2Reg = RegNext(io.in.bits.ctrl.cacopOp === CACOPOp.op2)
 
   alu.io.in.valid := io.in.valid
-  io.in.ready := alu.io.in.ready
-  io.out.valid := alu.io.out.valid && io.in.bits.valid
+  io.in.ready := alu.io.in.ready && !(cacopOp2 && !op2Reg) // FIXME 是cacop，并且'没有被接收'，ready不能为高
+
+  io.out.valid := Mux(cacopOp2, 
+                      RegNext(alu.io.out.valid && io.in.bits.valid), // 延迟一拍再发送
+                      alu.io.out.valid && io.in.bits.valid)
   alu.io.out.ready := io.out.ready
+
+  val exceptionVec = Cat(io.excp_en && io.ecode === Ecode.pil,
+                        io.excp_en && io.ecode === Ecode.pis,
+                        io.excp_en && io.ecode === Ecode.ppi,
+                        io.excp_en && io.ecode === Ecode.pme,
+                        io.excp_en && io.ecode === Ecode.tlbr,
+                        io.in.bits.exceptionVec.asUInt(10, 1),
+                        io.markIntrpt)
+
   io.out.bits.exceptionVec := Cat(io.in.bits.exceptionVec.asUInt(15, 1), io.markIntrpt)
 
+  when(cacopOp2) {
+    io.out.bits.exceptionVec := exceptionVec
+  }
   // for difftest
   io.out.bits.paddr := DontCare
   io.out.bits.wdata := DontCare

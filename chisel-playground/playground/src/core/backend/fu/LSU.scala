@@ -66,6 +66,8 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val flush = Input(Bool())
   val addr_trans_out = Output(new AddrTrans)
   val addr_trans_in = Input(new AddrTrans)
+
+  val cacop = Input(new CACOPIO)
 }
 
 class UnpipelinedLSU extends Module with HasLSUConst {
@@ -80,6 +82,8 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io.storeAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.sw ||
                             addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.sh
 
+  dcache.io.cacop := io.cacop
+  dcache.io.cacop.VA := addr
   dcache.io.axi <> io.dmem
   dcache.io.req.valid := io.in.valid && !io.loadAddrMisaligned && !io.storeAddrMisaligned
   dcache.io.RobLsuIn <> io.RobLsuIn
@@ -168,6 +172,10 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.robIdx := io.in.bits.robIdx
   io.out.bits.preg := io.in.bits.preg
 
+  lsu.io.cacop.en := io.in.bits.ctrl.cType === CACOPType.d
+  lsu.io.cacop.op := io.in.bits.ctrl.cacopOp
+  lsu.io.cacop.VA := DontCare // dcache req addr
+
   // val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10),
   //                        lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
   //                        io.in.bits.exceptionVec.asUInt(8, 0)
@@ -180,7 +188,7 @@ class AligendUnpipelinedLSU extends Module{
                         io.in.bits.exceptionVec.asUInt(10),
                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
                         io.in.bits.exceptionVec.asUInt(8, 0)
-  )
+                        )
 
   io.out.bits.exceptionVec := exceptionVec
   io.out.bits.redirect := io.in.bits.redirect
@@ -193,7 +201,7 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.out.ready := io.out.ready
 
   // for difftest
-  io.out.bits.paddr := io.in.bits.src1 + Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  io.out.bits.paddr := io.addr_trans_in.paddr
   io.out.bits.wdata := lsu.io.diffData
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := io.in.bits.ctrl.fuOpType

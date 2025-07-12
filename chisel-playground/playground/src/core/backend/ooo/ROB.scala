@@ -46,6 +46,8 @@ class RobEntry extends Bundle {
   val csrNewData = UInt(32.W)
   val eret = Bool() 
   val tlbInfo = new TlbInstBundle
+  val cacopOp = UInt(2.W)
+  val cType = UInt(2.W)
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -110,6 +112,7 @@ class BrMisPredInfo extends Bundle {
 
 class LSCommitInfo extends Bundle {
   val paddr = UInt(32.W) // 物理地址
+  val vaddr = UInt(32.W) // 虚拟地址
   val wdata = UInt(32.W) // 写入数据
   val optype = UInt(7.W) // 操作类型
 }
@@ -262,8 +265,10 @@ class Rob extends Module {
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
-    hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
-                  robEntries(commitIdx).tlbInfo.inst_type =/= TlbOp.nop && canCommit(i) && !hasException(i)
+    hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&      // FIXME: cacop as tlb operation
+                  (robEntries(commitIdx).tlbInfo.inst_type =/= TlbOp.nop ||
+                   (robEntries(commitIdx).cacopOp =/= CACOPOp.nop) && robEntries(commitIdx).cType === CACOPType.i) &&
+                  canCommit(i) && !hasException(i)
   }
 
   val store_entry = robEntries(head +& PriorityEncoder(hasStore))
@@ -378,6 +383,7 @@ class Rob extends Module {
     // for load/store difftest
     io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
     io.commitLS(i).bits.paddr := entry.paddr
+    io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype
 
@@ -453,7 +459,7 @@ class Rob extends Module {
     */
 
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
-  io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid
+  io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
   val commitNum = PopCount(hasCommit)
 
