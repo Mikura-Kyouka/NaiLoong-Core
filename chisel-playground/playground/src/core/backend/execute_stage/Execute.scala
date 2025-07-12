@@ -33,12 +33,11 @@ class Execute extends Module {
   val bru  = Module(new AligendALU) // TODO
 
   val dmem = Module(new DCache()(new DCacheConfig(totalSize = 128 * 16, ways = 1)))
-  dmem.io.axi <> io.lsAXI
-  dmem.io.flush := io.flush
   dmem.io.req <> lsu.io.dmemReq
   dmem.io.resp <> lsu.io.dmemResp
-  dmem.io.RobLsuIn <> io.RobLsuIn
-  dmem.io.RobLsuOut <> io.RobLsuOut
+  dmem.io.axi <> io.lsAXI
+  dmem.io.flush := io.flush
+  dmem.io.cacop := DontCare // FIXME: should be included in moq entry
 
   lsu.io.scommit := true.B // FIXME:
   lsu.io.flush := io.flush
