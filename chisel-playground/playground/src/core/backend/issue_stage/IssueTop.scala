@@ -16,9 +16,9 @@ class IssueTop extends Module {
     val flush = Input(Bool())
   })
 
-  val alu1rs = Module(new UnorderIssueQueue)
-  val alu2rs = Module(new UnorderIssueQueue)
-  val mdurs  = Module(new UnorderIssueQueue)
+  val alu1rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
+  val alu2rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
+  val mdurs  = Module(new UnorderIssueQueue(check_dest = false, SIZE = QUEUE_SIZE, MAX_CNT = 4))
   val lsurs  = Module(new OrderIssueQueue)
   val brurs  = Module(new OrderIssueQueue)
   alu1rs.io.in <> io.in(0)

@@ -144,17 +144,17 @@ class RegRenaming extends Module {
     entry
   }))
 
-  // Define a Vec type for the checkpoint RAT
-  val checkpointRATEntryType = Vec(RegConfig.ARCH_REG_NUM, new aliasTableEntry)
-  val checkpointRAT = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH) {
-    VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
-      val entry = Wire(new aliasTableEntry)
-      entry.inARF := true.B
-      entry.preg := 0.U(RegConfig.PHYS_REG_BITS.W)
-      entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
-      entry
-    })
-  }))
+  // // Define a Vec type for the checkpoint RAT
+  // val checkpointRATEntryType = Vec(RegConfig.ARCH_REG_NUM, new aliasTableEntry)
+  // val checkpointRAT = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH) {
+  //   VecInit(Seq.fill(RegConfig.ARCH_REG_NUM) {
+  //     val entry = Wire(new aliasTableEntry)
+  //     entry.inARF := true.B
+  //     entry.preg := 0.U(RegConfig.PHYS_REG_BITS.W)
+  //     entry.robPointer := 0.U(RobConfig.ROB_INDEX_WIDTH.W)
+  //     entry
+  //   })
+  // }))
 
   // Store the state of the freelist for checkpoints
   class FreeListState extends Bundle {
@@ -162,7 +162,7 @@ class RegRenaming extends Module {
     val tail = UInt((RegConfig.PHYS_REG_BITS + 1).W)
   }
 
-  val checkpointFreelist = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH)(0.U.asTypeOf(new FreeListState))))
+  // val checkpointFreelist = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH)(0.U.asTypeOf(new FreeListState))))
 
   // 物理寄存器空闲队列
   class FreeList extends Module {
@@ -274,8 +274,7 @@ class RegRenaming extends Module {
     entry.rfWen := rfWen
     entry.isBranch := input.isBranch
     entry.isStore := (input.ctrl.fuType === FuType.lsu && LSUOpType.isStore(input.ctrl.fuOpType))
-    entry.checkpoint.valid := input.checkpoint.needSave
-    entry.checkpoint.id := input.checkpoint.id
+    entry.optype := input.ctrl.fuOpType
     entry.fuType := input.ctrl.fuType
     entry.inst_valid := input.inst_valid
     entry.csrOp := input.ctrl.csrOp
@@ -399,17 +398,17 @@ class RegRenaming extends Module {
   }
 
   // 存储检查点
-  for (i <- 0 until 4) {
-    val input = io.in.bits(i)
-    when(input.checkpoint.needSave && io.in.valid) {
-      checkpointRAT(input.checkpoint.id) := rat
-      val allocUntilCheckpointValid = PopCount(VecInit((0 until i + 1).map(j => 
-        io.robAllocate.allocEntries(j).use_preg
-      )))
-      checkpointFreelist(input.checkpoint.id).head := (freeList.io.flHead +& allocUntilCheckpointValid) % 64.U
-      checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
-    }
-  }
+  // for (i <- 0 until 4) {
+  //   val input = io.in.bits(i)
+  //   when(input.checkpoint.needSave && io.in.valid) {
+  //     checkpointRAT(input.checkpoint.id) := rat
+  //     val allocUntilCheckpointValid = PopCount(VecInit((0 until i + 1).map(j => 
+  //       io.robAllocate.allocEntries(j).use_preg
+  //     )))
+  //     checkpointFreelist(input.checkpoint.id).head := (freeList.io.flHead +& allocUntilCheckpointValid) % 64.U
+  //     checkpointFreelist(input.checkpoint.id).tail := (freeList.io.flTail +& PopCount(freeList.io.free.map(_.valid))) % 64.U
+  //   }
+  // }
   
   // 零寄存器不保留旧值
   io.out.bits.foreach { out =>

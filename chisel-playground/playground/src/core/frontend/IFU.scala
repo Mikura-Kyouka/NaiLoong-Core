@@ -82,7 +82,7 @@ class IFU extends Module{
     io.axi.awaddr := 0.U
 
     val pc = Module(new PC())
-    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
+    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 512 * 16, ways = 1))) // Pipelined
     io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && 
                     !io.flush && !icache.io.s1Cacop
 

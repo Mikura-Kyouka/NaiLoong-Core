@@ -106,7 +106,7 @@ class BrMisPredInfo extends Bundle {
   val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
   val actuallyTaken = Bool()
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
-  val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
+  // val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
   val brMisPredPC = UInt(32.W)
 }
 
@@ -202,7 +202,6 @@ class Rob extends Module {
         robEntries(allocIdx) := io.allocate.allocEntries(j)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
-        robEntries(allocIdx).use_preg := io.allocate.allocEntries(j).use_preg
       }
     }
     tail := (tail + io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
@@ -215,7 +214,7 @@ class Rob extends Module {
       robEntries(idx).finished     := true.B
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
-      robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
+      robEntries(idx).eret         := io.writeback(i).bits.exceptionVec(10)
       robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, 
                                           true.B, 
                                           Mux(io.writeback(i).bits.redirect.actuallyTaken, 
@@ -230,11 +229,9 @@ class Rob extends Module {
       val wbRfWen = robEntries(idx).rfWen || io.writeback(i).bits.exceptionVec.orR  // 如果有异常则不写寄存器(0有效)
       robEntries(idx).rfWen        := wbRfWen
       // for load/store difftest
-      robEntries(idx).fuType       := io.writeback(i).bits.fuType
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
       robEntries(idx).vaddr        := io.writeback(i).bits.vaddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
-      robEntries(idx).optype       := io.writeback(i).bits.optype
       robEntries(idx).timer64      := io.writeback(i).bits.timer64
       robEntries(idx).tlbInfo      := io.writeback(i).bits.tlbInfo
     }
@@ -315,7 +312,7 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPred.valid := brMisPred
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
-  io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
+  // io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
   io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
 
@@ -487,12 +484,4 @@ class Rob extends Module {
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
                       flushEntry.pc + 4.U))
-
-  val flushCounter = RegInit(0.U(64.W))
-
-  when(io.flush) {
-    flushCounter := flushCounter +& 1.U
-  }
-
-  dontTouch(flushCounter)
 }
