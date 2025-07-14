@@ -106,7 +106,7 @@ class LSU extends Module with HasLSUConst {
     val out = Decoupled(new FuOut)
   })
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
-  
+  dontTouch(io.in.bits.pc)
   io.in.ready := io.out.ready
   io.out := DontCare
   io.addr_trans_out := DontCare
@@ -126,13 +126,13 @@ class LSU extends Module with HasLSUConst {
   // L/S Queue
 
   val storeQueueEnqueue = Wire(Bool())
-
+  //     
   //                           Memory reOrder Queue
   // ---------------------------------------------------------------------------
-  // |   not used   |   waittlb    |   waitmem    |   dmemreq   |   not used   |
+  // |   not used   |   wait       |   waitmem    |   waittlb   |   not used   |
   // ---------------------------------------------------------------------------
   //                |              |              |             |
-  //              head            tlb            mem           tail
+  //              tail            dmem            tlb          head
   val moq = RegInit(VecInit(Seq.fill(moqSize)(0.U.asTypeOf(new moqEntry))))
   // Memory reOrder Queue contains Load, Store and TLB request
   // Store insts will access TLB before its result being commited to CDB
@@ -141,10 +141,10 @@ class LSU extends Module with HasLSUConst {
   val moqDtlbPtr  = RegInit(0.U((log2Up(moqSize)).W))
   val moqDmemPtr  = RegInit(0.U((log2Up(moqSize)).W))
   val moqTailPtr  = RegInit(0.U((log2Up(moqSize)).W))
-  val moqFull = moqHeadPtr === (moqTailPtr - 1.U) //TODO: fix it with maybe_full logic
-  val moqEmpty = moqHeadPtr === moqTailPtr //TODO: fix it with maybe_full logic
+  val moqFull = moqHeadPtr === (moqTailPtr - 1.U)
+  val moqEmpty = moqHeadPtr === moqTailPtr
   val havePendingDtlbReq = moqDtlbPtr =/= moqHeadPtr
-  val havePendingDmemReq = MEMOpID.needLoad(moq(moqDmemPtr).op) && !moq(moqDmemPtr).loadPageFault && !moq(moqDmemPtr).storePageFault && !moq(moqDmemPtr).loadAddrMisaligned && !moq(moqDmemPtr).storeAddrMisaligned && !moq(moqDmemPtr).finished && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
+  val havePendingDmemReq = MEMOpID.needLoad(moq(moqDmemPtr).op) && !moq(moqDmemPtr).finished && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
   val havePendingStoreEnq = MEMOpID.needStore(moq(moqDmemPtr).op) && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
   val dmemReqFrommoq = havePendingDmemReq || havePendingStoreEnq // 是否有需要从 moq 中发起对 dmem 的请求
   val haveLoadResp = io.dmemResp.fire && MEMOpID.commitToCDB(opResp) && moq(moqidxResp).valid //FIXIT: to use non blocking
@@ -157,12 +157,13 @@ class LSU extends Module with HasLSUConst {
   val moqEnqueue = io.in.valid // FIXME:
   when(moqEnqueue){moqHeadPtr := moqHeadPtr + 1.U}
   // move moqDtlbptr
-  val dtlbRespond = true.B // FIXME: io.dtlb.req.fire 
-  when(dtlbRespond){ moqDtlbPtr := moqDtlbPtr + 1.U }
+  // 如果有等待的Dtlb请求，DtlbPtr下个周期增加1（Dtlb一个周期后总能返回数据）
+  when(havePendingDtlbReq) {moqDtlbPtr := moqDtlbPtr + 1.U}
   // move moqDmemptr
-  val moqReqsend = true.B // FIXME: dmem.req.fire && MEMOpID.commitToCDB(opReq) // F
+  val moqReqsend = io.dmemReq.fire // FIXME: dmem.req.fire && MEMOpID.commitToCDB(opReq) // F
+  dontTouch(io.dmemReq.fire) // Debug Only
   val nextmoqDmemPtr = WireInit(moqDmemPtr)
-  when(moqReqsend || storeQueueEnqueue){
+  when(moqReqsend || storeQueueEnqueue){ // 已被dmem接收/入了store queue
     nextmoqDmemPtr := moqDmemPtr + 1.U
   }
   moqDmemPtr := nextmoqDmemPtr
@@ -245,7 +246,7 @@ class LSU extends Module with HasLSUConst {
   // after a store inst get its paddr from TLB, add it to store queue
   val dtlbRespUser = 0.U // io.dtlb.resp.bits.user.get.asTypeOf(new DCacheUserBundle)
   val tlbRespStoreEnq = false.B
-  storeQueueEnqueue := havePendingStoreEnq && !storeQueueFull || !havePendingDmemReq && tlbRespStoreEnq && !storeQueueFull
+  storeQueueEnqueue := havePendingStoreEnq && !storeQueueFull
 
   val storeQueueConfirm = io.scommit // TODO: Argo only support 1 scommit / cycle
   // when a store inst actually writes data to dmem, mark it as `waiting for dmem resp`
@@ -286,7 +287,21 @@ class LSU extends Module with HasLSUConst {
   )
   when(io.flush){storeHeadPtr := flushStoreHeadPtr}
 
-  // 
+  val storeQueueEnqPtr = Mux(storeQueueDequeue, storeHeadPtr - 1.U, storeHeadPtr)
+  val storeQueueEnqSrcPick = moqDmemPtr
+  dontTouch(storeQueueEnqueue)
+  when(storeQueueEnqueue){
+    storeQueue(storeQueueEnqPtr).pc := moq(storeQueueEnqSrcPick).pc
+    storeQueue(storeQueueEnqPtr).wmask := genWmask(moq(storeQueueEnqSrcPick).vaddr, moq(moqDmemPtr).size)
+    storeQueue(storeQueueEnqPtr).vaddr := moq(storeQueueEnqSrcPick).vaddr
+    storeQueue(storeQueueEnqPtr).paddr := moq(moqDmemPtr).paddr
+    storeQueue(storeQueueEnqPtr).func := moq(storeQueueEnqSrcPick).func
+    storeQueue(storeQueueEnqPtr).size := moq(storeQueueEnqSrcPick).size
+    storeQueue(storeQueueEnqPtr).op := moq(storeQueueEnqSrcPick).op
+    storeQueue(storeQueueEnqPtr).data := moq(storeQueueEnqSrcPick).data
+    storeQueue(storeQueueEnqPtr).isMMIO := moq(moqDmemPtr).isMMIO
+    storeQueue(storeQueueEnqPtr).valid := true.B
+  }
 
   //-------------------------------------------------------
   // Load / Store Pipeline
@@ -317,16 +332,14 @@ class LSU extends Module with HasLSUConst {
   // DTLB Access
   //-------------------------------------------------------
   // Send request to dtlb
-  val dtlbMoqIdx = Mux(havePendingDtlbReq, moqDtlbPtr, moqHeadPtr)
-  io.addr_trans_out.trans_en := havePendingDtlbReq || io.in.fire
-  // io.addr_trans_in.ready := true.B 
-  // when(io.addr_trans_in.valid){
-    moq(dtlbMoqIdx).paddr := io.addr_trans_in.paddr // FIXIT
-    moq(dtlbMoqIdx).tlbfin := true.B
-    moq(dtlbMoqIdx).isMMIO := paddrIsMMIO
-    moq(dtlbMoqIdx).loadPageFault := false.B
-    moq(dtlbMoqIdx).storePageFault := false.B
-  // }
+  val dtlbMoqIdx = moqDtlbPtr
+  io.addr_trans_out.trans_en := io.in.fire // 
+  io.addr_trans_out.vaddr := addr
+  moq(moqDtlbPtr).paddr := io.addr_trans_in.paddr
+  moq(moqDtlbPtr).tlbfin := true.B // tlbfinished
+  moq(moqDtlbPtr).isMMIO := paddrIsMMIO
+  moq(moqDtlbPtr).loadPageFault := false.B
+  moq(moqDtlbPtr).storePageFault := false.B
 
   //-------------------------------------------------------
   // Mem Req
@@ -350,10 +363,21 @@ class LSU extends Module with HasLSUConst {
     ))
   }
 
-  // TODO:
-
-  io.dmemReq.bits.addr := Mux(dmemReqFrommoq, moq(moqDmemPtr).paddr, io.in.bits.src1 + io.in.bits.imm)
-  io.dmemReq.valid := true.B
+  when(haveUnrequiredStore){
+    io.dmemReq.bits.addr := storeQueue(moqDmemPtr).paddr
+    io.dmemReq.bits.size := storeQueue(0.U).size
+    io.dmemReq.bits.wdata := genWdata(storeQueue(0.U).data, storeQueue(0.U).size)
+    io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
+    io.dmemReq.bits.cmd := 1.U
+    io.dmemReq.valid := havePendingDmemReq
+  }.elsewhen(havePendingDmemReq){
+    io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
+    io.dmemReq.bits.addr := moq(moqDmemPtr).size
+    io.dmemReq.bits.wdata := genWdata(moq(moqDmemPtr).data, moq(moqDmemPtr).size)
+    io.dmemReq.bits.wmask := genWmask(moq(moqDmemPtr).paddr, moq(moqDmemPtr).size)
+    io.dmemReq.bits.cmd := 0.U
+    io.dmemReq.valid := havePendingDmemReq
+  }
   io.dmemResp.ready := true.B
 
   //-------------------------------------------------------
@@ -396,12 +420,17 @@ class LSU extends Module with HasLSUConst {
   //   moq(moqDmemPtr).fmask := forwardWmask
   // }
 
-  // //-------------------------------------------------------
-  // // LSU Stage 4: Atom and CDB broadcast
-  // // Atom ALU gets data and writes its result to temp reg
-  // //-------------------------------------------------------
+  // val rdataFwdSelVec = Wire(Vec(4, (UInt(4.W))))
+  // val rdataFwdSel = rdataFwdSelVec.asUInt
+  // for(j <- (0 until (XLEN/8))){
+  //   rdataFwdSelVec(j) := Mux(moq(moqidxResp).fmask(j), moq(moqidxResp).fdata(8*(j+1)-1, 8*j), dmem.resp.bits.rdata(8*(j+1)-1, 8*j))
+  // }
+  //-------------------------------------------------------
+  // LSU Stage 4: Atom and CDB broadcast
+  // Atom ALU gets data and writes its result to temp reg
+  //-------------------------------------------------------
 
-  // // Load Data Selection
+  // Load Data Selection
   // val rdata = rdataFwdSel
   // val rdataSel = LookupTree(moq(moqidxResp).vaddr(2, 0), List(
   //   "b000".U -> rdata(63, 0),

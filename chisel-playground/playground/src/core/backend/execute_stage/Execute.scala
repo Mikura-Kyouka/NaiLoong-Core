@@ -11,8 +11,7 @@ class Execute extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new FuOut))
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
-    val RobLsuIn  = Flipped(DecoupledIO())
-    val RobLsuOut = DecoupledIO()
+    val scommit = Input(Bool())
     val flush = Input(Bool())
 
     val csrRead = Flipped(Vec(2, new csr_read_bundle))
@@ -39,13 +38,10 @@ class Execute extends Module {
   dmem.io.flush := io.flush
   dmem.io.cacop := DontCare // FIXME: should be included in moq entry
 
-  lsu.io.scommit := true.B // FIXME:
+  lsu.io.scommit := io.scommit
   lsu.io.flush := io.flush
   lsu.io.addr_trans_out <> io.addr_trans_out
   lsu.io.addr_trans_in <> io.addr_trans_in
-
-  io.RobLsuIn.ready := DontCare // FIXME:
-  io.RobLsuOut.valid := DontCare // FIXME:
 
   alu1.io.in <> io.in(0)
   alu2.io.in <> io.in(1)

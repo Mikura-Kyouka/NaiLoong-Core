@@ -6,6 +6,7 @@ import core.ALUOpType.add
 
 class reqBundle extends Bundle{
     val addr  = Output(UInt(32.W))
+    val size  = Output(UInt(2.W))
     val wdata = Output(UInt(32.W))
     val wmask = Output(UInt(4.W))
     val cmd   = Output(Bool())// 0: read, 1: write

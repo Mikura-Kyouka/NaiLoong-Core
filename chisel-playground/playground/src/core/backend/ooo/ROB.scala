@@ -130,8 +130,7 @@ class RobIO extends Bundle {
   val writeback = Vec(5, Flipped(Valid(new RobWritebackInfo)))
 
   // ROB 和 LSU 关于 Store 指令的交互
-  val RobLsuIn  = Flipped(DecoupledIO())
-  val RobLsuOut = DecoupledIO()
+  val scommit = Output(Bool())
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
@@ -286,13 +285,6 @@ class Rob extends Module {
   // 提交逻辑
   // 生成提交信息
 
-  // 提交 Store 状态机
-  val st_idle :: st_commit :: st_retire :: Nil = Enum(3)
-  
-  val st_state = RegInit(st_idle)
-  val OutValid = RegInit(false.B)
-  val InReady  = RegInit(false.B)
-
   val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
 
@@ -307,7 +299,7 @@ class Rob extends Module {
 
   val brMisPredTemp = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
-  val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx) && st_state === st_retire && io.RobLsuIn.valid
+  val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx)
   val brMisPred = brMisPredTemp && storeFinished
 
   val minIdx = Wire(UInt(2.W))
@@ -392,41 +384,9 @@ class Rob extends Module {
       robEntries(commitIdx).valid := false.B
     }
   }
-  
-  switch (st_state) {
-    is (st_idle) {
-      when (hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore))) {
-        st_state := st_commit
-        OutValid := true.B
-      }
-    }
-    is (st_commit) {
-      when(io.RobLsuOut.ready) {
-        OutValid := false.B
-        InReady := true.B
-        st_state := st_retire
-      }
-    }
-    is (st_retire) {
-      when (io.RobLsuIn.valid) {
-        InReady := false.B
-        st_state := st_idle
-      }
-    }
-  }
-
-  when(io.flush) {
-    st_state := st_idle
-    OutValid := false.B
-    InReady := false.B
-  }
-
-  io.RobLsuOut.valid := OutValid
-  io.RobLsuIn.ready := InReady
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    hasCommit(i) := Mux(hasStore(i), st_state === st_retire && io.RobLsuIn.valid && shouldCommit(i), 
-                        shouldCommit(i))
+    hasCommit(i) := shouldCommit(i)
   }
 
   // 提交异常信息
