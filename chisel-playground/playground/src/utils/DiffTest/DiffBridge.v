@@ -171,24 +171,24 @@ DifftestInstrCommit DifftestInstrCommit_1(
   .csr_data           (csr_data_1     )
 );
 
-DifftestInstrCommit DifftestInstrCommit_2(
-  .clock              (clock          ),
-  .coreid             (coreid         ),
-  .index              (index_2        ),
-  .valid              (Instrvalid_2   ),
-  .pc                 (the_pc_2       ),
-  .instr              (instr_2        ),
-  .skip               (skip_2         ),
-  .is_TLBFILL         (is_TLBFILL_2   ),
-  .TLBFILL_index      (TLBFILL_index_2),
-  .is_CNTinst         (is_CNTinst_2   ),
-  .timer_64_value     (timer_64_value_2),
-  .wen                (wen_2          ),
-  .wdest              (wdest_2        ),
-  .wdata              (wdata_2        ),
-  .csr_rstat          (csr_rstat_2    ),
-  .csr_data           (csr_data_2     )
-);
+// DifftestInstrCommit DifftestInstrCommit_2(
+//   .clock              (clock          ),
+//   .coreid             (coreid         ),
+//   .index              (index_2        ),
+//   .valid              (Instrvalid_2   ),
+//   .pc                 (the_pc_2       ),
+//   .instr              (instr_2        ),
+//   .skip               (skip_2         ),
+//   .is_TLBFILL         (is_TLBFILL_2   ),
+//   .TLBFILL_index      (TLBFILL_index_2),
+//   .is_CNTinst         (is_CNTinst_2   ),
+//   .timer_64_value     (timer_64_value_2),
+//   .wen                (wen_2          ),
+//   .wdest              (wdest_2        ),
+//   .wdata              (wdata_2        ),
+//   .csr_rstat          (csr_rstat_2    ),
+//   .csr_data           (csr_data_2     )
+// );
 
 DifftestStoreEvent DifftestStoreEvent_1(
   .clock              (clock          ),

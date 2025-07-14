@@ -458,8 +458,8 @@ class Core extends Module {
       stInfo := rob.io.commitLS(0).bits
     }.elsewhen (isValidSt(1)) {
       stInfo := rob.io.commitLS(1).bits
-    }.elsewhen (isValidSt(2)) {
-      stInfo := rob.io.commitLS(2).bits
+    // }.elsewhen (isValidSt(2)) {
+    //   stInfo := rob.io.commitLS(2).bits
     }.otherwise {
       stInfo := 0.U.asTypeOf(new LSCommitInfo)
     }

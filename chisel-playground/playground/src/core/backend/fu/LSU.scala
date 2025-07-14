@@ -182,8 +182,6 @@ class AligendUnpipelinedLSU extends Module{
 
   io.addr_trans_out <> lsu.io.addr_trans_out
   io.addr_trans_in <> lsu.io.addr_trans_in
-  // load
-  io.out.valid := lsu.io.complete
 
   // store
   lsu.io.RobLsuIn <> io.RobLsuIn
@@ -230,8 +228,9 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.vaddr := io.addr_trans_out.vaddr
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
-  io.out.valid := lsu.io.out.valid || (RegNext(io.in.valid && io.in.bits.valid) && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType) ||
-                                                                                    exceptionVec(11)))
+  io.out.valid := lsu.io.out.valid || 
+                  RegNext(io.in.valid && io.in.bits.valid && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType))) ||
+                  (RegNext(io.in.fire && io.in.bits.valid) && exceptionVec(11))
   lsu.io.out.ready := io.out.ready
 
   // for difftest

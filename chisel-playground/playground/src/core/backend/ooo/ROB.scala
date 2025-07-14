@@ -13,7 +13,7 @@ object RobConfig {
   val ROB_ENTRY_NUM = 64
   val ROB_INDEX_WIDTH = log2Ceil(ROB_ENTRY_NUM)
   val ROB_WRITEBACK_NUM = 5
-  val ROB_CMT_NUM = 3
+  val ROB_CMT_NUM = 2
 }
 
 class RobEntry extends Bundle {
