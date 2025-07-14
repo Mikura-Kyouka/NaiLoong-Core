@@ -21,17 +21,13 @@ object PipelineConnect {
       s_idle -> Mux(left.valid && right.ready, s_in, s_idle),
       s_in -> Mux(rightOutFire, Mux(left.valid && right.ready, s_in, s_idle), s_in)
     ))
-
-    when(state === s_in) {
-      right.bits := reg
-    }.otherwise{
-      right.bits := reg
-    }
+    
+    right.bits := reg
 
     val valid = RegInit(false.B)
 
-    when(rightOutFire) { valid := false.B } // already excepted, right.valid := false
-    when(left.valid && right.ready) { valid := true.B } // in.fire
+    when(rightOutFire) { valid := false.B } // 被下游接收, 当前数据in.valid所指示的数据无效, 拉低, 否则一直是高
+    when(left.valid && right.ready) { valid := true.B } // 握手之后, 表示当前进来的数据有效, right.valid高, 且晚于握手一拍
     when(isFlush) { valid := false.B }
 
     left.ready := right.ready

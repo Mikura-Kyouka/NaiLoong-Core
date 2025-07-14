@@ -343,4 +343,23 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // when(io.req.valid){
     //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
     // }
+
+    if(GenCtrl.USE_SIMU) {
+      val counting = RegInit(false.B)
+      when(io.req.valid) {
+        counting := true.B
+      }.elsewhen(io.resp.fire || io.flush) {
+        counting := false.B
+      }
+
+      val delayCounter = RegInit(0.U(64.W))
+      val lsCounter = RegInit(1.U(32.W))
+
+      when(io.resp.fire) {
+        lsCounter := lsCounter + 1.U
+        printf("[LSU] Average LSU delay: %d cycles\n", delayCounter / lsCounter)
+      }.elsewhen(counting) {
+        delayCounter := delayCounter + 1.U
+      }
+    }
 }

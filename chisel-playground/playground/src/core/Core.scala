@@ -130,6 +130,11 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.out(3).fire, flush)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
 
+  // for(i <- 0 until 5) {
+  //   Dispatch.io.out(i) <> Issue.io.in(i)
+  // }
+
+
   val ifAXI = Wire(new AXI)
 
   If.io.intrpt := io.intrpt

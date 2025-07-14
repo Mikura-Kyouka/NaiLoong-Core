@@ -412,16 +412,19 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   ))
 
   // 命中率统计
-  val hitCount = RegInit(0.U(32.W))
-  val accessCount = RegInit(0.U(32.W))
-  dontTouch(hitCount)
-  dontTouch(accessCount)
-  when(hitEn) { 
-    // printf("addr = %x\n", io.in.bits.addr)
-    when(hit) {
-      hitCount := hitCount + 1.U
+  if (GenCtrl.USE_SIMU) {
+    val hitCount = RegInit(0.U(32.W))
+    val accessCount = RegInit(1.U(32.W))
+    dontTouch(hitCount)
+    dontTouch(accessCount)
+    when(hitEn) { 
+      // printf("addr = %x\n", io.in.bits.addr)
+      when(hit) {
+        hitCount := hitCount + 1.U
+      }
+      accessCount := accessCount + 1.U
+      printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
     }
-    accessCount := accessCount + 1.U
   }
 
   // axi read signals

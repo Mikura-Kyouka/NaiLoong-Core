@@ -133,5 +133,6 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   // 更新状态
   mem := next_mem
   valid_vec := next_valid_vec
-  valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
+  // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
+  valid_count := PopCount(next_valid_vec)
 }

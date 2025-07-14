@@ -182,4 +182,24 @@ class IFU extends Module{
     io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, out_temp(1))
     io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, out_temp(2))
     io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, out_temp(3))
+
+
+    if(GenCtrl.USE_SIMU) {
+      val counting = RegInit(false.B)
+      when(icache.io.in.valid) {
+        counting := true.B
+      }.elsewhen(io.out.fire || io.flush) {
+        counting := false.B
+      }
+
+      val delayCounter = RegInit(0.U(64.W))
+      val ifCounter = RegInit(1.U(32.W))
+
+      when(io.out.fire) {
+        ifCounter := ifCounter + 1.U
+        printf("[IFU] Average IFU delay: %d cycles\n", delayCounter / ifCounter)
+      }.elsewhen(counting) {
+        delayCounter := delayCounter + 1.U
+      }
+    }
 }
