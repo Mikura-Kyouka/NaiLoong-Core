@@ -41,14 +41,14 @@ class OrderIssueQueue extends Module {
   // write
   switch(io.in.bits.inst_cnt) {
     is(1.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         write_ptr := write_ptr + 1.U
       }
     }
     is(2.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -57,7 +57,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(3.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -68,7 +68,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(4.U) {
-      when(io.in.fire) {
+      when(io.in.valid) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)

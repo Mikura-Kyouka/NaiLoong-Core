@@ -82,7 +82,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   }
 
   // write
-  when(io.in.fire) {
+  when(io.in.valid) {
     val base = valid_count - deq_count
     for (i <- 1 until MAX_CNT + 1) {
       when(io.in.bits.inst_cnt === i.U) {
