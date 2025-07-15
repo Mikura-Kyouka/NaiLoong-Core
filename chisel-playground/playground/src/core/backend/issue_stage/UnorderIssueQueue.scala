@@ -31,7 +31,8 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
 
   // 判断是否可以接受
   // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= SIZE.asUInt
-  val can_accept = valid_count === 0.U || valid_count <= (SIZE - MAX_CNT).U
+  val valid_count_wire = PopCount(next_valid_vec)
+  val can_accept = valid_count_wire === 0.U || valid_count_wire <= (SIZE - MAX_CNT).U
   io.in.ready := can_accept
 
   // 计算下一拍的valid_count
@@ -71,55 +72,41 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
 
   // 压缩队列
+  next_mem := mem
+  next_valid_vec := valid_vec
+
+  val shifted_mem = WireInit(mem)
+  val shifted_valid_vec = WireInit(valid_vec)
+
+  // Apply the shift (dequeue) operation
   when(io.out.fire) {
     for (i <- 0 until SIZE - 1) {
       when(i.U >= first_can_issue_index) {
-        next_mem(i) := mem(i + 1)
-        next_valid_vec(i) := valid_vec(i + 1)
+        shifted_mem(i) := mem(i + 1)
+        shifted_valid_vec(i) := valid_vec(i + 1)
       }
     }
-    next_valid_vec(SIZE - 1) := false.B
+    shifted_valid_vec(SIZE - 1) := false.B
   }
+  
+  // Apply shift results to next state
+  next_mem := shifted_mem
+  next_valid_vec := shifted_valid_vec
 
-  // write
+  // Apply the enqueue operation to the shifted state
   when(io.in.valid) {
-    val base = valid_count - deq_count
-    for (i <- 1 until MAX_CNT + 1) {
+    val base = Mux(io.out.fire, valid_count - 1.U, valid_count)
+    for (i <- 1 to MAX_CNT) {
       when(io.in.bits.inst_cnt === i.U) {
         for (j <- 0 until i) {
-          next_mem(base + j.U) := io.in.bits.inst_vec(j)
-          next_valid_vec(base + j.U) := true.B
+          val idx = base + j.U
+          when(idx < SIZE.U) {
+            next_mem(idx) := io.in.bits.inst_vec(j)
+            next_valid_vec(idx) := true.B
+          }
         }
       }
     }
-    // when(io.in.bits.inst_cnt === 1.U) {
-    //   next_mem(base) := io.in.bits.inst_vec(0)
-    //   next_valid_vec(base) := true.B
-    // }
-    // when(io.in.bits.inst_cnt === 2.U) {
-    //   next_mem(base) := io.in.bits.inst_vec(0)
-    //   next_valid_vec(base) := true.B
-    //   next_mem(base + 1.U) := io.in.bits.inst_vec(1)
-    //   next_valid_vec(base + 1.U) := true.B
-    // }
-    // when(io.in.bits.inst_cnt === 3.U) {
-    //   next_mem(base) := io.in.bits.inst_vec(0)
-    //   next_valid_vec(base) := true.B
-    //   next_mem(base + 1.U) := io.in.bits.inst_vec(1)
-    //   next_valid_vec(base + 1.U) := true.B
-    //   next_mem(base + 2.U) := io.in.bits.inst_vec(2)
-    //   next_valid_vec(base + 2.U) := true.B
-    // }
-    // when(io.in.bits.inst_cnt === 4.U) {
-    //   next_mem(base) := io.in.bits.inst_vec(0)
-    //   next_valid_vec(base) := true.B
-    //   next_mem(base + 1.U) := io.in.bits.inst_vec(1)
-    //   next_valid_vec(base + 1.U) := true.B
-    //   next_mem(base + 2.U) := io.in.bits.inst_vec(2)
-    //   next_valid_vec(base + 2.U) := true.B
-    //   next_mem(base + 3.U) := io.in.bits.inst_vec(3)
-    //   next_valid_vec(base + 3.U) := true.B
-    // }
   }
 
   // flush

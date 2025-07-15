@@ -412,7 +412,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   ))
 
   // 命中率统计
-  if (GenCtrl.USE_SIMU) {
+  if (GenCtrl.USE_COUNT) {
     val hitCount = RegInit(0.U(32.W))
     val accessCount = RegInit(1.U(32.W))
     dontTouch(hitCount)

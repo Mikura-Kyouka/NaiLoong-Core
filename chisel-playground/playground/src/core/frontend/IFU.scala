@@ -184,7 +184,7 @@ class IFU extends Module{
     io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, out_temp(3))
 
 
-    if(GenCtrl.USE_SIMU) {
+    if(GenCtrl.USE_COUNT) {
       val counting = RegInit(false.B)
       when(icache.io.in.valid) {
         counting := true.B

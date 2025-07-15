@@ -344,7 +344,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
     // }
 
-    if(GenCtrl.USE_SIMU) {
+    if(GenCtrl.USE_COUNT) {
       val counting = RegInit(false.B)
       when(io.req.valid) {
         counting := true.B

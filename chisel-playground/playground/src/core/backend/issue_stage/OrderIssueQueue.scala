@@ -29,7 +29,10 @@ class OrderIssueQueue extends Module {
   // val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
   val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) - enq_count + deq_count >= 4.U
   // io.in.ready := can_accept && valid_count <= 4.U
-  io.in.ready := valid_count <= (QUEUE_SIZE - 4).U
+  val valid_count_wire = PopCount(valid_vec)
+  val next_count = valid_count_wire + enq_count - deq_count
+  io.in.ready := next_count <= (QUEUE_SIZE - 4).U
+  dontTouch(next_count)
   
   enq_count := 0.U
   when(io.in.valid) {
@@ -37,6 +40,34 @@ class OrderIssueQueue extends Module {
   }
   // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
   valid_count := PopCount(valid_vec)
+
+  // read
+  val debug_read_ptr = WireInit(read_ptr)
+  val debug_read_ptr_valid = WireInit(valid_vec(read_ptr))
+  val debug_read_ptr_prj = WireInit(mem(read_ptr).prj)
+  val debug_read_ptr_prk = WireInit(mem(read_ptr).prk)
+  dontTouch(debug_read_ptr)
+  dontTouch(debug_read_ptr_valid)
+  dontTouch(debug_read_ptr_prj)
+  dontTouch(debug_read_ptr_prk)
+
+  val can_issue = (!io.busyreg(mem(read_ptr).prj) || mem(read_ptr).jIsArf) && (!io.busyreg(mem(read_ptr).prk) || mem(read_ptr).kIsArf) && valid_vec(read_ptr)
+  //io.out := mem(read_ptr)
+  io.pram_read.src1 := mem(read_ptr).prj
+  io.pram_read.src2 := mem(read_ptr).prk
+  val out = mem(read_ptr)
+  val prj_0 = Fill(32, mem(read_ptr).prj =/= 0.U)
+  val prk_0 = Fill(32, mem(read_ptr).prk =/= 0.U)
+  io.out.bits := out
+  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
+  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
+  // out.src1 := io.pram_read.pram_data1
+  // out.src2 := io.pram_read.pram_data2
+  io.out.valid := can_issue
+  when(io.out.fire) {  // 发生握手才读出
+    valid_vec(read_ptr) := false.B
+    read_ptr := read_ptr + 1.U
+  }
 
   // write
   switch(io.in.bits.inst_cnt) {
@@ -80,34 +111,6 @@ class OrderIssueQueue extends Module {
         write_ptr := write_ptr + 4.U
       }
     }
-  }
-
-  // read
-  val debug_read_ptr = WireInit(read_ptr)
-  val debug_read_ptr_valid = WireInit(valid_vec(read_ptr))
-  val debug_read_ptr_prj = WireInit(mem(read_ptr).prj)
-  val debug_read_ptr_prk = WireInit(mem(read_ptr).prk)
-  dontTouch(debug_read_ptr)
-  dontTouch(debug_read_ptr_valid)
-  dontTouch(debug_read_ptr_prj)
-  dontTouch(debug_read_ptr_prk)
-
-  val can_issue = (!io.busyreg(mem(read_ptr).prj) || mem(read_ptr).jIsArf) && (!io.busyreg(mem(read_ptr).prk) || mem(read_ptr).kIsArf) && valid_vec(read_ptr)
-  //io.out := mem(read_ptr)
-  io.pram_read.src1 := mem(read_ptr).prj
-  io.pram_read.src2 := mem(read_ptr).prk
-  val out = mem(read_ptr)
-  val prj_0 = Fill(32, mem(read_ptr).prj =/= 0.U)
-  val prk_0 = Fill(32, mem(read_ptr).prk =/= 0.U)
-  io.out.bits := out
-  io.out.bits.src1 := Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1)
-  io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
-  // out.src1 := io.pram_read.pram_data1
-  // out.src2 := io.pram_read.pram_data2
-  io.out.valid := can_issue
-  when(io.out.fire) {  // 发生握手才读出
-    valid_vec(read_ptr) := false.B
-    read_ptr := read_ptr + 1.U
   }
 
   // flush
