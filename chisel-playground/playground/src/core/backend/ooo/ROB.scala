@@ -246,6 +246,7 @@ class Rob extends Module {
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  dontTouch(canCommit(0))
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
