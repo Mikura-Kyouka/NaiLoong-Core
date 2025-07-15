@@ -246,8 +246,6 @@ class Rob extends Module {
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-  dontTouch(canCommit(0))
-
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
@@ -287,7 +285,6 @@ class Rob extends Module {
   // 生成提交信息
 
   val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
 
@@ -416,7 +413,7 @@ class Rob extends Module {
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
   io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
-  io.scommit := hasStore.reduce(_ || _) && shouldCommit(head + PriorityEncoder(hasStore))
+  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore))
 
   val commitNum = PopCount(shouldCommit)
 
