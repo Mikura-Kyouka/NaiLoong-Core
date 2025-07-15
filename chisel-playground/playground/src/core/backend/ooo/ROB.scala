@@ -250,9 +250,9 @@ class Rob extends Module {
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
-      val preHasCommit = !robEntries(commitIdx - 1.U).valid
+      val preshouldCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
-                      preHasCommit
+                      preshouldCommit
     } else {
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
@@ -286,7 +286,6 @@ class Rob extends Module {
   // 生成提交信息
 
   val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-  val hasCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
 
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
@@ -299,8 +298,7 @@ class Rob extends Module {
 
   val brMisPredTemp = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
-  val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx)
-  val brMisPred = brMisPredTemp && storeFinished
+  val brMisPred = brMisPredTemp
 
   val minIdx = Wire(UInt(2.W))
 
@@ -343,7 +341,7 @@ class Rob extends Module {
     shouldCommit(i) := Mux(hasSpecialCommit, i.U <= minIdx && canCommit(i), canCommit(i))
 
     // 物理寄存器回收信息
-    io.commit.commit(i).valid := hasCommit(i) && !entry.rfWen && entry.rd =/= 0.U && !entry.exceptionVec(9)  // 9: ALE异常
+    io.commit.commit(i).valid := shouldCommit(i) && !entry.rfWen && entry.rd =/= 0.U && !entry.exceptionVec(9)  // 9: ALE异常
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
     io.commit.commit(i).bits.pc   := entry.pc
@@ -359,34 +357,30 @@ class Rob extends Module {
     io.commit.commit(i).bits.timer64 := entry.timer64
     
     // 提交PC信息
-    io.commitPC(i).valid := hasCommit(i) && entry.inst_valid
+    io.commitPC(i).valid := shouldCommit(i) && entry.inst_valid
     io.commitPC(i).bits := entry.pc
     
     // 提交指令信息
-    io.commitInstr(i).valid := hasCommit(i) && entry.inst_valid
+    io.commitInstr(i).valid := shouldCommit(i) && entry.inst_valid
     io.commitInstr(i).bits := entry.instr
 
     // for csr
     val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn
-    io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen
+    io.commitCSR(i).valid := shouldCommit(i) && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
 
     // for load/store difftest
-    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
+    io.commitLS(i).valid := shouldCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype
 
     // 清除已提交的条目
-    when (hasCommit(i)) {
+    when (shouldCommit(i)) {
       robEntries(commitIdx).valid := false.B
     }
-  }
-
-  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    hasCommit(i) := shouldCommit(i)
   }
 
   // 提交异常信息
@@ -421,7 +415,9 @@ class Rob extends Module {
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
   io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
-  val commitNum = PopCount(hasCommit)
+  io.scommit := hasStore.reduce(_ || _) && shouldCommit(head + PriorityEncoder(hasStore))
+
+  val commitNum = PopCount(shouldCommit)
 
   // 更新头指针
   val nextHead = (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
