@@ -144,8 +144,6 @@ class LSU extends Module with HasLSUConst {
   val moqFull = moqHeadPtr === (moqTailPtr - 1.U)
   val moqEmpty = moqHeadPtr === moqTailPtr
   val havePendingDtlbReq = moqDtlbPtr =/= moqHeadPtr
-  val AAAAAAA = LSUOpType.isLoad(moq(moqDmemPtr).func)
-  dontTouch(AAAAAAA)
   val havePendingDmemReq = LSUOpType.isLoad(moq(moqDmemPtr).func) && !moq(moqDmemPtr).finished && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
   // dontTouch(LSUOpType.isLoad(moq(moqDmemPtr).op))
   val havePendingStoreEnq = LSUOpType.isStore(moq(moqDmemPtr).func) && moq(moqDmemPtr).valid && moq(moqDmemPtr).tlbfin
@@ -164,7 +162,7 @@ class LSU extends Module with HasLSUConst {
   // 如果有等待的Dtlb请求，DtlbPtr下个周期增加1（Dtlb一个周期后总能返回数据）
   when(havePendingDtlbReq) {moqDtlbPtr := moqDtlbPtr + 1.U}
   // move moqDmemptr
-  val moqReqsend = io.dmemReq.fire // FIXME: dmem.req.fire && MEMOpID.commitToCDB(opReq) // F
+  val moqReqsend = io.dmemReq.fire && io.dmemReq.bits.cmd === 0.U // FIXME: dmem.req.fire && MEMOpID.commitToCDB(opReq) // F
   dontTouch(io.dmemReq.fire) // Debug Only
   val nextmoqDmemPtr = WireInit(moqDmemPtr)
   when(moqReqsend || storeQueueEnqueue){ // 已被dmem接收/入了store queue
@@ -192,8 +190,8 @@ class LSU extends Module with HasLSUConst {
   }
 
   // write data to moq
-  val vaddrIsMMIO = addr(31, 16) === "hbfaf".U
-  val paddrIsMMIO = true.B // io.dtlb.resp.bits.rdata(31, 16) === "hbfaf".U
+  // val vaddrIsMMIO = addr(31, 16) === "hbfaf".U
+  // val paddrIsMMIO = true.B // io.dtlb.resp.bits.rdata(31, 16) === "hbfaf".U
 
   when(moqEnqueue){
     moq(moqHeadPtr).pc := io.in.bits.pc
@@ -208,7 +206,7 @@ class LSU extends Module with HasLSUConst {
     moq(moqHeadPtr).fmask := 0.U
     // moq(moqHeadPtr).asrc := io.wdata // FIXIT
     moq(moqHeadPtr).rfWen := io.in.bits.ctrl.rfWen
-    moq(moqHeadPtr).isMMIO := vaddrIsMMIO // FIXIT
+    // moq(moqHeadPtr).isMMIO := vaddrIsMMIO // FIXIT
     moq(moqHeadPtr).valid := true.B
     moq(moqHeadPtr).tlbfin := false.B // tlbfinished
     moq(moqHeadPtr).finished := false.B
@@ -276,19 +274,13 @@ class LSU extends Module with HasLSUConst {
   // move storeCmtPtr ptr
   nextStoreCmtPtr := storeCmtPtr
   dontTouch(storeQueueDequeue)
-  // 如果发生出队（且不是跳过无效项），但没有新的 store 指令退休，则提交指针向前移动（减1），因为队列长度减少了。
   when(storeQueueDequeue && !storeQueueConfirm){nextStoreCmtPtr := storeCmtPtr - 1.U}
-  // 如果没有出队（或只是跳过无效项），但有新的 store 指令退休，则提交指针向后移动（加1），因为队列长度增加了。
   when(!storeQueueDequeue && storeQueueConfirm){nextStoreCmtPtr := storeCmtPtr + 1.U}
   storeCmtPtr := nextStoreCmtPtr
- 
- dontTouch(storeQueueDequeue)
+
   // move storeHeadPtr ptr
-  // 如果发生出队，且本周期没有入队，则队列长度减少，storeHeadPtr 向前移动（减1）。
   when(storeQueueDequeue && !storeQueueEnqueue){storeHeadPtr := storeHeadPtr - 1.U}
-  // 如果没有出队，但有入队，则队列长度增加，storeHeadPtr 向后移动（加1）。
   when(!storeQueueDequeue && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
-  // 保证分支恢复后，Store Queue 只保留已经提交的 store 指令，后面的全部丢弃。
   val flushStoreHeadPtr = PriorityMux(
     (nextStoreCmtPtr === 0.U) +: (0 until storeQueueSize).map(i => {
       PopCount(VecInit((0 to i).map(j => storeQueue(j).valid))) === nextStoreCmtPtr
@@ -309,7 +301,7 @@ class LSU extends Module with HasLSUConst {
     storeQueue(storeQueueEnqPtr).size := moq(storeQueueEnqSrcPick).size
     storeQueue(storeQueueEnqPtr).op := moq(storeQueueEnqSrcPick).op
     storeQueue(storeQueueEnqPtr).data := moq(storeQueueEnqSrcPick).data
-    storeQueue(storeQueueEnqPtr).isMMIO := moq(moqDmemPtr).isMMIO
+    // storeQueue(storeQueueEnqPtr).isMMIO := moq(moqDmemPtr).isMMIO
     storeQueue(storeQueueEnqPtr).valid := true.B
   }
 
@@ -348,7 +340,7 @@ class LSU extends Module with HasLSUConst {
   when(havePendingDtlbReq){
     moq(moqDtlbPtr).paddr := io.addr_trans_in.paddr
     moq(moqDtlbPtr).tlbfin := true.B // tlbfinished
-    moq(moqDtlbPtr).isMMIO := paddrIsMMIO
+    // moq(moqDtlbPtr).isMMIO := paddrIsMMIO
     moq(moqDtlbPtr).loadPageFault := false.B
     moq(moqDtlbPtr).storePageFault := false.B
   }
@@ -375,20 +367,22 @@ class LSU extends Module with HasLSUConst {
     ))
   }
 
+  dontTouch(havePendingDmemReq)
+  io.dmemReq.valid := false.B
   when(haveUnrequiredStore){
-    io.dmemReq.bits.addr := storeQueue(moqDmemPtr).paddr
+    io.dmemReq.bits.addr := storeQueue(0.U).paddr
     io.dmemReq.bits.size := storeQueue(0.U).size
     io.dmemReq.bits.wdata := storeQueue(0.U).data
     io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
     io.dmemReq.bits.cmd := 1.U
-    io.dmemReq.valid := havePendingDmemReq
+    io.dmemReq.valid := true.B
   }.elsewhen(havePendingDmemReq){
     io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
     io.dmemReq.bits.addr := moq(moqDmemPtr).size
     io.dmemReq.bits.wdata := genWdata(moq(moqDmemPtr).data, moq(moqDmemPtr).size)
     io.dmemReq.bits.wmask := genWmask(moq(moqDmemPtr).paddr, moq(moqDmemPtr).size)
     io.dmemReq.bits.cmd := 0.U
-    io.dmemReq.valid := havePendingDmemReq
+    io.dmemReq.valid := true.B
   }
   io.dmemResp.ready := true.B
 

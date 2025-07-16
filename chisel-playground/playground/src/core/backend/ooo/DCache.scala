@@ -121,7 +121,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     val isMMIO = req.addr(31, 16) === "hbfaf".U
 
-    //   000        001          010          011               100               101            110            111
+    //    0          1              2               3             4                  5               6               7               8
     val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
     val state = RegInit(s_idle)
 
