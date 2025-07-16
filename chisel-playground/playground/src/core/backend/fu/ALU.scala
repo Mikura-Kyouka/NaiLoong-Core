@@ -274,7 +274,7 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.va := io.in.bits.src2
   io.out.bits.vaddr := io.cacop.VA
 
-  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop
+  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop && io.in.bits.valid
   val cacopOp2 = isCACOP && io.in.bits.ctrl.cacopOp === CACOPOp.op2
 
   when(isCACOP) {

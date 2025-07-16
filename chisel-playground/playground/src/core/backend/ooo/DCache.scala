@@ -64,12 +64,10 @@ sealed abstract class CacheModule(implicit cacheConfig: DCacheConfig)
 sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
   val tag = Output(UInt(TagBits.W))  // 26
-  // val valid = Output(UInt(1.W))
   // val dirty = Output(UInt(1.W))
 
   def apply(tag: UInt) = {
     this.tag := tag
-    // this.valid := valid
     this
   }
 }
@@ -77,12 +75,10 @@ sealed class MetaBundle(implicit val cacheConfig: DCacheConfig)
 sealed class MetaFlagBundle(implicit val cacheConfig: DCacheConfig)
     extends CacheBundle {
   // val tag = Output(UInt(TagBits.W))  // 26
-  val valid = Output(Bool()) // 1
   val dirty = Output(Bool()) // 1
 
-  def apply(valid: Bool, dirty: Bool) = {
+  def apply(dirty: Bool) = {
     // this.tag := tag
-    this.valid := valid
     this.dirty := dirty
     this
   }
@@ -140,6 +136,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 暂时只支持 1 way
     val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits)))
+    val metaValidArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * 1))
     val metaFlagArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle))))))
     val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
@@ -149,6 +146,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     metaArray.io.dina := 0.U // 后续覆盖
     metaArray.io.wea := false.B // 后续覆盖
     metaArray.io.addrb := addr.index
+
+    metaValidArray.io.clka := clock
+    metaValidArray.io.addra := addr.index
+    metaValidArray.io.dina := 0.U // 后续覆盖
+    metaValidArray.io.wea := false.B // 后续覆盖
+    metaValidArray.io.addrb := addr.index
 
     dataArray.io.clka := clock
     dataArray.io.addra := addr.index
@@ -162,17 +165,17 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
     syncReadAddr := addr.index
     is_collision := io.axi.rvalid && state === s_read_mem2 && !isMMIO || state === s_write_cache
-    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(Cat(true.B, false.B).asTypeOf(new MetaFlagBundle))), 
-                                                                            VecInit(Seq.fill(Ways)(Cat(true.B, true.B).asTypeOf(new MetaFlagBundle))))
+    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
+                                                                            VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
 
     val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
+    val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
     val hitVec = VecInit(
-      metaReadData.zipWithIndex.map { case (meta, i) =>
-        meta.tag === addr.tag && metaFlagData(0).valid
-      }
+      metaReadData.map(m => m.tag === addr.tag && metaValidData(0))
     ).asUInt
+
     val hit = hitVec.orR
 
     val dirty = metaFlagData(0).dirty
@@ -221,7 +224,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     when(cacopOp0) {
       metaArray.io.wea := true.B
       metaArray.io.addra := VA.index
-      metaArray.io.dina := 0.U
+      metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
     }
 
     val offset = req.addr(1, 0) << 3
@@ -269,8 +272,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := false.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := addr.tag // tag, dirty
-      metaFlagArray(addr.index)(0) := Cat(true.B, false.B).asTypeOf(new MetaFlagBundle) // valid, dirty
+      metaArray.io.dina := addr.tag // tag
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.addra := addr.index
+      metaValidArray.io.dina := true.B // valid
+      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
     }
 
     // 读取当前字
@@ -306,7 +312,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // dataArray(addr.index)(0) := VecInit(Seq(newWord))
       dataArray.io.wea := true.B
       dataArray.io.addra := addr.index
-      dataArray.io.dina := VecInit(Seq.fill(LineBeats)(newWord)).asUInt
+      dataArray.io.dina := newWord
       
       // 同时更新metaArray
       // val writeMeta = Vec(Ways, new MetaBundle)
@@ -322,8 +328,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).dirty := true.B
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
-      metaArray.io.dina := addr.tag // tag, dirty
-      metaFlagArray(addr.index)(0) := Cat(true.B, true.B).asTypeOf(new MetaFlagBundle) // valid, dirty
+      metaArray.io.dina := addr.tag // tag
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.addra := addr.index
+      metaValidArray.io.dina := true.B // valid
+      metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
 
       io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }

@@ -282,28 +282,35 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
-  val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
-  val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
-  val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(false.B))))
-  val is_collision = RegInit(false.B)
-  is_collision := io.metaArrayWrite.index === index && io.metaArrayWrite.valid
-  syncReadAddr := index
-  collison_data := VecInit(Seq.fill(Ways)(true.B))
+  val metaValidArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways)) // Ways * 1
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
   metaArray.io.wea := io.metaArrayWrite.valid
   metaArray.io.addra := io.metaArrayWrite.index
-  metaArray.io.dina := Cat(io.metaArrayWrite.tag)
+  metaArray.io.dina := io.metaArrayWrite.tag
   metaArray.io.addrb := index
 
+  metaValidArray.io.clka := clock
+  metaValidArray.io.wea := false.B // 后续覆盖
+  metaValidArray.io.addra := io.metaArrayWrite.index
+  metaValidArray.io.dina := 0.U
+  metaValidArray.io.addrb := index
+
+  val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
+
   when(io.metaArrayWrite.valid) {
-    metaValidArray(io.metaArrayWrite.index)(0) := true.B
+    metaArray.io.wea := true.B
+    metaArray.io.addra := io.metaArrayWrite.index
+    metaArray.io.dina := io.metaArrayWrite.tag // Write tag to the line
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := io.metaArrayWrite.index
+    metaValidArray.io.dina := io.metaArrayWrite.valid // Write valid to the line
   }
   
   val metaArrayInfo = metaArray.io.doutb
   io.metaArrayTag := metaArrayInfo
-  io.metaArrayValid := Mux(is_collision, collison_data(0), metaValidArray(syncReadAddr)(0))
+  io.metaArrayValid := metaValidData(0)
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
@@ -328,11 +335,15 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     metaArray.io.addra := line
     metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
   }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
-    metaValidArray(line)(way) := false.B
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := line
+    metaValidArray.io.dina := false.B // Write false to the line
   }.elsewhen(cacopOp2Reg) {
     val line2 = io.in.addr.asTypeOf(addrBundle).index
     val way2 = io.in.addr(log2Ceil(Ways) - 1, 0)
-    metaValidArray(line2)(way2) := false.B
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := line2
+    metaValidArray.io.dina := false.B // Write false to the line
   }
 
   io.out.bits.isCACOP := (io.in.cacop.en && !io.in.cacop.op === CACOPOp.op2) || cacopOp2Reg
