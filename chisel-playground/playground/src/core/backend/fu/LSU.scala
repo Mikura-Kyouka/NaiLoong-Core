@@ -229,8 +229,7 @@ class AligendUnpipelinedLSU extends Module{
   lsu.io.in.valid := io.in.valid && io.in.bits.valid
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid || 
-                  RegNext(io.in.valid && io.in.bits.valid && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType))) ||
-                  (RegNext(io.in.fire && io.in.bits.valid) && exceptionVec(11))
+                  RegNext(io.in.valid && io.in.bits.valid && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType)))
   lsu.io.out.ready := io.out.ready
 
   // for difftest

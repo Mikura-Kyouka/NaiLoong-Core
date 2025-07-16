@@ -209,7 +209,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
                     (!io.req.valid || io.resp.fire)
     io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
-                      io.addr_trans_in.excp.en || (io.req.valid && cacopOp0 && state === s_idle)) && !flushed 
+                      (io.addr_trans_in.excp.en && state === s_tlb) || (io.req.valid && cacopOp0 && state === s_idle)) && !flushed 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
