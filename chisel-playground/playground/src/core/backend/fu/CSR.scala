@@ -282,10 +282,10 @@ class CSR extends Module {
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
           csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
-          // when(io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle).pg === 1.U) {  // "推荐"
-          //   csr_crmd.datf := 1.U // 设置指令缓存使能
-          //   csr_crmd.datm := 1.U // 设置数据缓存使能
-          // }
+          when(io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle).pg === 1.U) {  // "推荐"
+            csr_crmd.datf := 1.U // 设置指令缓存使能
+            csr_crmd.datm := 1.U // 设置数据缓存使能
+          }
         }
         is(CsrName.PRMD) {
           csr_prmd := io.write(i).bits.csr_data.asTypeOf(new csr_prmd_bundle)

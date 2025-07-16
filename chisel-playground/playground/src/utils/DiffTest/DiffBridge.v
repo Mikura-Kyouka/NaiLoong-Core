@@ -60,6 +60,11 @@ module DiffBridge(
   input [63:0] storeVaddr,
   input [63:0] storeData,
 
+  input [ 7:0] loadIndex,
+  input [ 7:0] loadValid,
+  input [63:0] loadPaddr,
+  input [63:0] loadVaddr,
+
   input [63:0] REG_0,
   input [63:0] REG_1,
   input [63:0] REG_2,
@@ -205,9 +210,9 @@ DifftestLoadEvent DifftestLoadEvent_1(
   .coreid             (0              ),
   .index              (loadIndex      ),
   .valid              (loadValid      ),
-  .pAddr              (loadPaddr      ),
-  .vAddr              (loadVaddr      )
-)
+  .paddr              (loadPaddr      ),
+  .vaddr              (loadVaddr      )
+);
 
 DifftestGRegState DifftestGRegState_0(
   .clock              (clock          ),
