@@ -480,6 +480,37 @@ class Core extends Module {
     DiffCommit.io.store.paddr := stInfo.paddr
     DiffCommit.io.store.vaddr := stInfo.vaddr
     DiffCommit.io.store.data  := stInfo.wdata
+
+    val isLd = rob.io.commitLS.map { commit =>
+      commit.valid && (commit.bits.optype === LSUOpType.lw ||
+                       commit.bits.optype === LSUOpType.lhu ||
+                       commit.bits.optype === LSUOpType.lh ||
+                       commit.bits.optype === LSUOpType.lbu ||
+                       commit.bits.optype === LSUOpType.lb)
+    }
+    val isValidLd = isLd.zip(diffExcp).map { case (ld, excp) => ld && !excp }
+    val ldInfo = Wire(new LSCommitInfo)
+    when (isValidLd(0)) {
+      ldInfo := rob.io.commitLS(0).bits
+    }.elsewhen (isValidLd(1)) {
+      ldInfo := rob.io.commitLS(1).bits
+    // }.elsewhen (isValidLd(2)) {
+    //   ldInfo := rob.io.commitLS(2).bits    
+    }.otherwise {
+      ldInfo := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val loadType = MuxLookup(ldInfo.optype, 0.U)(
+      List(
+        LSUOpType.lw ->  "b00010000".U,
+        LSUOpType.lhu -> "b00001000".U,
+        LSUOpType.lh ->  "b00000100".U,
+        LSUOpType.lbu -> "b00000010".U,
+        LSUOpType.lb ->  "b00000001".U
+      )
+    )
+    DiffCommit.io.load.valid := Mux(isValidLd.reduce(_ || _), loadType, 0.U)
+    DiffCommit.io.load.paddr := ldInfo.paddr
+    DiffCommit.io.load.vaddr := ldInfo.vaddr
   }
 }
 

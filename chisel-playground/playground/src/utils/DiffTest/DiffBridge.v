@@ -200,6 +200,15 @@ DifftestStoreEvent DifftestStoreEvent_1(
   .storeData          (storeData    )
 );
 
+DifftestLoadEvent DifftestLoadEvent_1(
+  .clock              (clock          ),
+  .coreid             (0              ),
+  .index              (loadIndex      ),
+  .valid              (loadValid      ),
+  .pAddr              (loadPaddr      ),
+  .vAddr              (loadVaddr      )
+)
+
 DifftestGRegState DifftestGRegState_0(
   .clock              (clock          ),
   .coreid             (coreid         ),

@@ -25,6 +25,12 @@ class DiffStoreBundle extends Bundle {
   val data = UInt(32.W)                          // 提交指令对应的store指令的数据
 }
 
+class DiffLoadBundle extends Bundle {
+  val valid = UInt(8.W)                          // 提交指令对应的load指令的有效信号
+  val paddr = UInt(32.W)                         // 提交指令对应的load指令的物理地址
+  val vaddr = UInt(32.W)                         // 提交指令对应的load指令的虚拟地址
+}
+
 class DiffExcpBundle extends Bundle {
   val excp_valid = Bool()
   val eret = Bool()

@@ -360,7 +360,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.isBranch := entry.isBranch
     io.commit.commit(i).bits.csr_rstat := (entry.csrOp === CSROp.rd || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.wr) && entry.csrNum === 5.U
     io.commit.commit(i).bits.csr_data := entry.result
-    io.commit.commit(i).bits.excp := entry.exceptionVec.orR
+    io.commit.commit(i).bits.excp := entry.exceptionVec.orR && !entry.eret
     io.commit.commit(i).bits.timer64 := entry.timer64
     
     // 提交PC信息
