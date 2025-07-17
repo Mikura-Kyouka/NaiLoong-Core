@@ -128,7 +128,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_out.mem_type := Mux(cacopOp2, MemType.load, Mux(req.cmd, MemType.store, MemType.load))
 
-    val isMMIO = req.addr(31, 16) === "hbfaf".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
+    val isMMIO = req.addr(31, 16) === "hbfaf".U || req.addr(31, 16) === "hbfe0".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
 
     //   000        001          010          011               100               101            110          111
     val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
