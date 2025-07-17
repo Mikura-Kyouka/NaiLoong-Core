@@ -247,7 +247,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
-    io.axi.wstrb := req.wmask << req.addr(1, 0)
+    io.axi.wstrb := Mux(isMMIO, req.wmask << req.addr(1, 0), "b1111".U)
     io.axi.wdata := Mux(isMMIO, req.wdata << offset, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
