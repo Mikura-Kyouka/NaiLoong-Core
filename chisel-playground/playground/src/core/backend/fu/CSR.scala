@@ -97,6 +97,7 @@ class CSR extends Module {
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
     val markIntrpt = Output(Bool())
+    val hardIntrpt = Input(UInt(8.W))
     val difftest = Output(new DiffCSRBundle)
 
     val to_mmu = Flipped(new CsrToMmuBundle)
@@ -140,6 +141,8 @@ class CSR extends Module {
       csr_tval := csr_tval - 1.U 
     }
   }
+  
+  csr_estat.is9_2 := io.hardIntrpt
 
   when(csr_tval === 0.U) {
     csr_estat.is11 := 1.U // 设置定时器中断标志
@@ -370,7 +373,7 @@ class CSR extends Module {
   }
 
   // 中断处理
-  val int_vec = csr_ecfg.asUInt & csr_estat.asUInt
+  val int_vec = csr_ecfg.asUInt(12, 0) & csr_estat.asUInt(12, 0)
   io.markIntrpt := csr_crmd.ie === 1.U && int_vec =/= 0.U
 
   // 异常处理

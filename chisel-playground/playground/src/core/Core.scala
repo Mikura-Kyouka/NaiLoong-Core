@@ -357,6 +357,7 @@ class Core extends Module {
 
   Rn.io.flush := flush
 
+  csr.io.hardIntrpt := io.intrpt
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
   csr.io.exceptionInfo <> rob.io.exceptionInfo
