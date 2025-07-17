@@ -10,11 +10,13 @@ class reqBundle extends Bundle{
     val wdata = Output(UInt(32.W))
     val wmask = Output(UInt(4.W))
     val cmd   = Output(Bool())// 0: read, 1: write
+    val moqIdx = Output(UInt(3.W)) // moq entry index
 }
 
 class respBundle extends Bundle{
     val rdata = Output(UInt(32.W))
     val resp = Output(Bool()) // 0: ready, 1: error
+    val moqIdx = Output(UInt(3.W)) // moq entry index
 }
 
 case class DCacheConfig(
@@ -111,9 +113,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val cacopOp1 = io.cacop.en && io.cacop.op === CACOPOp.op1
     val cacopOp2 = io.cacop.en && io.cacop.op === CACOPOp.op2
 
-    val req = io.req.bits
+    val reqReg = RegEnable(io.req.bits, io.req.fire)
+    val req = Mux(io.req.fire, io.req.bits, reqReg)
+
     val resp = Wire(new respBundle)
     resp := DontCare
+    resp.moqIdx := req.moqIdx // 保留moq entry index
     val addr = req.addr.asTypeOf(addrBundle)
     when(cacopOp0 || cacopOp1) {
       addr := io.cacop.VA.asTypeOf(addrBundle)
@@ -180,7 +185,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // because store may only write to specific byte
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.valid && !io.flush && !cacopOp0, 
+        s_idle -> Mux(io.req.fire && !io.flush && !cacopOp0, 
                         Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
                         s_idle),
         s_judge -> Mux(io.flush, 
@@ -196,8 +201,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_read_cache -> s_idle
     ))
 
-    io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
-                    (!io.req.valid || io.resp.fire)
+    io.req.ready := state === s_idle
     io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
                      (io.req.valid && cacopOp0 && state === s_idle)) && !flushed 
     io.resp.bits.resp := false.B

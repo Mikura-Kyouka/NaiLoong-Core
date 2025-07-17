@@ -7,7 +7,6 @@ import chisel3.util.experimental.decode.Minimizer
 import core.LSUOpType.sw
 import core.FuType.lsu
 import core.LSUOpType.isStore
-import core.MEMOpID.tlb
 
 object RobConfig {
   val ROB_ENTRY_NUM = 64
