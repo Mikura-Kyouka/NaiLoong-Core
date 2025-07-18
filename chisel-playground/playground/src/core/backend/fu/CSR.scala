@@ -245,6 +245,10 @@ class CSR extends Module {
   io.difftest.csr_dmw0 := csr_dmw0.asUInt
   io.difftest.csr_dmw1 := csr_dmw1.asUInt
 
+  val pgd = WireInit(0.U.asTypeOf(new csr_pgdx_bundle))
+  pgd.base := Mux(csr_badv(31) === 0.U, csr_pgdl.base, csr_pgdh.base)
+  pgd.zero11_0 := 0.U
+
   // read
   for(i <- 0 until 2) {
     io.read(i).csr_data := LookupTree(io.read(i).csr_num, Seq(
@@ -262,7 +266,7 @@ class CSR extends Module {
       CsrName.ASID  -> csr_asid.asUInt,
       CsrName.PGDL  -> csr_pgdl.asUInt,
       CsrName.PGDH  -> csr_pgdh.asUInt,
-      CsrName.PGD   -> csr_pgd.asUInt,
+      CsrName.PGD   -> pgd.asUInt,
       CsrName.SAVE0 -> csr_save0,
       CsrName.SAVE1 -> csr_save1,
       CsrName.SAVE2 -> csr_save2,
@@ -362,12 +366,11 @@ class CSR extends Module {
         }
         is(CsrName.PGDL) {
           csr_pgdl := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+          csr_pgdl.zero11_0 := 0.U
         }
         is(CsrName.PGDH) {
           csr_pgdh := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
-        }
-        is(CsrName.PGD) {
-          csr_pgd := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+          csr_pgdh.zero11_0 := 0.U
         }
         is(CsrName.TLBRENTRY) {
           csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
@@ -453,25 +456,14 @@ class CSR extends Module {
       csr_badv := io.exceptionInfo.exceptionVAddr
       csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
-    when(cause === 1.U) {                // load 操作页无效
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    when(cause === 2.U) {                // store 操作页无效
+    // load 操作页无效 store 操作页无效 页特权等级错 页修改
+    when(cause === 1.U || cause === 2.U || cause === 4.U || cause === 7.U) { 
       csr_badv := io.exceptionInfo.exceptionVAddr 
       csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
     when(cause === 3.U) {                // 取指页无效
       csr_badv := io.exceptionInfo.exceptionPC 
       csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
-    }
-    when(cause === 4.U) {                // 页特权等级错
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    when(cause === 7.U) {                // 页修改
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
   }
   io.exceptionInfo.exceptionNewPC := Mux(cause === 63.U, csr_tlbrentry.asUInt, csr_eentry.asUInt)
