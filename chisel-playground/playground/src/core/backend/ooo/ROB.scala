@@ -41,13 +41,14 @@ class RobEntry extends Bundle {
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
   val inst_valid = Bool()
-  val csrOp     = UInt(3.W)
+  val csrOp     = UInt(4.W)
   val csrNum    = UInt(14.W)
   val csrNewData = UInt(32.W)
   val eret = Bool() 
   val tlbInfo = new TlbInstBundle
   val cacopOp = UInt(2.W)
   val cType = UInt(2.W)
+  val failsc = Bool()
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -84,6 +85,7 @@ class RobWritebackInfo extends Bundle {
   val optype      = UInt(7.W)
   val timer64     = UInt(64.W)
   val tlbInfo     = new TlbInstBundle
+  val failsc      = Bool() // 是否发生了失败的sc指令
 }
 
 class rtrBundle extends Bundle {
@@ -234,6 +236,7 @@ class Rob extends Module {
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
       robEntries(idx).timer64      := io.writeback(i).bits.timer64
       robEntries(idx).tlbInfo      := io.writeback(i).bits.tlbInfo
+      robEntries(idx).failsc       := io.writeback(i).bits.failsc
     }
   }
   
@@ -256,7 +259,8 @@ class Rob extends Module {
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
     }
     hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
-                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop
+                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop &&
+                    robEntries(commitIdx).csrOp =/= CSROp.sc
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
@@ -292,6 +296,7 @@ class Rob extends Module {
 
   val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  dontTouch(shouldCommit)
 
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
@@ -372,13 +377,17 @@ class Rob extends Module {
     io.commitInstr(i).bits := entry.instr
 
     // for csr
-    val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn
+    val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn ||
+                  entry.csrOp === CSROp.ll || entry.csrOp === CSROp.sc
     io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
+    io.commitCSR(i).bits.ll := entry.csrOp === CSROp.ll
+    io.commitCSR(i).bits.sc := entry.csrOp === CSROp.sc
+    io.commitCSR(i).bits.lladdr := entry.vaddr // ll指令的地址
 
     // for load/store difftest
-    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
+    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu && !entry.failsc
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
@@ -390,9 +399,13 @@ class Rob extends Module {
     }
   }
   
+  val storeIdx = head + PriorityEncoder(hasStore)
+  dontTouch(storeIdx)
+
   switch (st_state) {
     is (st_idle) {
-      when (hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore))) {
+      when (hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore)) &&
+           !robEntries(storeIdx).failsc) {
         st_state := st_commit
         OutValid := true.B
       }
@@ -422,7 +435,7 @@ class Rob extends Module {
   io.RobLsuIn.ready := InReady
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    hasCommit(i) := Mux(hasStore(i), st_state === st_retire && io.RobLsuIn.valid && shouldCommit(i), 
+    hasCommit(i) := Mux(hasStore(i), (st_state === st_retire && io.RobLsuIn.valid || robEntries(storeIdx).failsc) && shouldCommit(i), 
                         shouldCommit(i))
   }
 

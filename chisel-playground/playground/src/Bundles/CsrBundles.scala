@@ -116,7 +116,10 @@ class csr_read_bundle extends Bundle {
 
 class csr_write_bundle extends Bundle {
   val csr_num = Input(UInt(14.W)) // csr寄存器的id
-  val csr_data = Input(UInt(32.W)) // csr寄存器的值  
+  val csr_data = Input(UInt(32.W)) // csr寄存器的值
+  val ll = Input(Bool()) // 是否是ll指令
+  val sc = Input(Bool()) // 是否是sc指令
+  val lladdr = Input(UInt(32.W)) // ll指令的地址 
 }
 
 class csr_excp_bundle extends Bundle {

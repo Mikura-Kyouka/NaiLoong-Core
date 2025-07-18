@@ -338,6 +338,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
     rob.io.writeback(i).bits.tlbInfo := Ex.io.out(i).bits.tlbInfo
     rob.io.writeback(i).bits.vaddr := Ex.io.out(i).bits.vaddr
+    rob.io.writeback(i).bits.failsc := Ex.io.out(i).bits.failsc
   }
 
   // allocate rob entries in rename stage
@@ -364,6 +365,8 @@ class Core extends Module {
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
   Ex.io.markIntrpt := csr.io.markIntrpt
+  Ex.io.llbit := csr.io.llbit
+  Ex.io.lladdr := csr.io.lladdr
   // mmu <=> csr
   csr.io.from_mmu <> mmu.io.to_csr
   csr.io.to_mmu <> mmu.io.from_csr
@@ -456,7 +459,8 @@ class Core extends Module {
     val isSt = rob.io.commitLS.map { commit =>
       commit.valid && (commit.bits.optype === LSUOpType.sw ||
                commit.bits.optype === LSUOpType.sh ||
-               commit.bits.optype === LSUOpType.sb)
+               commit.bits.optype === LSUOpType.sb ||
+               commit.bits.optype === LSUOpType.sc)
     }
     val isValidSt = isSt.zip(diffExcp).map { case (st, excp) => st && !excp }
     
@@ -474,6 +478,7 @@ class Core extends Module {
       LSUOpType.sw -> "b00000100".U,
       LSUOpType.sh -> "b00000010".U,
       LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sc -> "b00001000".U,
       )
     )
     
@@ -489,6 +494,7 @@ class Core extends Module {
       LSUOpType.sw -> "b00000100".U,
       LSUOpType.sh -> "b00000010".U,
       LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sc -> "b00001000".U,
       )
     )
 
@@ -507,7 +513,8 @@ class Core extends Module {
                commit.bits.optype === LSUOpType.lhu ||
                commit.bits.optype === LSUOpType.lh ||
                commit.bits.optype === LSUOpType.lbu ||
-               commit.bits.optype === LSUOpType.lb)
+               commit.bits.optype === LSUOpType.lb ||
+               commit.bits.optype === LSUOpType.ll)
     }
     val isValidLd = isLd.zip(diffExcp).map { case (ld, excp) => ld && !excp }
     
@@ -522,6 +529,7 @@ class Core extends Module {
     }
     val loadType = MuxLookup(ldInfo.optype, 0.U)(
       List(
+      LSUOpType.ll ->  "b00100000".U,
       LSUOpType.lw ->  "b00010000".U,
       LSUOpType.lhu -> "b00001000".U,
       LSUOpType.lh ->  "b00000100".U,
@@ -539,6 +547,7 @@ class Core extends Module {
     }
     val loadType2 = MuxLookup(ldInfo2.optype, 0.U)(
       List(
+      LSUOpType.ll ->  "b00100000".U,
       LSUOpType.lw ->  "b00010000".U,
       LSUOpType.lhu -> "b00001000".U,
       LSUOpType.lh ->  "b00000100".U,

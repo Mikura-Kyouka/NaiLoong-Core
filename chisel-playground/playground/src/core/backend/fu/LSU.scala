@@ -14,8 +14,8 @@ object LSUOpType {
   def sh   = "b0001001".U
   def sw   = "b0001010".U
 
-  def ll   = "b0100000".U 
-  def sc   = "b0100001".U
+  def ll   = "b0100010".U 
+  def sc   = "b0110010".U
   def isAdd(func: UInt) = func(6)
   def isAtom(func: UInt): Bool = func(5)
   def isStore(func: UInt): Bool = func(3)
@@ -98,6 +98,7 @@ class UnpipeLSUIO extends FunctionUnitIO {
   val flush = Input(Bool())
   val addr_trans_out = Output(new AddrTrans)
   val addr_trans_in = Input(new AddrTrans)
+  val addr = Input(UInt(32.W))
 
   val cacop = Input(new CACOPIO)
 }
@@ -107,7 +108,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   io := DontCare
   val dcache = Module(new DCache()(new DCacheConfig(totalSize = 1024 * 16, ways = 1)))
 
-  val addr =  io.in.bits.src1 + io.in.bits.src2
+  val addr = io.addr
   io.loadAddrMisaligned := addr(1, 0) =/= 0.U && io.in.bits.func === LSUOpType.lw ||
                           addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.lh ||
                           addr(0) =/= 0.U && io.in.bits.func(2, 0) === LSUOpType.lhu
@@ -141,7 +142,7 @@ class UnpipelinedLSU extends Module with HasLSUConst {
   )
   io.diffData := diffData << (addr(1, 0) << 3)
   // 
-  dcache.io.req.bits.cmd := LSUOpType.isStore(io.in.bits.func)
+  dcache.io.req.bits.cmd := LSUOpType.isStore(io.in.bits.func) || LSUOpType.isSC(io.in.bits.func)
   dcache.io.resp.ready := io.out.ready
   
   io.out.valid := dcache.io.resp.valid || (io.loadAddrMisaligned || io.storeAddrMisaligned) && io.in.valid
@@ -177,6 +178,8 @@ class AligendUnpipelinedLSU extends Module{
     val flush = Input(Bool())
     val addr_trans_out = Output(new AddrTrans)
     val addr_trans_in = Input(new AddrTrans)
+    val llbit = Input(Bool()) // llbit from CSR
+    val lladdr = Input(UInt(32.W)) // ll指令的地址
   })
   val lsu = Module(new UnpipelinedLSU)
 
@@ -196,11 +199,12 @@ class AligendUnpipelinedLSU extends Module{
 
   lsu.io.in.bits.src1 := io.in.bits.src1
   lsu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)
+  lsu.io.addr := Mux(io.in.bits.ctrl.fuOpType === LSUOpType.sc && io.llbit, io.lladdr, lsu.io.in.bits.src1 + lsu.io.in.bits.src2)
   lsu.io.in.bits.func := io.in.bits.ctrl.fuOpType
 
   io.out.bits := DontCare
   io.out.bits.pc := io.in.bits.pc
-  io.out.bits.data := lsu.io.out.bits
+  io.out.bits.data := Mux(io.in.bits.ctrl.fuOpType === LSUOpType.sc, io.llbit.asUInt, lsu.io.out.bits)
   io.out.bits.robIdx := io.in.bits.robIdx
   io.out.bits.preg := io.in.bits.preg
 
@@ -226,10 +230,12 @@ class AligendUnpipelinedLSU extends Module{
   io.out.bits.redirect := io.in.bits.redirect
   io.out.bits.tlbInfo := DontCare
   io.out.bits.vaddr := io.addr_trans_out.vaddr
-  lsu.io.in.valid := io.in.valid && io.in.bits.valid
+  lsu.io.in.valid := io.in.valid && io.in.bits.valid && !(io.in.bits.ctrl.fuOpType === LSUOpType.sc && !io.llbit)
   io.in.ready := lsu.io.in.ready
   io.out.valid := lsu.io.out.valid || 
-                  RegNext(io.in.valid && io.in.bits.valid && (LSUOpType.isStore(io.in.bits.ctrl.fuOpType)))
+                  RegNext(io.in.valid && io.in.bits.valid && 
+                          (LSUOpType.isStore(io.in.bits.ctrl.fuOpType) || io.in.bits.ctrl.fuOpType === LSUOpType.sc))
+  io.out.bits.failsc := io.in.bits.ctrl.fuOpType === LSUOpType.sc && !io.llbit
   lsu.io.out.ready := io.out.ready
 
   // for difftest

@@ -67,6 +67,8 @@ object CSROp {
   def cntid = "b1100".U
   def cntvl = "b1001".U
   def cntvh = "b1010".U
+  def ll = "b1110".U
+  def sc = "b1111".U
 }
 
 object TlbOp {

@@ -370,4 +370,5 @@ class AlignedMDU extends Module{
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.csrNewData := DontCare
   io.out.bits.exceptionVec := DontCare
+  io.out.bits.failsc := false.B // MDU does not handle sc
 } 

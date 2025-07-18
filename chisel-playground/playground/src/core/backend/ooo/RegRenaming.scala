@@ -273,7 +273,7 @@ class RegRenaming extends Module {
     entry.rd := rd
     entry.rfWen := rfWen
     entry.isBranch := input.isBranch
-    entry.isStore := (input.ctrl.fuType === FuType.lsu && LSUOpType.isStore(input.ctrl.fuOpType))
+    entry.isStore := (input.ctrl.fuType === FuType.lsu && (LSUOpType.isStore(input.ctrl.fuOpType) || LSUOpType.isSC(input.ctrl.fuOpType)))
     entry.optype := input.ctrl.fuOpType
     entry.fuType := input.ctrl.fuType
     entry.inst_valid := input.inst_valid
@@ -362,11 +362,6 @@ class RegRenaming extends Module {
     
     // 分配ROB索引
     io.out.bits(i).robIdx := io.robAllocate.allocResp(i)
-
-    // for load/store difftest
-    io.robAllocate.allocEntries(i).paddr := DontCare
-    io.robAllocate.allocEntries(i).wdata := DontCare
-    io.robAllocate.allocEntries(i).optype := DontCare
   }
 
   // 组内相关性处理

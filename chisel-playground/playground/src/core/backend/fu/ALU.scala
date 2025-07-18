@@ -209,6 +209,7 @@ class FuOut extends Bundle {
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)
   val tlbInfo = Output(new TlbInstBundle)
+  val failsc = Output(Bool()) // 是否发生了失败的sc指令
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
@@ -315,5 +316,6 @@ class AligendALU extends Module{
   io.out.bits.wdata := DontCare
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := DontCare
+  io.out.bits.failsc := false.B // ALU does not handle sc
   io.out.bits.timer64 := io.csrRead.timer64
 } 

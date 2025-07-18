@@ -96,6 +96,8 @@ class CSR extends Module {
     val write = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
+    val llbit = Output(Bool())
+    val lladdr = Output(UInt(32.W))
     val markIntrpt = Output(Bool())
     val hardIntrpt = Input(UInt(8.W))
     val difftest = Output(new DiffCSRBundle)
@@ -128,6 +130,7 @@ class CSR extends Module {
   val csr_cntc = RegInit(0.U(32.W))
   val csr_ticlr = RegInit(0.U(1.W))
   val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
+  val lladdr = RegInit(0.U(32.W))
   val csr_tlbrentry = RegInit(0.U.asTypeOf(new csr_tlbrentry_bundle))
   val csr_dmw0 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
@@ -281,7 +284,7 @@ class CSR extends Module {
 
   // write
   for(i <- 0 until RobConfig.ROB_CMT_NUM) {
-    when(io.write(i).valid && csr_crmd.plv === 0.U) { // 只允许PLV0写CSR
+    when(io.write(i).valid && csr_crmd.plv === 0.U && !(io.write(i).bits.ll || io.write(i).bits.sc)) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
           csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
@@ -369,9 +372,31 @@ class CSR extends Module {
         is(CsrName.TLBRENTRY) {
           csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
         }
+        is(CsrName.LLBCTL) {
+          csr_llbctl.klo := io.write(i).bits.csr_data(2)
+          when(io.write(i).bits.csr_data(1) === 1.U) {
+            csr_llbctl.rollb := 0.U
+          }
+        }
       }
     }
   }
+
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
+    when(io.write(i).valid) {
+      when(io.write(i).bits.ll) {
+        csr_llbctl.rollb := 1.U
+        lladdr := io.write(i).bits.lladdr
+      }
+      when(io.write(i).bits.sc) {
+        csr_llbctl.rollb := 0.U
+      }
+    }
+  }
+
+  io.llbit := csr_llbctl.rollb === 1.U
+  io.lladdr := lladdr
+
 
   // 中断处理
   val int_vec = csr_ecfg.asUInt(12, 0) & csr_estat.asUInt(12, 0)
