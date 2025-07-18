@@ -455,63 +455,105 @@ class Core extends Module {
 
     val isSt = rob.io.commitLS.map { commit =>
       commit.valid && (commit.bits.optype === LSUOpType.sw ||
-                       commit.bits.optype === LSUOpType.sh ||
-                       commit.bits.optype === LSUOpType.sb)
+               commit.bits.optype === LSUOpType.sh ||
+               commit.bits.optype === LSUOpType.sb)
     }
     val isValidSt = isSt.zip(diffExcp).map { case (st, excp) => st && !excp }
+    
+    // For first store
     val stInfo = Wire(new LSCommitInfo)
     when (isValidSt(0)) {
       stInfo := rob.io.commitLS(0).bits
     }.elsewhen (isValidSt(1)) {
       stInfo := rob.io.commitLS(1).bits
-    // }.elsewhen (isValidSt(2)) {
-    //   stInfo := rob.io.commitLS(2).bits
     }.otherwise {
       stInfo := 0.U.asTypeOf(new LSCommitInfo)
     }
     val storeType = MuxLookup(stInfo.optype, 0.U)(
       List(
-        LSUOpType.sw -> "b00000100".U,
-        LSUOpType.sh -> "b00000010".U,
-        LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sw -> "b00000100".U,
+      LSUOpType.sh -> "b00000010".U,
+      LSUOpType.sb -> "b00000001".U,
+      )
+    )
+    
+    // For second store
+    val stInfo2 = Wire(new LSCommitInfo)
+    when (isValidSt(0) && isValidSt(1)) {
+      stInfo2 := rob.io.commitLS(1).bits
+    }.otherwise {
+      stInfo2 := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val storeType2 = MuxLookup(stInfo2.optype, 0.U)(
+      List(
+      LSUOpType.sw -> "b00000100".U,
+      LSUOpType.sh -> "b00000010".U,
+      LSUOpType.sb -> "b00000001".U,
       )
     )
 
-    DiffCommit.io.store.valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
-    DiffCommit.io.store.paddr := stInfo.paddr
-    DiffCommit.io.store.vaddr := stInfo.vaddr
-    DiffCommit.io.store.data  := stInfo.wdata
+    DiffCommit.io.store(0).valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
+    DiffCommit.io.store(0).paddr := stInfo.paddr
+    DiffCommit.io.store(0).vaddr := stInfo.vaddr
+    DiffCommit.io.store(0).data  := stInfo.wdata
+    
+    DiffCommit.io.store(1).valid := Mux(isValidSt(0) && isValidSt(1), storeType2, 0.U)
+    DiffCommit.io.store(1).paddr := stInfo2.paddr
+    DiffCommit.io.store(1).vaddr := stInfo2.vaddr
+    DiffCommit.io.store(1).data  := stInfo2.wdata
 
     val isLd = rob.io.commitLS.map { commit =>
       commit.valid && (commit.bits.optype === LSUOpType.lw ||
-                       commit.bits.optype === LSUOpType.lhu ||
-                       commit.bits.optype === LSUOpType.lh ||
-                       commit.bits.optype === LSUOpType.lbu ||
-                       commit.bits.optype === LSUOpType.lb)
+               commit.bits.optype === LSUOpType.lhu ||
+               commit.bits.optype === LSUOpType.lh ||
+               commit.bits.optype === LSUOpType.lbu ||
+               commit.bits.optype === LSUOpType.lb)
     }
     val isValidLd = isLd.zip(diffExcp).map { case (ld, excp) => ld && !excp }
+    
+    // For first load
     val ldInfo = Wire(new LSCommitInfo)
     when (isValidLd(0)) {
       ldInfo := rob.io.commitLS(0).bits
     }.elsewhen (isValidLd(1)) {
       ldInfo := rob.io.commitLS(1).bits
-    // }.elsewhen (isValidLd(2)) {
-    //   ldInfo := rob.io.commitLS(2).bits    
     }.otherwise {
       ldInfo := 0.U.asTypeOf(new LSCommitInfo)
     }
     val loadType = MuxLookup(ldInfo.optype, 0.U)(
       List(
-        LSUOpType.lw ->  "b00010000".U,
-        LSUOpType.lhu -> "b00001000".U,
-        LSUOpType.lh ->  "b00000100".U,
-        LSUOpType.lbu -> "b00000010".U,
-        LSUOpType.lb ->  "b00000001".U
+      LSUOpType.lw ->  "b00010000".U,
+      LSUOpType.lhu -> "b00001000".U,
+      LSUOpType.lh ->  "b00000100".U,
+      LSUOpType.lbu -> "b00000010".U,
+      LSUOpType.lb ->  "b00000001".U
       )
     )
-    DiffCommit.io.load.valid := Mux(isValidLd.reduce(_ || _), loadType, 0.U)
-    DiffCommit.io.load.paddr := ldInfo.paddr
-    DiffCommit.io.load.vaddr := ldInfo.vaddr
+    
+    // For second load
+    val ldInfo2 = Wire(new LSCommitInfo)
+    when (isValidLd(0) && isValidLd(1)) {
+      ldInfo2 := rob.io.commitLS(1).bits
+    }.otherwise {
+      ldInfo2 := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val loadType2 = MuxLookup(ldInfo2.optype, 0.U)(
+      List(
+      LSUOpType.lw ->  "b00010000".U,
+      LSUOpType.lhu -> "b00001000".U,
+      LSUOpType.lh ->  "b00000100".U,
+      LSUOpType.lbu -> "b00000010".U,
+      LSUOpType.lb ->  "b00000001".U
+      )
+    )
+    
+    DiffCommit.io.load(0).valid := Mux(isValidLd.reduce(_ || _), loadType, 0.U)
+    DiffCommit.io.load(0).paddr := ldInfo.paddr
+    DiffCommit.io.load(0).vaddr := ldInfo.vaddr
+    
+    DiffCommit.io.load(1).valid := Mux(isValidLd(0) && isValidLd(1), loadType2, 0.U)
+    DiffCommit.io.load(1).paddr := ldInfo2.paddr
+    DiffCommit.io.load(1).vaddr := ldInfo2.vaddr
   }
 }
 

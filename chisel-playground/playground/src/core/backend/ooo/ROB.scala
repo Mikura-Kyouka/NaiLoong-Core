@@ -138,7 +138,7 @@ class RobIO extends Bundle {
   val commitPC = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))         // 提交的PC
   val commitInstr = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))      // 提交的指令
   // for load/store difftest
-  val commitLS = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(new LSCommitInfo)))   // 提交的load/store信息
+  val commitLS = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(new LSCommitInfo)))   // 提交的store信息
   val commitCSR = Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle))
 
   // 分支预测错误接口
