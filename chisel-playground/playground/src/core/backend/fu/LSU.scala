@@ -263,7 +263,7 @@ class LSU extends Module with HasLSUConst {
 
   val storeQueueConfirm = io.scommit // TODO: Argo only support 1 scommit / cycle
   // when a store inst actually writes data to dmem, mark it as `waiting for dmem resp`
-  val storeQueueReqsend = io.dmemReq.fire && io.dmemReq.bits.cmd === 1.U //  && MEMOpID.commitToSTQ(opReq)
+  val storeQueueReqsend = io.dmemReq.fire && io.dmemReq.bits.cmd === 1.U && !io.flush //  && MEMOpID.commitToSTQ(opReq)
   // when dmem try to commit to store queue, i.e. dmem report a write op is finished, dequeue
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
@@ -378,23 +378,6 @@ class LSU extends Module with HasLSUConst {
 
   dontTouch(havePendingDmemReq)
   io.dmemReq.valid := false.B
-  // when(haveUnrequiredStore){
-  //   io.dmemReq.bits.addr := storeQueue(0.U).paddr
-  //   io.dmemReq.bits.size := storeQueue(0.U).size
-  //   io.dmemReq.bits.wdata := storeQueue(0.U).data
-  //   io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
-  //   io.dmemReq.bits.cmd := 1.U
-  //   io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
-  //   io.dmemReq.valid := true.B
-  // }.elsewhen(havePendingDmemReq){
-  //   io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
-  //   io.dmemReq.bits.size := moq(moqDmemPtr).size
-  //   io.dmemReq.bits.wdata := DontCare
-  //   io.dmemReq.bits.wmask := DontCare
-  //   io.dmemReq.bits.cmd := 0.U
-  //   io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
-  //   io.dmemReq.valid := true.B
-  // }
   when(havePendingDmemReq){
     io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
     io.dmemReq.bits.size := moq(moqDmemPtr).size
@@ -407,7 +390,7 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.addr := storeQueue(0.U).paddr
     io.dmemReq.bits.size := storeQueue(0.U).size
     io.dmemReq.bits.wdata := storeQueue(0.U).data // TODO:see moq
-    io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
+    io.dmemReq.bits.wmask := storeQueue(0.U).wmask
     io.dmemReq.bits.cmd := 1.U
     io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
     io.dmemReq.valid := true.B
