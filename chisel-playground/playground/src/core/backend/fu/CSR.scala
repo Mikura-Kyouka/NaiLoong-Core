@@ -292,6 +292,7 @@ class CSR extends Module {
         }
         is(CsrName.PRMD) {
           csr_prmd := io.write(i).bits.csr_data.asTypeOf(new csr_prmd_bundle)
+          csr_prmd.zero := 0.U
         }
         is(CsrName.ECFG) {
           csr_ecfg := io.write(i).bits.csr_data.asTypeOf(new csr_ecfg_bundle)

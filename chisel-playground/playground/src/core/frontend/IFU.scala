@@ -96,18 +96,14 @@ class IFU extends Module{
     val predictTargetReg = RegInit("h00000000".U(32.W))
     val predictInfoReg = RegInit(VecInit(Seq.fill(4)(0.U.asTypeOf(new RedirectIO))))
 
-    when(icache.io.s1Fire) {
+    when(icache.io.s1Fire || io.flush) {
         predictTakenReg := false.B
     }
-    when(predictTaken && !icache.io.s1Fire) {
+    when(predictTaken && !icache.io.s1Fire && !io.flush) {
         predictTakenReg := true.B
         predictIndexReg := predictIndex
         predictTargetReg := predictTarget
         predictInfoReg := predictInfo
-    }
-
-    when(io.flush) {
-        predictTakenReg := false.B
     }
 
     pc.io.PCSrc := io.pcSel
