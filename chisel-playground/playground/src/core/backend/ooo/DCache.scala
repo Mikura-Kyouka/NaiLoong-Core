@@ -17,6 +17,7 @@ class respBundle extends Bundle{
     val rdata = Output(UInt(32.W))
     val resp = Output(Bool()) // 0: ready, 1: error
     val moqIdx = Output(UInt(3.W)) // moq entry index
+    val cmd = Output(Bool()) // 0: read, 1: write
 }
 
 case class DCacheConfig(
@@ -214,7 +215,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray.io.dina := 0.U
     }
 
-    val offset = req.addr(1, 0) << 3
+    // val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
@@ -234,8 +235,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
-    io.axi.wstrb := req.wmask << req.addr(1, 0)
-    io.axi.wdata := Mux(isMMIO, req.wdata << offset, cacheData)
+    io.axi.wstrb := Mux(isMMIO, req.wmask, "b1111".U) 
+    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
@@ -265,33 +266,15 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 读取当前字
     val origWord = dataReadData(0)(0)
-
-    // 新的数据寄存器
-    val newWord = Wire(UInt(32.W))
-    newWord := origWord // 默认保持原值
+    val newWordBytes = Wire(Vec(4, UInt(8.W)))
+    val origBytes = origWord.asTypeOf(Vec(4, UInt(8.W)))
+    val wdataBytes = req.wdata.asTypeOf(Vec(4, UInt(8.W)))
+    for(i <- 0 until 4){
+      newWordBytes(i) := Mux(req.wmask(i), wdataBytes(i), origBytes(i))
+    }
+    val newWord = newWordBytes.asUInt
 
     when(state === s_write_cache) {
-      when(req.wmask === "b1111".U) {
-        newWord := req.wdata
-      }.elsewhen(req.wmask === "b0011".U) {
-        when(req.addr(1, 0) === "b00".U) {
-          // 更新低半字
-          newWord := Cat(origWord(31, 16), req.wdata(15, 0))
-        }.elsewhen(req.addr(1, 0) === "b10".U) {
-          // 更新高半字
-          newWord := Cat(req.wdata(15, 0), origWord(15, 0))
-        }
-      }.elsewhen(req.wmask === "b0001".U) {
-        when(req.addr(1, 0) === "b00".U) {
-          newWord := Cat(origWord(31, 8), req.wdata(7, 0))
-        }.elsewhen(req.addr(1, 0) === "b01".U) {
-          newWord := Cat(origWord(31, 16), req.wdata(7, 0), origWord(7, 0))
-        }.elsewhen(req.addr(1, 0) === "b10".U) {
-          newWord := Cat(origWord(31, 24), req.wdata(7, 0), origWord(15, 0))
-        }.otherwise {
-          newWord := Cat(req.wdata(7, 0), origWord(23, 0))
-        }
-      }
       // 完整写入更新后的数据
       // dataArray(addr.index)(0) := VecInit(Seq(newWord))
       dataArray.io.wea := true.B
@@ -320,15 +303,17 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
+      resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData)
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     when(isMMIO) {
-      resp.rdata := io.axi.rdata >> offset
+      resp.rdata := io.axi.rdata
     }
 
     io.resp.bits := resp
+
+    io.resp.bits.cmd := req.cmd // 保留命令类型
 
     // when(io.req.valid){
     //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)

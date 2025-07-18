@@ -55,6 +55,7 @@ class moqEntry extends Bundle{
   val pc       = UInt(32.W)
   val robIdx   = UInt(RobConfig.ROB_INDEX_WIDTH.W)
   // val prfidx   = UInt(prfAddrWidth.W) // FIXME:
+  val preg     = UInt(7.W) // FIXME: for debug
   // val brMask   = UInt(checkpointSize.W)
   // val stMask   = UInt(robSize.W)
   val vaddr    = UInt(32.W) // VAddrBits for debug
@@ -99,8 +100,8 @@ class LSU extends Module with HasLSUConst {
   io.addr_trans_out := DontCare
   io.dmemReq := DontCare
   // val dmem = io.dmem
-  val opResp = 0.U // default load op, for debug
-  val moqidxResp = 0.U
+  // val opResp = 0.U // default load op, for debug
+  // val moqidxResp = 0.U
 
   val storeReq = valid & LSUOpType.isStore(func)
   val loadReq = valid & LSUOpType.isLoad(func)
@@ -150,7 +151,7 @@ class LSU extends Module with HasLSUConst {
     printf("Load request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
   }
   when(LSUOpType.isStore(func) && io.in.valid){
-    printf("Store request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
+    printf("Store request: pc = %x, addr = %x, data = %x, headPtr = %x\n", io.in.bits.pc, addr, io.in.bits.src2, moqHeadPtr)
   }
 
   // load queue enqueue
@@ -180,6 +181,12 @@ class LSU extends Module with HasLSUConst {
     moq(moqTailPtr).finished := false.B
   }
 
+  // when(io.dmemResp.fire){
+  //   moqTailPtr := moqTailPtr + 1.U
+  //   moq(moqTailPtr).valid := false.B
+  //   moq(moqTailPtr).finished := false.B
+  // }
+
   // flush
   when(io.flush) {
     for (i <- 0 until moqSize) {
@@ -193,13 +200,15 @@ class LSU extends Module with HasLSUConst {
 
   when(moqEnqueue){
     moq(moqHeadPtr).pc := io.in.bits.pc
+    moq(moqHeadPtr).preg := io.in.bits.preg // FIXME: for debug
     moq(moqHeadPtr).robIdx := io.in.bits.robIdx
     moq(moqHeadPtr).vaddr := addr
     moq(moqHeadPtr).paddr := addr
     moq(moqHeadPtr).func := func
     moq(moqHeadPtr).size := size
     // moq(moqHeadPtr).op := memop
-    moq(moqHeadPtr).wdata := genWdata(wdata, size)
+    moq(moqHeadPtr).wdata := genWdata(wdata, size) // FIXME:
+    // moq(moqHeadPtr).wdata := wdata
     moq(moqHeadPtr).fdata := 0.U
     moq(moqHeadPtr).fmask := 0.U
     // moq(moqHeadPtr).asrc := io.wdata // FIXIT
@@ -369,21 +378,38 @@ class LSU extends Module with HasLSUConst {
 
   dontTouch(havePendingDmemReq)
   io.dmemReq.valid := false.B
-  when(haveUnrequiredStore){
+  // when(haveUnrequiredStore){
+  //   io.dmemReq.bits.addr := storeQueue(0.U).paddr
+  //   io.dmemReq.bits.size := storeQueue(0.U).size
+  //   io.dmemReq.bits.wdata := storeQueue(0.U).data
+  //   io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
+  //   io.dmemReq.bits.cmd := 1.U
+  //   io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
+  //   io.dmemReq.valid := true.B
+  // }.elsewhen(havePendingDmemReq){
+  //   io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
+  //   io.dmemReq.bits.size := moq(moqDmemPtr).size
+  //   io.dmemReq.bits.wdata := DontCare
+  //   io.dmemReq.bits.wmask := DontCare
+  //   io.dmemReq.bits.cmd := 0.U
+  //   io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
+  //   io.dmemReq.valid := true.B
+  // }
+  when(havePendingDmemReq){
+    io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
+    io.dmemReq.bits.size := moq(moqDmemPtr).size
+    io.dmemReq.bits.wdata := DontCare
+    io.dmemReq.bits.wmask := DontCare
+    io.dmemReq.bits.cmd := 0.U
+    io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
+    io.dmemReq.valid := true.B
+  }.elsewhen(haveUnrequiredStore){
     io.dmemReq.bits.addr := storeQueue(0.U).paddr
     io.dmemReq.bits.size := storeQueue(0.U).size
-    io.dmemReq.bits.wdata := storeQueue(0.U).data
+    io.dmemReq.bits.wdata := storeQueue(0.U).data // TODO:see moq
     io.dmemReq.bits.wmask := genWmask(storeQueue(0.U).paddr, storeQueue(0.U).size)
     io.dmemReq.bits.cmd := 1.U
     io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
-    io.dmemReq.valid := true.B
-  }.elsewhen(havePendingDmemReq){
-    io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
-    io.dmemReq.bits.size := moq(moqDmemPtr).size
-    io.dmemReq.bits.wdata := genWdata(moq(moqDmemPtr).wdata, moq(moqDmemPtr).size)
-    io.dmemReq.bits.wmask := genWmask(moq(moqDmemPtr).paddr, moq(moqDmemPtr).size)
-    io.dmemReq.bits.cmd := 0.U
-    io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
     io.dmemReq.valid := true.B
   }
   io.dmemResp.ready := true.B
@@ -430,17 +456,34 @@ class LSU extends Module with HasLSUConst {
     moq(moqDmemPtr).fmask := forwardWmask
   }
 
-  val rdataFwdSelVec = Wire(Vec(4, (UInt(8.W))))
+  val rdataFwdSelVec = Wire(Vec(4, UInt(8.W)))
   val rdataFwdSel = rdataFwdSelVec.asUInt
   dontTouch(rdataFwdSel)
   for(j <- 0 until 4){
     rdataFwdSelVec(j) := Mux(moq(io.dmemResp.bits.moqIdx).fmask(j), moq(io.dmemResp.bits.moqIdx).fdata(8*(j+1)-1, 8*j), io.dmemResp.bits.rdata(8*(j+1)-1, 8*j))
   }
 
-  when(io.dmemResp.fire){
+  // Load Data Selection
+  val rdata = rdataFwdSel
+  val rdataSel = LookupTree(moq(io.dmemResp.bits.moqIdx).vaddr(1, 0), List(
+    "b00".U -> rdata(31, 0),
+    "b01".U -> rdata(31, 8),
+    "b10".U -> rdata(31, 16),
+    "b11".U -> rdata(31, 24)
+  ))
+  val rdataPartialLoad = LookupTree(moq(io.dmemResp.bits.moqIdx).func, List(
+      LSUOpType.lb   -> SignExt(rdataSel(7, 0) , 32),
+      LSUOpType.lh   -> SignExt(rdataSel(15, 0), 32),
+      LSUOpType.lw   -> rdataSel,
+      LSUOpType.lbu  -> ZeroExt(rdataSel(7, 0) , 32),
+      LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), 32)
+  ))
+
+  when(io.dmemResp.fire && io.dmemResp.bits.cmd === 0.U){ // load response
     moq(io.dmemResp.bits.moqIdx).finished := true.B
     // moq(io.dmemResp.bits.moqIdx).rdata := io.dmemResp.bits.rdata
-    moq(io.dmemResp.bits.moqIdx).rdata := rdataFwdSel
+    // moq(io.dmemResp.bits.moqIdx).rdata := rdataFwdSel
+    moq(io.dmemResp.bits.moqIdx).rdata := rdataPartialLoad
   }
   //-------------------------------------------------------
   // LSU Stage 4: Atom and CDB broadcast
@@ -450,23 +493,17 @@ class LSU extends Module with HasLSUConst {
   // Load Data Selection
   // val rdata = rdataFwdSel
   // val rdataSel = LookupTree(moq(moqidxResp).vaddr(2, 0), List(
-  //   "b000".U -> rdata(63, 0),
-  //   "b001".U -> rdata(63, 8),
-  //   "b010".U -> rdata(63, 16),
-  //   "b011".U -> rdata(63, 24),
-  //   "b100".U -> rdata(63, 32),
-  //   "b101".U -> rdata(63, 40),
-  //   "b110".U -> rdata(63, 48),
-  //   "b111".U -> rdata(63, 56)
+  //   "b00".U -> rdata(31, 0),
+  //   "b01".U -> rdata(31, 8),
+  //   "b10".U -> rdata(31, 16),
+  //   "b11".U -> rdata(31, 24)
   // ))
   // val rdataPartialLoad = LookupTree(moq(moqidxResp).func, List(
   //     LSUOpType.lb   -> SignExt(rdataSel(7, 0) , XLEN),
   //     LSUOpType.lh   -> SignExt(rdataSel(15, 0), XLEN),
-  //     LSUOpType.lw   -> SignExt(rdataSel(31, 0), XLEN),
-  //     LSUOpType.ld   -> SignExt(rdataSel(63, 0), XLEN),
+  //     LSUOpType.lw   -> SignExt(rdataSel(31, 0), XLEN)
   //     LSUOpType.lbu  -> ZeroExt(rdataSel(7, 0) , XLEN),
-  //     LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), XLEN),
-  //     LSUOpType.lwu  -> ZeroExt(rdataSel(31, 0), XLEN)
+  //     LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), XLEN)
   // ))
 
   // // Commit to CDB
@@ -483,7 +520,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.pc :=  moq(writebackSelect).pc
   io.out.bits.data := moq(writebackSelect).rdata // if load rdata if write wdata
   io.out.bits.robIdx := moq(writebackSelect).robIdx
-  // io.out.bits.preg := writebackSelect
+  io.out.bits.preg := moq(writebackSelect).preg
   // io.out.bits.redirect := moq(writebackSelect).robIdx
   // io.out.bits.csrNewData := moq(writebackSelect).robIdx
   // io.out.bits.except := moq(writebackSelect).robIdx
@@ -492,7 +529,14 @@ class LSU extends Module with HasLSUConst {
   // for load/store difftest
   io.out.bits.paddr := moq(writebackSelect).paddr
   io.out.bits.vaddr := moq(writebackSelect).vaddr
-  io.out.bits.wdata := moq(writebackSelect).wdata
+  val diffWdata = Wire(UInt(32.W))
+  diffWdata := MuxLookup(moq(writebackSelect).func(1, 0), moq(writebackSelect).wdata >> (moq(writebackSelect).vaddr(1, 0) << 3))(
+    List (
+      "b00".U -> moq(writebackSelect).wdata(7, 0), // lb
+      "b01".U -> moq(writebackSelect).wdata(15, 0) // lh
+    )
+  )
+  io.out.bits.wdata := diffWdata << (moq(writebackSelect).vaddr(1, 0) << 3)
   io.out.bits.fuType := FuType.lsu
   io.out.bits.optype := moq(writebackSelect).func
   // io.out.bits.timer64 :=
