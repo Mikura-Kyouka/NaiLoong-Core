@@ -378,13 +378,14 @@ class Rob extends Module {
 
     // for csr
     val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn ||
-                  entry.csrOp === CSROp.ll || entry.csrOp === CSROp.sc
+                  entry.csrOp === CSROp.ll || entry.csrOp === CSROp.sc || entry.csrOp === CSROp.idle
     io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
     io.commitCSR(i).bits.ll := entry.csrOp === CSROp.ll
     io.commitCSR(i).bits.sc := entry.csrOp === CSROp.sc
     io.commitCSR(i).bits.lladdr := entry.vaddr // ll指令的地址
+    io.commitCSR(i).bits.idle := entry.csrOp === CSROp.idle // 是否是idle指令
 
     // for load/store difftest
     io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu && !entry.failsc

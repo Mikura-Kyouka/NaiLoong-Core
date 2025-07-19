@@ -120,6 +120,7 @@ class csr_write_bundle extends Bundle {
   val ll = Input(Bool()) // 是否是ll指令
   val sc = Input(Bool()) // 是否是sc指令
   val lladdr = Input(UInt(32.W)) // ll指令的地址 
+  val idle = Input(Bool()) // 是否是idle指令
 }
 
 class csr_excp_bundle extends Bundle {

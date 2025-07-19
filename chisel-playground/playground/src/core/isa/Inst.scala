@@ -170,6 +170,6 @@ object Inst {
         tlbfill         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.fill, CACOPType.i, CACOPOp.nop), 
         invtlb          -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.inv,  CACOPType.i, CACOPOp.nop), 
         ertn            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.ertn,    TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
-        idle            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop),
+        idle            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.idle,    TlbOp.nop,  CACOPType.i, CACOPOp.nop),
     )
 }

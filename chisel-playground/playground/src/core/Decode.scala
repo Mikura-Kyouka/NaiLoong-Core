@@ -64,6 +64,7 @@ object CSROp {
   def syscall = "b0100".U
   def ertn = "b0101".U
   def cpucfg = "b0110".U
+  def idle = "b0111".U
   def cntid = "b1100".U
   def cntvl = "b1001".U
   def cntvh = "b1010".U
