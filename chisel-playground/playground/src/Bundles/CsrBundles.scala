@@ -57,7 +57,8 @@ class csr_tlbehi_bundle extends Bundle {
 }
 
 class csr_tlbelo_bundle extends Bundle{
-    val ppn   = UInt(24.W)          // 页表的物理页号（PPN）
+    val zero31_28 = UInt(4.W)
+    val ppn   = UInt(20.W)          // 页表的物理页号（PPN）
     val zero7 = UInt(1.W)
     val g     = UInt(1.W)           // 页表项的全局标志位（G）。
     val mat   = UInt(2.W)           // 页表项的存储访问类型（MAT）。

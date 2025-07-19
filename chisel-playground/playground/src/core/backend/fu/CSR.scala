@@ -299,6 +299,7 @@ class CSR extends Module {
           //   csr_crmd.datf := 1.U // 设置指令缓存使能
           //   csr_crmd.datm := 1.U // 设置数据缓存使能
           // }
+          csr_crmd.zero := 0.U
         }
         is(CsrName.PRMD) {
           csr_prmd := io.write(i).bits.csr_data.asTypeOf(new csr_prmd_bundle)
@@ -313,7 +314,7 @@ class CSR extends Module {
           csr_estat.is1_0 := io.write(i).bits.csr_data(1, 0)
         }
         is(CsrName.EENTRY) {
-          csr_eentry := io.write(i).bits.csr_data.asTypeOf(new csr_eentry_bundle)
+          csr_eentry.va := io.write(i).bits.csr_data(31, 6)
         }
         is(CsrName.ERA) {
           csr_era := io.write(i).bits.csr_data
@@ -343,16 +344,26 @@ class CSR extends Module {
           }
         }
         is(CsrName.TICLR) {
-          csr_estat.is11 := 0.U   // 清除定时器中断标志
+          when(io.write(i).bits.csr_data(0) === 1.U) {
+            csr_ticlr := 1.U // 清除定时器中断标志
+          }
         }
         is(CsrName.DMW0) {
           csr_dmw0 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+          csr_dmw0.zero2_1 := 0.U
+          csr_dmw0.zero24_6 := 0.U
+          csr_dmw0.zero28 := 0.U
         }
         is(CsrName.DMW1) {
           csr_dmw1 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+          csr_dmw0.zero2_1 := 0.U
+          csr_dmw0.zero24_6 := 0.U
+          csr_dmw0.zero28 := 0.U
         }
         is(CsrName.TLBIDX) {
           csr_tlbidx := io.write(i).bits.csr_data.asTypeOf(new csr_tlbidx_bundle)
+          csr_tlbidx.zero23_16 := 0.U
+          csr_tlbidx.zero30 := 0.U
         }
         is(CsrName.TLBEHI) {
           csr_tlbehi := io.write(i).bits.csr_data.asTypeOf(new csr_tlbehi_bundle)
@@ -360,12 +371,18 @@ class CSR extends Module {
         }
         is(CsrName.TLBELO0) {
           csr_tlbel0 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel0.zero7 := 0.U
+          csr_tlbel0.zero31_28 := 0.U
         }
         is(CsrName.TLBELO1) {
           csr_tlbel1 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel1.zero7 := 0.U
+          csr_tlbel1.zero31_28 := 0.U
         }
         is(CsrName.ASID) {
           csr_asid := io.write(i).bits.csr_data.asTypeOf(new csr_asid_bundle)
+          csr_asid.zero31_24 := 0.U
+          csr_asid.zero15_10 := 0.U
         }
         is(CsrName.PGDL) {
           csr_pgdl := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
@@ -377,6 +394,7 @@ class CSR extends Module {
         }
         is(CsrName.TLBRENTRY) {
           csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
+          csr_tlbrentry.zero5_0 := 0.U
         }
         is(CsrName.LLBCTL) {
           csr_llbctl.klo := io.write(i).bits.csr_data(2)
