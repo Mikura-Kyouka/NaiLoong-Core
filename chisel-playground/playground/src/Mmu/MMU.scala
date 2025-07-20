@@ -379,7 +379,6 @@ class MMU extends Module {
   val dmw1_hit_0 = io.from_csr.dmw1.vseg === vseg_0 && 
                    (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw1.plv0.asBool ||
                     io.from_csr.crmd.plv === 3.U && io.from_csr.dmw1.plv3.asBool)
-  val direct_map_0 = pg_mode_0 & (dmw0_hit_0 | dmw1_hit_0)
   val tlb_map_0 = pg_mode_0 & (~dmw0_hit_0 & ~dmw1_hit_0)
   // 并行逻辑
   io.out0.bits.paddr := (
@@ -388,7 +387,7 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
-  io.out0.bits.mat := Mux(direct_map_0.asBool, io.from_csr.crmd.datf, 
+  io.out0.bits.mat := Mux(da_mode_0.asBool, io.from_csr.crmd.datf, 
     Mux(dmw0_hit_0, io.from_csr.dmw0.mat,
     Mux(dmw1_hit_0, io.from_csr.dmw1.mat, s2.io.out0.bits.mat)))
 
@@ -403,7 +402,6 @@ class MMU extends Module {
   val dmw1_hit_1 = io.from_csr.dmw1.vseg === vseg_1 && 
                    (io.from_csr.crmd.plv === 0.U && io.from_csr.dmw1.plv0.asBool ||
                     io.from_csr.crmd.plv === 3.U && io.from_csr.dmw1.plv3.asBool)
-  val direct_map_1 = pg_mode_1 & (dmw0_hit_1 | dmw1_hit_1)
   val tlb_map_1 = pg_mode_1 & (~dmw0_hit_1 & ~dmw1_hit_1)
   io.out1.bits.paddr := (
     (Fill(ADDR_WIDTH, da_mode_1) & s2.io.out1.bits.vaddr) |
@@ -411,7 +409,7 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_1) & Cat(io.from_csr.dmw1.pseg, s2.io.out1.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_1) & Cat(s2.io.out1.bits.ppn, s2.io.out1.bits.vaddr(11, 0)))
   )
-  io.out1.bits.mat := Mux(direct_map_1.asBool, io.from_csr.crmd.datm, 
+  io.out1.bits.mat := Mux(da_mode_1.asBool, io.from_csr.crmd.datm, 
     Mux(dmw0_hit_1, io.from_csr.dmw0.mat,
     Mux(dmw1_hit_1, io.from_csr.dmw1.mat, s2.io.out1.bits.mat)))
 
