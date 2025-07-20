@@ -81,7 +81,7 @@ class Core extends Module {
 
   val arb = Module(new Arb)
 
-  val csr = Module(new CSR)
+  val csr = Module(new CPUCSR)
 
   val bpu = Module(new BPU)
 

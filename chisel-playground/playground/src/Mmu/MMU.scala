@@ -387,7 +387,7 @@ class MMU extends Module {
     (Fill(ADDR_WIDTH, dmw1_hit_0) & Cat(io.from_csr.dmw1.pseg, s2.io.out0.bits.vaddr(28, 0))) |
     (Fill(ADDR_WIDTH, tlb_map_0) & Cat(s2.io.out0.bits.ppn, s2.io.out0.bits.vaddr(11, 0)))
   )
-  io.out0.bits.mat := Mux(da_mode_0.asBool, io.from_csr.crmd.datf, 
+  io.out0.bits.mat := Mux(da_mode_0.asBool, Mux(io.out0.bits.mem_type === MemType.load, io.from_csr.crmd.datm, io.from_csr.crmd.datf), 
     Mux(dmw0_hit_0, io.from_csr.dmw0.mat,
     Mux(dmw1_hit_0, io.from_csr.dmw1.mat, s2.io.out0.bits.mat)))
 

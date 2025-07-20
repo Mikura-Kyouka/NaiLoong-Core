@@ -87,7 +87,7 @@ class CSRIO extends FunctionUnitIO {
 
 }
 
-class CSR extends Module {
+class CPUCSR extends Module {
     // val io = IO (new CSRIO)
     // val (valid, src1, src2, func) = (io.in.valid, io.in.bits.src1, io.in.bits.src2, io.in.bits.func)
 
