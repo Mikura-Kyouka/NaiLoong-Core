@@ -346,7 +346,7 @@ class CPUCSR extends Module {
         }
         is(CsrName.TICLR) {
           when(io.write(i).bits.csr_data(0) === 1.U) {
-            csr_ticlr := 1.U // 清除定时器中断标志
+            csr_estat.is11 := 0.U   // 清除定时器中断标志
           }
         }
         is(CsrName.DMW0) {
