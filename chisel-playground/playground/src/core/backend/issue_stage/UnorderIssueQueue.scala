@@ -82,8 +82,8 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   when(io.out.fire) {
     for (i <- 0 until SIZE - 1) {
       when(i.U >= first_can_issue_index) {
-        shifted_mem(i) := mem(i + 1)
-        shifted_valid_vec(i) := valid_vec(i + 1)
+        shifted_mem(i) := mem((i + 1) % SIZE)
+        shifted_valid_vec(i) := valid_vec((i + 1) % SIZE)
       }
     }
     shifted_valid_vec(SIZE - 1) := false.B
@@ -99,7 +99,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
     for (i <- 1 to MAX_CNT) {
       when(io.in.bits.inst_cnt === i.U) {
         for (j <- 0 until i) {
-          val idx = base + j.U
+          val idx = base +& j.U
           when(idx < SIZE.U) {
             next_mem(idx) := io.in.bits.inst_vec(j)
             next_valid_vec(idx) := true.B
