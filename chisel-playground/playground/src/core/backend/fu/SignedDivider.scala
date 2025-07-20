@@ -72,7 +72,7 @@ class SignedDivider extends Module {
       when(inputFire) {
         dividend := io.s_axis_dividend_tdata
         divisor := io.s_axis_divisor_tdata
-        latencyCounter := 37.U
+        latencyCounter := 1.U
         state := calc
       }
     }
@@ -90,7 +90,7 @@ class SignedDivider extends Module {
           remainder := dividend - divisor * quot
         }
         outputValid := true.B
-        gapCounter := 8.U
+        gapCounter := 1.U
         state := waitGap
       }.otherwise {
         latencyCounter := latencyCounter - 1.U

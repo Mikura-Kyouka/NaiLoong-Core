@@ -314,7 +314,8 @@ class CPUCSR extends Module {
           csr_estat.is1_0 := io.write(i).bits.csr_data(1, 0)
         }
         is(CsrName.EENTRY) {
-          csr_eentry.va := io.write(i).bits.csr_data(31, 6)
+          csr_eentry := io.write(i).bits.csr_data.asTypeOf(new csr_eentry_bundle)
+          csr_eentry.zero := 0.U
         }
         is(CsrName.ERA) {
           csr_era := io.write(i).bits.csr_data

@@ -468,7 +468,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     // dataArray(index)(0)(1) := axiDataLatch(1)
     // dataArray(index)(0)(2) := axiDataLatch(2)
     // dataArray(index)(0)(3) := rdata
-    dataArray.io.wea := true.B
+    dataArray.io.wea := io.in.bits.mat === 1.U // 一致可缓存
     dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
     io.metaArrayWrite.valid := io.in.bits.mat === 1.U // 一致可缓存

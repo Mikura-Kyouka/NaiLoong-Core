@@ -255,7 +255,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 将这个cacheline标记为not dirty的状态
     val rdata = io.axi.rdata
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
-      dataArray.io.wea := true.B
+      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := VecInit(Seq.fill(LineBeats)(rdata)).asUInt
       // dataArray(addr.index)(0)(0) := rdata // TODO
@@ -271,10 +271,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).tag := addr.tag
       // metaArray(addr.index)(0).valid := true.B
       // metaArray(addr.index)(0).dirty := false.B
-      metaArray.io.wea := true.B
+      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := true.B
+      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
@@ -311,7 +311,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       }
       // 完整写入更新后的数据
       // dataArray(addr.index)(0) := VecInit(Seq(newWord))
-      dataArray.io.wea := true.B
+      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := newWord
       
@@ -327,10 +327,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).tag := addr.tag
       // metaArray(addr.index)(0).valid := true.B
       // metaArray(addr.index)(0).dirty := true.B
-      metaArray.io.wea := true.B
+      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := true.B
+      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty

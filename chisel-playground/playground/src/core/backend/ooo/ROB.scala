@@ -379,7 +379,7 @@ class Rob extends Module {
     // for csr
     val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn ||
                   entry.csrOp === CSROp.ll || entry.csrOp === CSROp.sc || entry.csrOp === CSROp.idle
-    io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen
+    io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen && !hasException(i)
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
     io.commitCSR(i).bits.ll := entry.csrOp === CSROp.ll
