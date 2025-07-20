@@ -180,6 +180,7 @@ class AligendUnpipelinedLSU extends Module{
     val addr_trans_in = Input(new AddrTrans)
     val llbit = Input(Bool()) // llbit from CSR
     val lladdr = Input(UInt(32.W)) // ll指令的地址
+    val markIntrpt = Input(Bool())
   })
   val lsu = Module(new UnpipelinedLSU)
 
@@ -223,7 +224,8 @@ class AligendUnpipelinedLSU extends Module{
                         lsu.io.addr_trans_in.excp.en && lsu.io.addr_trans_in.excp.ecode === Ecode.tlbr,
                         io.in.bits.exceptionVec.asUInt(10),
                         lsu.io.loadAddrMisaligned || lsu.io.storeAddrMisaligned,   // 9: ale
-                        io.in.bits.exceptionVec.asUInt(8, 0)
+                        io.in.bits.exceptionVec.asUInt(8, 1),
+                        io.markIntrpt
                         )
 
   io.out.bits.exceptionVec := exceptionVec

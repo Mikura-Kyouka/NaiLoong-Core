@@ -5,7 +5,7 @@ import chisel3.util._
 
 class fetchExcp extends Bundle {
   val en = Bool() // 是否发生异常
-  val ecode = UInt(4.W) // 异常码
+  val ecode = UInt(6.W) // 异常码
 }
 
 class IFU2IDU extends Bundle {
