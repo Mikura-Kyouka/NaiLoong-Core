@@ -171,10 +171,10 @@ class IFU extends Module{
 
     val out_temp = WireInit(icache.io.out.bits)
 
-    out_temp(0) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(0))
-    out_temp(1) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(1))
-    out_temp(2) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(2))
-    out_temp(3) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(3))
+    // out_temp(0) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(0))
+    // out_temp(1) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(1))
+    // out_temp(2) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(2))
+    // out_temp(3) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(3))
 
     io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, out_temp(0))
     io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, out_temp(1))
