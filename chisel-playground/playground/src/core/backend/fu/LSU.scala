@@ -187,10 +187,17 @@ class LSU extends Module with HasLSUConst {
   //   moq(moqTailPtr).finished := false.B
   // }
 
-  // flush
+  // flush TODO: FIXME: TODO: FIXME:
   when(io.flush) {
+    moqHeadPtr := nextmoqDmemPtr
+    moqDtlbPtr := nextmoqDmemPtr
+    // moqHeadPtr := 0.U
+    // moqTailPtr := 0.U
+    // moqDtlbPtr := 0.U
+    // moqDmemPtr := 0.U
     for (i <- 0 until moqSize) {
       moq(i).valid := false.B
+      moq(i).tlbfin := false.B
     }
   }
 
