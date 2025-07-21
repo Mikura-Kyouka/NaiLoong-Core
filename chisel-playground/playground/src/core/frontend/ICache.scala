@@ -222,6 +222,8 @@ class Stage1In extends Bundle {
   val addr = Input(UInt(32.W))
   val pc = Input(UInt(32.W))
   val mat = Input(UInt(2.W))
+  val excp = Input(Bool())
+  val ecode = Input(UInt(6.W))
   val brPredictTaken = Input(Vec(4, new RedirectIO))
   val valid = Input(Bool())
   // cacop signal
@@ -232,6 +234,8 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
   val pc = Output(UInt(32.W))
   val mat = Output(UInt(2.W))
+  val excp = Output(Bool())
+  val ecode = Output(UInt(6.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
@@ -247,6 +251,8 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
   val mat = Output(UInt(2.W))
+  val excp = Output(Bool())
+  val ecode = Output(UInt(6.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
   val isCACOP = Output(Bool()) // cacop signal
@@ -317,6 +323,8 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.addr := io.in.addr 
   io.out.bits.pc := io.in.pc
   io.out.bits.mat := io.in.mat
+  io.out.bits.excp := io.in.excp
+  io.out.bits.ecode := io.in.ecode
   io.out.bits.index := index 
   io.out.bits.tag := tag
   io.out.bits.brPredictTaken := io.in.brPredictTaken
@@ -416,7 +424,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dontTouch(FLAG)
 
   state := MuxLookup(state, s_idle)(Seq(
-    s_idle -> Mux((!hit || io.in.bits.mat === 0.U) && io.in.valid, s_fetching, s_idle),
+    s_idle -> Mux((!hit || io.in.bits.mat === 0.U) && io.in.valid && !io.in.bits.excp, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
     s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, s_idle, s_valid), s_wait_data),
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
@@ -492,7 +500,11 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.isCACOP := io.in.bits.isCACOP
   io.out.bits.cacopOp := io.in.bits.cacopOp
   io.out.bits.mat := io.in.bits.mat
-  io.out.valid := ((hit && io.in.bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
+  io.out.bits.excp := io.in.bits.excp
+  io.out.bits.ecode := io.in.bits.ecode
+  io.out.valid := ((hit && io.in.bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || 
+                   (state === s_valid && !refetch) ||
+                   (state ===s_idle && io.in.bits.excp && (!io.flush && io.in.valid)))
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
 }
 
@@ -531,6 +543,9 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when(io.in.bits.isCACOP){
     ValidVec := "b0000".U // cacop 时不返回指令
   }
+  when(io.in.bits.excp) {
+    ValidVec := "b1111".U
+  }
 
   // 0 0000, 4 0100, 8 1000, c 1100
   io.out.bits(0).inst := rdata(0)
@@ -556,10 +571,16 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush
 
-  io.out.bits(0).excp := DontCare
-  io.out.bits(1).excp := DontCare
-  io.out.bits(2).excp := DontCare
-  io.out.bits(3).excp := DontCare
+  for(i <- 0 until 4) {
+    io.out.bits(i).excp.en := io.in.bits.excp
+    io.out.bits(i).excp.ecode := io.in.bits.ecode
+  }
+  when(io.in.bits.excp) {
+    for(i <- 0 until 4) {
+      io.out.bits(i).pc := io.in.bits.pc
+      io.out.bits(i).inst := 0x03400000.U // NOP
+    }
+  }
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 

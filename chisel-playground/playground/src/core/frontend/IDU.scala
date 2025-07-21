@@ -121,7 +121,7 @@ class Decoder extends Module {
                 [14] pis     |
                 [15] pil     |
     */
-    when(io.in.bits.pc(1, 0) =/= 0.U) {
+    when(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.adef) {
         io.out.bits.cf.exceptionVec(1) := true.B // adef
     }.elsewhen(isLegal === IsLegal.n || tlbOp === TlbOp.inv && instr(4, 0) > 6.U) {
         io.out.bits.cf.exceptionVec(7) := true.B // ine
