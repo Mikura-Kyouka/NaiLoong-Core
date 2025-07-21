@@ -2,6 +2,7 @@ package core
 import chisel3._
 import MmuConfig._
 import Ecode._
+import upickle.default
 
 object MMUPipelineConnect {
   import chisel3.util._

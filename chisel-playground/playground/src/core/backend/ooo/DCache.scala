@@ -199,8 +199,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(cacopOp0, s_idle, Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), s_tlb)), s_idle)),
-        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
-        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_wait_rob, s_read_cache)), Mux(!cacopOp2 && req.cmd, s_wait_rob, Mux(dirty, s_write_mem1, s_read_mem1)))),
+        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO && !cacopOp2, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
+        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd && !cacopOp2, s_wait_rob, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), s_read_cache)), Mux(!cacopOp2 && req.cmd, s_wait_rob, Mux(cacopOp2, s_idle, Mux(dirty, s_write_mem1, s_read_mem1))))),
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
@@ -213,7 +213,9 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
                     (!io.req.valid || io.resp.fire)
     io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
-                      (io.addr_trans_in.excp.en && state === s_tlb) || (io.req.valid && cacopOp0 && state === s_idle)) && !flushed 
+                      (io.addr_trans_in.excp.en && state === s_tlb) || (io.req.valid && cacopOp0 && state === s_idle) || 
+                      (io.req.valid && cacopOp1 && state === s_write_mem3) ||
+                      (!hit && cacopOp2 && state === s_judge)) && !flushed 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare

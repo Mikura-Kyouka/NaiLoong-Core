@@ -246,6 +246,7 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val pc = Output(UInt(32.W))
   val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
+  val mat = Output(UInt(2.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
   val isCACOP = Output(Bool()) // cacop signal
@@ -407,7 +408,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val s_idle :: s_fetching :: s_wait_data :: s_valid :: s_judge :: Nil = Enum(5)
   val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
-  when(io.flush && (state =/= s_idle || !hit)) { refetchLatch := true.B }
+  when(io.flush && (state =/= s_idle || !hit || io.in.bits.mat === 0.U)) { refetchLatch := true.B }
   when(io.axi.rlast && io.axi.rvalid) {refetchLatch := false.B}
   val refetch = io.flush || refetchLatch
 
@@ -415,7 +416,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dontTouch(FLAG)
 
   state := MuxLookup(state, s_idle)(Seq(
-    s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle),
+    s_idle -> Mux((!hit || io.in.bits.mat === 0.U) && io.in.valid, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
     s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, s_idle, s_valid), s_wait_data),
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
@@ -481,7 +482,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   // }
 
   // io.out.bits.rdata := DontCare
-  when(!hit){
+  when(!hit || io.in.bits.mat === 0.U) {
     io.out.bits.rdata := dataLatch
   }.otherwise{
     io.out.bits.rdata := cacheData
@@ -490,7 +491,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.addr := io.in.bits.addr
   io.out.bits.isCACOP := io.in.bits.isCACOP
   io.out.bits.cacopOp := io.in.bits.cacopOp
-  io.out.valid := ((hit && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
+  io.out.bits.mat := io.in.bits.mat
+  io.out.valid := ((hit && io.in.bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
 }
 
@@ -513,7 +515,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when(flag){
     cacheDataVecLatch := cacheDataVec
   }
-  val rdata = Mux(hit, Mux(flag, cacheDataVec, cacheDataVecLatch), io.in.bits.rdata)
+  val rdata = Mux(hit && io.in.bits.mat === 1.U, Mux(flag, cacheDataVec, cacheDataVecLatch), io.in.bits.rdata)
   dontTouch(rdata)
 
   val ValidVec = Wire(UInt(4.W))

@@ -363,7 +363,7 @@ class CPUCSR extends Module {
         }
         is(CsrName.TLBIDX) {
           csr_tlbidx := io.write(i).bits.csr_data.asTypeOf(new csr_tlbidx_bundle)
-          csr_tlbidx.zero23_16 := 0.U
+          csr_tlbidx.zero23_4 := 0.U
           csr_tlbidx.zero30 := 0.U
         }
         is(CsrName.TLBEHI) {
@@ -532,7 +532,7 @@ class CPUCSR extends Module {
         }
       }
       is(TlbOp.rd) {
-        when(io.from_mmu.tlb_entry.e.asBool && !csr_tlbidx.idx(15, log2Ceil(MmuConfig.TLB_NUM)).orR) {
+        when(io.from_mmu.tlb_entry.e.asBool) {
           csr_tlbidx.ne := ~io.from_mmu.tlb_entry.e
           csr_tlbidx.ps := io.from_mmu.tlb_entry.ps
           csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
