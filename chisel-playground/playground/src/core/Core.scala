@@ -81,7 +81,7 @@ class Core extends Module {
 
   val arb = Module(new Arb)
 
-  val csr = Module(new CSR)
+  val csr = Module(new CPUCSR)
 
   val bpu = Module(new BPU)
 
@@ -129,6 +129,11 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
   Issue.io.out(3) <> Ex.io.in(3)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
+
+  // for(i <- 0 until 5) {
+  //   Dispatch.io.out(i) <> Issue.io.in(i)
+  // }
+
 
   val ifAXI = Wire(new AXI)
 
@@ -275,6 +280,7 @@ class Core extends Module {
   If.io.flush := flush
   If.io.dnpc := rob.io.newPC
   If.io.pcSel := flush
+  If.io.idle := csr.io.idle
   
   dontTouch(Rn.io.robAllocate)
 
@@ -333,6 +339,7 @@ class Core extends Module {
     rob.io.writeback(i).bits.timer64 := Ex.io.out(i).bits.timer64
     rob.io.writeback(i).bits.tlbInfo := Ex.io.out(i).bits.tlbInfo
     rob.io.writeback(i).bits.vaddr := Ex.io.out(i).bits.vaddr
+    rob.io.writeback(i).bits.failsc := Ex.io.out(i).bits.failsc
   }
 
   // allocate rob entries in rename stage
@@ -351,12 +358,15 @@ class Core extends Module {
 
   Rn.io.flush := flush
 
+  csr.io.hardIntrpt := io.intrpt
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
   csr.io.exceptionInfo <> rob.io.exceptionInfo
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
   Ex.io.markIntrpt := csr.io.markIntrpt
+  Ex.io.llbit := csr.io.llbit
+  Ex.io.lladdr := csr.io.lladdr
   // mmu <=> csr
   csr.io.from_mmu <> mmu.io.to_csr
   csr.io.to_mmu <> mmu.io.from_csr
@@ -448,32 +458,111 @@ class Core extends Module {
 
     val isSt = rob.io.commitLS.map { commit =>
       commit.valid && (commit.bits.optype === LSUOpType.sw ||
-                       commit.bits.optype === LSUOpType.sh ||
-                       commit.bits.optype === LSUOpType.sb)
+               commit.bits.optype === LSUOpType.sh ||
+               commit.bits.optype === LSUOpType.sb ||
+               commit.bits.optype === LSUOpType.sc)
     }
     val isValidSt = isSt.zip(diffExcp).map { case (st, excp) => st && !excp }
+    
+    // For first store
     val stInfo = Wire(new LSCommitInfo)
     when (isValidSt(0)) {
       stInfo := rob.io.commitLS(0).bits
     }.elsewhen (isValidSt(1)) {
       stInfo := rob.io.commitLS(1).bits
-    }.elsewhen (isValidSt(2)) {
-      stInfo := rob.io.commitLS(2).bits
     }.otherwise {
       stInfo := 0.U.asTypeOf(new LSCommitInfo)
     }
     val storeType = MuxLookup(stInfo.optype, 0.U)(
       List(
-        LSUOpType.sw -> "b00000100".U,
-        LSUOpType.sh -> "b00000010".U,
-        LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sw -> "b00000100".U,
+      LSUOpType.sh -> "b00000010".U,
+      LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sc -> "b00001000".U,
+      )
+    )
+    
+    // For second store
+    val stInfo2 = Wire(new LSCommitInfo)
+    when (isValidSt(0) && isValidSt(1)) {
+      stInfo2 := rob.io.commitLS(1).bits
+    }.otherwise {
+      stInfo2 := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val storeType2 = MuxLookup(stInfo2.optype, 0.U)(
+      List(
+      LSUOpType.sw -> "b00000100".U,
+      LSUOpType.sh -> "b00000010".U,
+      LSUOpType.sb -> "b00000001".U,
+      LSUOpType.sc -> "b00001000".U,
       )
     )
 
-    DiffCommit.io.store.valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
-    DiffCommit.io.store.paddr := stInfo.paddr
-    DiffCommit.io.store.vaddr := stInfo.vaddr
-    DiffCommit.io.store.data  := stInfo.wdata
+    DiffCommit.io.store(0).valid := Mux(isValidSt.reduce(_ || _), storeType, 0.U)
+    DiffCommit.io.store(0).paddr := stInfo.paddr
+    DiffCommit.io.store(0).vaddr := stInfo.vaddr
+    DiffCommit.io.store(0).data  := stInfo.wdata
+    
+    DiffCommit.io.store(1).valid := Mux(isValidSt(0) && isValidSt(1), storeType2, 0.U)
+    DiffCommit.io.store(1).paddr := stInfo2.paddr
+    DiffCommit.io.store(1).vaddr := stInfo2.vaddr
+    DiffCommit.io.store(1).data  := stInfo2.wdata
+
+    val isLd = rob.io.commitLS.map { commit =>
+      commit.valid && (commit.bits.optype === LSUOpType.lw ||
+               commit.bits.optype === LSUOpType.lhu ||
+               commit.bits.optype === LSUOpType.lh ||
+               commit.bits.optype === LSUOpType.lbu ||
+               commit.bits.optype === LSUOpType.lb ||
+               commit.bits.optype === LSUOpType.ll)
+    }
+    val isValidLd = isLd.zip(diffExcp).map { case (ld, excp) => ld && !excp }
+    
+    // For first load
+    val ldInfo = Wire(new LSCommitInfo)
+    when (isValidLd(0)) {
+      ldInfo := rob.io.commitLS(0).bits
+    }.elsewhen (isValidLd(1)) {
+      ldInfo := rob.io.commitLS(1).bits
+    }.otherwise {
+      ldInfo := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val loadType = MuxLookup(ldInfo.optype, 0.U)(
+      List(
+      LSUOpType.ll ->  "b00100000".U,
+      LSUOpType.lw ->  "b00010000".U,
+      LSUOpType.lhu -> "b00001000".U,
+      LSUOpType.lh ->  "b00000100".U,
+      LSUOpType.lbu -> "b00000010".U,
+      LSUOpType.lb ->  "b00000001".U
+      )
+    )
+    
+    // For second load
+    val ldInfo2 = Wire(new LSCommitInfo)
+    when (isValidLd(0) && isValidLd(1)) {
+      ldInfo2 := rob.io.commitLS(1).bits
+    }.otherwise {
+      ldInfo2 := 0.U.asTypeOf(new LSCommitInfo)
+    }
+    val loadType2 = MuxLookup(ldInfo2.optype, 0.U)(
+      List(
+      LSUOpType.ll ->  "b00100000".U,
+      LSUOpType.lw ->  "b00010000".U,
+      LSUOpType.lhu -> "b00001000".U,
+      LSUOpType.lh ->  "b00000100".U,
+      LSUOpType.lbu -> "b00000010".U,
+      LSUOpType.lb ->  "b00000001".U
+      )
+    )
+    
+    DiffCommit.io.load(0).valid := Mux(isValidLd.reduce(_ || _), loadType, 0.U)
+    DiffCommit.io.load(0).paddr := ldInfo.paddr
+    DiffCommit.io.load(0).vaddr := ldInfo.vaddr
+    
+    DiffCommit.io.load(1).valid := Mux(isValidLd(0) && isValidLd(1), loadType2, 0.U)
+    DiffCommit.io.load(1).paddr := ldInfo2.paddr
+    DiffCommit.io.load(1).vaddr := ldInfo2.vaddr
   }
 }
 

@@ -65,10 +65,10 @@ class TraceBridge extends Module {
   when(validDequeues(1) && (!validDequeues(0) || seqNumbers(1) < seqNumbers(0))) {
     smallestIdxWire := 1.U
   }
-  when(validDequeues(2) && (!validDequeues(0) || seqNumbers(2) < seqNumbers(0)) && 
-      (!validDequeues(1) || seqNumbers(2) < seqNumbers(1))) {
-    smallestIdxWire := 2.U
-  }
+  // when(validDequeues(2) && (!validDequeues(0) || seqNumbers(2) < seqNumbers(0)) && 
+  //     (!validDequeues(1) || seqNumbers(2) < seqNumbers(1))) {
+  //   smallestIdxWire := 2.U
+  // }
   // when(validDequeues(3) && (!validDequeues(0) || seqNumbers(3) < seqNumbers(0)) && 
   //     (!validDequeues(1) || seqNumbers(3) < seqNumbers(1)) && 
   //     (!validDequeues(2) || seqNumbers(3) < seqNumbers(2))) {

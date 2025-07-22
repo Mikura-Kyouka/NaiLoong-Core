@@ -54,11 +54,27 @@ module DiffBridge(
   input [31:0] exceptionPC,
   input [31:0] exceptionInst,
 
-  input [ 7:0] storeIndex,
-  input [ 7:0] storeValid,
-  input [63:0] storePaddr,
-  input [63:0] storeVaddr,
-  input [63:0] storeData,
+  input [ 7:0] storeIndex_0,
+  input [ 7:0] storeValid_0,
+  input [63:0] storePaddr_0,
+  input [63:0] storeVaddr_0,
+  input [63:0] storeData_0,
+
+  input [ 7:0] storeIndex_1,
+  input [ 7:0] storeValid_1,
+  input [63:0] storePaddr_1,
+  input [63:0] storeVaddr_1,
+  input [63:0] storeData_1,
+
+  input [ 7:0] loadIndex_0,
+  input [ 7:0] loadValid_0,
+  input [63:0] loadPaddr_0,
+  input [63:0] loadVaddr_0,
+
+  input [ 7:0] loadIndex_1,
+  input [ 7:0] loadValid_1,
+  input [63:0] loadPaddr_1,
+  input [63:0] loadVaddr_1,
 
   input [63:0] REG_0,
   input [63:0] REG_1,
@@ -171,33 +187,61 @@ DifftestInstrCommit DifftestInstrCommit_1(
   .csr_data           (csr_data_1     )
 );
 
-DifftestInstrCommit DifftestInstrCommit_2(
+// DifftestInstrCommit DifftestInstrCommit_2(
+//   .clock              (clock          ),
+//   .coreid             (coreid         ),
+//   .index              (index_2        ),
+//   .valid              (Instrvalid_2   ),
+//   .pc                 (the_pc_2       ),
+//   .instr              (instr_2        ),
+//   .skip               (skip_2         ),
+//   .is_TLBFILL         (is_TLBFILL_2   ),
+//   .TLBFILL_index      (TLBFILL_index_2),
+//   .is_CNTinst         (is_CNTinst_2   ),
+//   .timer_64_value     (timer_64_value_2),
+//   .wen                (wen_2          ),
+//   .wdest              (wdest_2        ),
+//   .wdata              (wdata_2        ),
+//   .csr_rstat          (csr_rstat_2    ),
+//   .csr_data           (csr_data_2     )
+// );
+
+DifftestStoreEvent DifftestStoreEvent_0(
   .clock              (clock          ),
-  .coreid             (coreid         ),
-  .index              (index_2        ),
-  .valid              (Instrvalid_2   ),
-  .pc                 (the_pc_2       ),
-  .instr              (instr_2        ),
-  .skip               (skip_2         ),
-  .is_TLBFILL         (is_TLBFILL_2   ),
-  .TLBFILL_index      (TLBFILL_index_2),
-  .is_CNTinst         (is_CNTinst_2   ),
-  .timer_64_value     (timer_64_value_2),
-  .wen                (wen_2          ),
-  .wdest              (wdest_2        ),
-  .wdata              (wdata_2        ),
-  .csr_rstat          (csr_rstat_2    ),
-  .csr_data           (csr_data_2     )
+  .coreid             (0              ),
+  .index              (storeIndex_0   ),
+  .valid              (storeValid_0   ),
+  .storePAddr         (storePaddr_0   ),
+  .storeVAddr         (storeVaddr_0   ),
+  .storeData          (storeData_0    )
 );
 
 DifftestStoreEvent DifftestStoreEvent_1(
   .clock              (clock          ),
   .coreid             (0              ),
-  .index              (storeIndex   ),
-  .valid              (storeValid   ),
-  .storePAddr         (storePaddr   ),
-  .storeVAddr         (storeVaddr   ),
-  .storeData          (storeData    )
+  .index              (storeIndex_1   ),
+  .valid              (storeValid_1   ),
+  .storePAddr         (storePaddr_1   ),
+  .storeVAddr         (storeVaddr_1   ),
+  .storeData          (storeData_1   )
+);
+
+DifftestLoadEvent DifftestLoadEvent_0(
+  .clock              (clock          ),
+  .coreid             (0              ),
+  .index              (loadIndex_0      ),
+  .valid              (loadValid_0      ),
+  .paddr              (loadPaddr_0      ),
+  .vaddr              (loadVaddr_0      )
+);
+
+DifftestLoadEvent DifftestLoadEvent_1(
+  .clock              (clock          ),
+  .coreid             (0              ),
+  .index              (loadIndex_1      ),
+  .valid              (loadValid_1      ),
+  .paddr              (loadPaddr_1      ),
+  .vaddr              (loadVaddr_1      )
 );
 
 DifftestGRegState DifftestGRegState_0(

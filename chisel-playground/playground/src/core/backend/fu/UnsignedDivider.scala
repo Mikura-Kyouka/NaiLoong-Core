@@ -73,7 +73,7 @@ class UnsignedDivider extends Module {
       when(inputFire) {
         dividend := io.s_axis_dividend_tdata
         divisor := io.s_axis_divisor_tdata
-        latencyCounter := 35.U
+        latencyCounter := 1.U
         state := calc
       }
     }
@@ -91,7 +91,7 @@ class UnsignedDivider extends Module {
           remainder := Mux(dividend >= 0.U, absRemainder, -absRemainder)
         }
         outputValid := true.B
-        gapCounter := 8.U
+        gapCounter := 1.U
         state := waitGap
       }.otherwise {
         latencyCounter := latencyCounter - 1.U

@@ -5,7 +5,7 @@ import chisel3.util._
 
 class fetchExcp extends Bundle {
   val en = Bool() // 是否发生异常
-  val ecode = UInt(4.W) // 异常码
+  val ecode = UInt(6.W) // 异常码
 }
 
 class IFU2IDU extends Bundle {
@@ -43,6 +43,8 @@ class IFU extends Module{
         val cacop = Input(new CACOPIO)
         val excp_en = Output(Bool())
         val ecode = Output(Ecode())
+
+        val idle = Input(Bool())
 
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
@@ -82,9 +84,8 @@ class IFU extends Module{
     io.axi.awaddr := 0.U
 
     val pc = Module(new PC())
-    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 256 * 16, ways = 1))) // Pipelined
-    io.out.valid := (pc.io.pc(1, 0) =/= 0.U || icache.io.out.valid || io.addr_trans_in.valid && io.addr_trans_in.bits.excp.en) && 
-                    !io.flush && !icache.io.s1Cacop
+    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 512 * 16, ways = 1))) // Pipelined
+    io.out.valid := icache.io.out.valid && !io.flush && !icache.io.s1Cacop && !io.idle
 
     val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
@@ -96,18 +97,14 @@ class IFU extends Module{
     val predictTargetReg = RegInit("h00000000".U(32.W))
     val predictInfoReg = RegInit(VecInit(Seq.fill(4)(0.U.asTypeOf(new RedirectIO))))
 
-    when(icache.io.s1Fire) {
+    when(icache.io.s1Fire || io.flush) {
         predictTakenReg := false.B
     }
-    when(predictTaken && !icache.io.s1Fire) {
+    when(predictTaken && !icache.io.s1Fire && !io.flush) {
         predictTakenReg := true.B
         predictIndexReg := predictIndex
         predictTargetReg := predictTarget
         predictInfoReg := predictInfo
-    }
-
-    when(io.flush) {
-        predictTakenReg := false.B
     }
 
     pc.io.PCSrc := io.pcSel
@@ -128,6 +125,8 @@ class IFU extends Module{
     icache.io.in.addr := io.addr_trans_in.bits.paddr
     icache.io.in.pc := RegNext(io.addr_trans_out.vaddr)
     icache.io.in.mat := io.addr_trans_in.bits.mat
+    icache.io.in.excp := io.addr_trans_in.bits.excp.en || icache.io.in.pc(1, 0) =/= 0.U
+    icache.io.in.ecode := Mux(icache.io.in.pc(1, 0) =/= 0.U, Ecode.adef, io.addr_trans_in.bits.excp.ecode)
     icache.io.in.cacop := io.cacop
 
     io.excp_en := io.addr_trans_in.bits.excp.en
@@ -146,40 +145,59 @@ class IFU extends Module{
                                            VecInit(Seq.fill(4)(notValidPredict))))
 
     icache.io.flush := io.flush
-    icache.io.in.valid := io.out.ready && !io.flush && !io.addr_trans_in.bits.excp.en && io.addr_trans_in.valid // TODO
+    icache.io.in.valid := io.out.ready && !io.flush && io.addr_trans_in.valid && !io.idle // TODO
     // io.out.bits.inst := icache.io.out.bits.rdata
-    val adef = Wire(new IFU2IDU)
-    adef.Valid := true.B
-    adef.pc := pc.io.pc
-    adef.inst := 0x03400000.U
-    adef.brPredict := DontCare
-    adef.excp := DontCare
+    // val adef = Wire(new IFU2IDU)
+    // adef.Valid := true.B
+    // adef.pc := pc.io.pc
+    // adef.inst := 0x03400000.U
+    // adef.brPredict := DontCare
+    // adef.excp := DontCare
     val nop = Wire(new IFU2IDU)
     nop.Valid := false.B
     nop.pc := 0.U
     nop.inst := 0.U
     nop.brPredict := DontCare
     nop.excp := DontCare
-    val nopWithExcp = Wire(new IFU2IDU)
-    nopWithExcp.Valid := true.B
-    nopWithExcp.pc := RegNext(io.addr_trans_out.vaddr)
-    nopWithExcp.inst := 0x03400000.U
-    nopWithExcp.brPredict := DontCare
-    nopWithExcp.excp.en := true.B
-    nopWithExcp.excp.ecode := io.addr_trans_in.bits.excp.ecode
+    // val nopWithExcp = Wire(new IFU2IDU)
+    // nopWithExcp.Valid := true.B
+    // nopWithExcp.pc := RegNext(io.addr_trans_out.vaddr)
+    // nopWithExcp.inst := 0x03400000.U
+    // nopWithExcp.brPredict := DontCare
+    // nopWithExcp.excp.en := true.B
+    // nopWithExcp.excp.ecode := io.addr_trans_in.bits.excp.ecode
 
     val hasBrPredictOut = icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid).reduce(_ || _)
     val brPredictIdxOut = PriorityEncoder(icache.io.out.bits.map(x => x.brPredict.predictTaken && x.Valid))
 
-    val out_temp = WireInit(icache.io.out.bits)
+    // val out_temp = WireInit(icache.io.out.bits)
 
-    out_temp(0) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(0))
-    out_temp(1) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(1))
-    out_temp(2) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(2))
-    out_temp(3) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(3))
+    // out_temp(0) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(0))
+    // out_temp(1) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(1))
+    // out_temp(2) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(2))
+    // out_temp(3) := Mux(io.addr_trans_in.bits.excp.en, nopWithExcp, icache.io.out.bits(3))
 
-    io.out.bits(0) := Mux(pc.io.pc(1, 0) =/= 0.U, adef, out_temp(0))
-    io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, out_temp(1))
-    io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, out_temp(2))
-    io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, out_temp(3))
+    io.out.bits(0) := icache.io.out.bits(0)
+    io.out.bits(1) := Mux(hasBrPredictOut && brPredictIdxOut < 1.U, nop, icache.io.out.bits(1))
+    io.out.bits(2) := Mux(hasBrPredictOut && brPredictIdxOut < 2.U, nop, icache.io.out.bits(2))
+    io.out.bits(3) := Mux(hasBrPredictOut && brPredictIdxOut < 3.U, nop, icache.io.out.bits(3))
+
+    if(GenCtrl.USE_COUNT) {
+      val counting = RegInit(false.B)
+      when(icache.io.in.valid) {
+        counting := true.B
+      }.elsewhen(io.out.fire || io.flush) {
+        counting := false.B
+      }
+
+      val delayCounter = RegInit(0.U(64.W))
+      val ifCounter = RegInit(1.U(32.W))
+
+      when(io.out.fire) {
+        ifCounter := ifCounter + 1.U
+        printf("[IFU] Average IFU delay: %d cycles\n", delayCounter / ifCounter)
+      }.elsewhen(counting) {
+        delayCounter := delayCounter + 1.U
+      }
+    }
 }

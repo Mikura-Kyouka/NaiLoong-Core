@@ -23,6 +23,9 @@ class Execute extends Module {
     val cacop = Output(new CACOPIO)
     val excp_en = Input(Bool()) // 是否发生异常
     val ecode = Input(Ecode()) // 异常码
+
+    val llbit = Input(Bool()) // llbit from CSR
+    val lladdr = Input(UInt(32.W)) // ll指令的地址
   })
 
   val alu1 = Module(new AligendALU)
@@ -65,6 +68,8 @@ class Execute extends Module {
   bru.io.markIntrpt := io.markIntrpt
   alu1.io.markIntrpt := io.markIntrpt
   alu2.io.markIntrpt := io.markIntrpt
+  mdu.io.markIntrpt := io.markIntrpt
+  lsu.io.markIntrpt := io.markIntrpt
   mdu.io.flush := io.flush
 
   io.cacop := bru.io.cacop
@@ -74,4 +79,7 @@ class Execute extends Module {
   alu1.io.ecode := DontCare
   alu2.io.excp_en := DontCare
   alu2.io.ecode := DontCare
+
+  lsu.io.llbit := io.llbit
+  lsu.io.lladdr := io.lladdr
 }

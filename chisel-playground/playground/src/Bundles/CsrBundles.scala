@@ -47,8 +47,8 @@ class csr_tlbidx_bundle extends Bundle {
     val ne = UInt(1.W)              // 该位为1表示该TLB表项为空（无效TLB表项），为0表示该TLB表项非空（有效TLB表项）。
     val zero30 = UInt(1.W)
     val ps = UInt(6.W)              // 执行TLBRD指令时，所读取TLB表项的PS域的值记录到这里。执行TLBWR和TLBFILL指令，写入的TLB表项的PS域的值来自于此。
-    val zero23_16 = UInt(8.W)
-    val idx = UInt(16.W)            // 执行TLBRD和TLBWR指令时，访问TLB表项的索引值来自于此。不一定是16位的索引值，有效的位宽可能更小。
+    val zero23_4 = UInt(20.W)
+    val idx = UInt(4.W)            // 执行TLBRD和TLBWR指令时，访问TLB表项的索引值来自于此。不一定是16位的索引值，有效的位宽可能更小。
 }
 
 class csr_tlbehi_bundle extends Bundle {
@@ -57,7 +57,8 @@ class csr_tlbehi_bundle extends Bundle {
 }
 
 class csr_tlbelo_bundle extends Bundle{
-    val ppn   = UInt(24.W)          // 页表的物理页号（PPN）
+    val zero31_28 = UInt(4.W)
+    val ppn   = UInt(20.W)          // 页表的物理页号（PPN）
     val zero7 = UInt(1.W)
     val g     = UInt(1.W)           // 页表项的全局标志位（G）。
     val mat   = UInt(2.W)           // 页表项的存储访问类型（MAT）。
@@ -116,7 +117,11 @@ class csr_read_bundle extends Bundle {
 
 class csr_write_bundle extends Bundle {
   val csr_num = Input(UInt(14.W)) // csr寄存器的id
-  val csr_data = Input(UInt(32.W)) // csr寄存器的值  
+  val csr_data = Input(UInt(32.W)) // csr寄存器的值
+  val ll = Input(Bool()) // 是否是ll指令
+  val sc = Input(Bool()) // 是否是sc指令
+  val lladdr = Input(UInt(32.W)) // ll指令的地址 
+  val idle = Input(Bool()) // 是否是idle指令
 }
 
 class csr_excp_bundle extends Bundle {

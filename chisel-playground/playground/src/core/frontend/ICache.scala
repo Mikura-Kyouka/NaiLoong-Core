@@ -222,6 +222,8 @@ class Stage1In extends Bundle {
   val addr = Input(UInt(32.W))
   val pc = Input(UInt(32.W))
   val mat = Input(UInt(2.W))
+  val excp = Input(Bool())
+  val ecode = Input(UInt(6.W))
   val brPredictTaken = Input(Vec(4, new RedirectIO))
   val valid = Input(Bool())
   // cacop signal
@@ -232,6 +234,8 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
   val pc = Output(UInt(32.W))
   val mat = Output(UInt(2.W))
+  val excp = Output(Bool())
+  val ecode = Output(UInt(6.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val index = Output(UInt(IndexBits.W))
   val tag = Output(UInt(TagBits.W))
@@ -246,6 +250,9 @@ class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val pc = Output(UInt(32.W))
   val rdata = Output(Vec(4, UInt(32.W)))
   val hit = Output(Bool())
+  val mat = Output(UInt(2.W))
+  val excp = Output(Bool())
+  val ecode = Output(UInt(6.W))
   val wordIndex = Output(UInt(WordIndexBits.W))
   val brPredictTaken = Output(Vec(4, new RedirectIO))
   val isCACOP = Output(Bool()) // cacop signal
@@ -282,33 +289,42 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   // val metaArray = SyncReadMem(Sets, Vec(Ways, new ICacheMetaBundle))
   val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits))) // Ways * (TagBits)
-  val metaValidArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(false.B)))))
-  val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
-  val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(false.B))))
-  val is_collision = RegInit(false.B)
-  is_collision := io.metaArrayWrite.index === index && io.metaArrayWrite.valid
-  syncReadAddr := index
-  collison_data := VecInit(Seq.fill(Ways)(true.B))
+  val metaValidArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways)) // Ways * 1
 
   // a 口只用于写入，b 口只用于读取
   metaArray.io.clka := clock
   metaArray.io.wea := io.metaArrayWrite.valid
   metaArray.io.addra := io.metaArrayWrite.index
-  metaArray.io.dina := Cat(io.metaArrayWrite.tag)
+  metaArray.io.dina := io.metaArrayWrite.tag
   metaArray.io.addrb := index
 
+  metaValidArray.io.clka := clock
+  metaValidArray.io.wea := false.B // 后续覆盖
+  metaValidArray.io.addra := io.metaArrayWrite.index
+  metaValidArray.io.dina := 0.U
+  metaValidArray.io.addrb := index
+
+  val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
+
   when(io.metaArrayWrite.valid) {
-    metaValidArray(io.metaArrayWrite.index)(0) := true.B
+    metaArray.io.wea := true.B
+    metaArray.io.addra := io.metaArrayWrite.index
+    metaArray.io.dina := io.metaArrayWrite.tag // Write tag to the line
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := io.metaArrayWrite.index
+    metaValidArray.io.dina := io.metaArrayWrite.valid // Write valid to the line
   }
   
   val metaArrayInfo = metaArray.io.doutb
   io.metaArrayTag := metaArrayInfo
-  io.metaArrayValid := Mux(is_collision, collison_data(0), metaValidArray(syncReadAddr)(0))
+  io.metaArrayValid := metaValidData(0)
 
   io.out.bits.wordIndex := addr.WordIndex
   io.out.bits.addr := io.in.addr 
   io.out.bits.pc := io.in.pc
   io.out.bits.mat := io.in.mat
+  io.out.bits.excp := io.in.excp
+  io.out.bits.ecode := io.in.ecode
   io.out.bits.index := index 
   io.out.bits.tag := tag
   io.out.bits.brPredictTaken := io.in.brPredictTaken
@@ -328,11 +344,15 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     metaArray.io.addra := line
     metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
   }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
-    metaValidArray(line)(way) := false.B
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := line
+    metaValidArray.io.dina := false.B // Write false to the line
   }.elsewhen(cacopOp2Reg) {
     val line2 = io.in.addr.asTypeOf(addrBundle).index
     val way2 = io.in.addr(log2Ceil(Ways) - 1, 0)
-    metaValidArray(line2)(way2) := false.B
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := line2
+    metaValidArray.io.dina := false.B // Write false to the line
   }
 
   io.out.bits.isCACOP := (io.in.cacop.en && !io.in.cacop.op === CACOPOp.op2) || cacopOp2Reg
@@ -396,7 +416,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val s_idle :: s_fetching :: s_wait_data :: s_valid :: s_judge :: Nil = Enum(5)
   val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
-  when(io.flush && (state =/= s_idle || !hit)) { refetchLatch := true.B }
+  when(io.flush && (state =/= s_idle || !hit || io.in.bits.mat === 0.U)) { refetchLatch := true.B }
   when(io.axi.rlast && io.axi.rvalid) {refetchLatch := false.B}
   val refetch = io.flush || refetchLatch
 
@@ -404,7 +424,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dontTouch(FLAG)
 
   state := MuxLookup(state, s_idle)(Seq(
-    s_idle -> Mux(!hit && io.in.valid, s_fetching, s_idle),
+    s_idle -> Mux((!hit || io.in.bits.mat === 0.U) && io.in.valid && !io.in.bits.excp, s_fetching, s_idle),
     s_fetching -> Mux(io.axi.arready, s_wait_data, s_fetching),
     s_wait_data -> Mux(io.axi.rlast && io.axi.rvalid, Mux(refetch, s_idle, s_valid), s_wait_data),
     // s_valid -> Mux(!io.axi.rlast, s_idle, s_valid)
@@ -412,16 +432,19 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   ))
 
   // 命中率统计
-  val hitCount = RegInit(0.U(32.W))
-  val accessCount = RegInit(0.U(32.W))
-  dontTouch(hitCount)
-  dontTouch(accessCount)
-  when(hitEn) { 
-    // printf("addr = %x\n", io.in.bits.addr)
-    when(hit) {
-      hitCount := hitCount + 1.U
+  if (GenCtrl.USE_COUNT) {
+    val hitCount = RegInit(0.U(32.W))
+    val accessCount = RegInit(1.U(32.W))
+    dontTouch(hitCount)
+    dontTouch(accessCount)
+    when(hitEn) { 
+      // printf("addr = %x\n", io.in.bits.addr)
+      when(hit) {
+        hitCount := hitCount + 1.U
+      }
+      accessCount := accessCount + 1.U
+      printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
     }
-    accessCount := accessCount + 1.U
   }
 
   // axi read signals
@@ -454,7 +477,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     // dataArray(index)(0)(1) := axiDataLatch(1)
     // dataArray(index)(0)(2) := axiDataLatch(2)
     // dataArray(index)(0)(3) := rdata
-    dataArray.io.wea := true.B
+    dataArray.io.wea := io.in.bits.mat === 1.U // 一致可缓存
     dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
     io.metaArrayWrite.valid := io.in.bits.mat === 1.U // 一致可缓存
@@ -467,7 +490,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   // }
 
   // io.out.bits.rdata := DontCare
-  when(!hit){
+  when(!hit || io.in.bits.mat === 0.U) {
     io.out.bits.rdata := dataLatch
   }.otherwise{
     io.out.bits.rdata := cacheData
@@ -476,7 +499,12 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.addr := io.in.bits.addr
   io.out.bits.isCACOP := io.in.bits.isCACOP
   io.out.bits.cacopOp := io.in.bits.cacopOp
-  io.out.valid := ((hit && state === s_idle && (!io.flush && io.in.valid)) || (state === s_valid && !refetch))
+  io.out.bits.mat := io.in.bits.mat
+  io.out.bits.excp := io.in.bits.excp
+  io.out.bits.ecode := io.in.bits.ecode
+  io.out.valid := ((hit && io.in.bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || 
+                   (state === s_valid && !refetch) ||
+                   (state ===s_idle && io.in.bits.excp && (!io.flush && io.in.valid)))
   io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
 }
 
@@ -499,7 +527,7 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   when(flag){
     cacheDataVecLatch := cacheDataVec
   }
-  val rdata = Mux(hit, Mux(flag, cacheDataVec, cacheDataVecLatch), io.in.bits.rdata)
+  val rdata = Mux(hit && io.in.bits.mat === 1.U, Mux(flag, cacheDataVec, cacheDataVecLatch), io.in.bits.rdata)
   dontTouch(rdata)
 
   val ValidVec = Wire(UInt(4.W))
@@ -514,6 +542,9 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
 
   when(io.in.bits.isCACOP){
     ValidVec := "b0000".U // cacop 时不返回指令
+  }
+  when(io.in.bits.excp) {
+    ValidVec := "b1111".U
   }
 
   // 0 0000, 4 0100, 8 1000, c 1100
@@ -540,10 +571,16 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.in.ready := !io.in.valid || io.out.fire
   io.out.valid := io.in.valid && !io.flush
 
-  io.out.bits(0).excp := DontCare
-  io.out.bits(1).excp := DontCare
-  io.out.bits(2).excp := DontCare
-  io.out.bits(3).excp := DontCare
+  for(i <- 0 until 4) {
+    io.out.bits(i).excp.en := io.in.bits.excp
+    io.out.bits(i).excp.ecode := io.in.bits.ecode
+  }
+  when(io.in.bits.excp) {
+    for(i <- 0 until 4) {
+      io.out.bits(i).pc := io.in.bits.pc
+      io.out.bits(i).inst := 0x03400000.U // NOP
+    }
+  }
   // when(io.out.fire){ printf("pc = %x, inst = %x\n",io.in.bits.addr, io.in.bits.rdata) }
 }
 

@@ -14,7 +14,9 @@ class DiffCommit extends Module {
     // 空
 
     // DifftestStoreEvent
-    val store = Input(new DiffStoreBundle())
+    val store = Input(Vec(RobConfig.ROB_CMT_NUM, new DiffStoreBundle()))
+
+    val load = Input(Vec(RobConfig.ROB_CMT_NUM, new DiffLoadBundle()))
 
     // DifftestLoadEvent
 
@@ -61,20 +63,20 @@ class DiffCommit extends Module {
   DiffBridge.io.csr_rstat_1 := RegNext(io.instr(1).csr_rstat, 0.U)
   DiffBridge.io.csr_data_1 := RegNext(io.instr(1).csr_data, 0.U)
 
-  DiffBridge.io.index_2 := 2.U
-  DiffBridge.io.Instrvalid_2 := RegNext(io.instr(2).valid, 0.U)
-  DiffBridge.io.the_pc_2 := RegNext(io.instr(2).pc, 0.U)
-  DiffBridge.io.instr_2 := RegNext(io.instr(2).instr, 0.U)
-  DiffBridge.io.skip_2 := 0.U
-  DiffBridge.io.is_TLBFILL_2 := RegNext(io.instr(2).is_TLBFILL, 0.U)
-  DiffBridge.io.TLBFILL_index_2 := RegNext(io.instr(2).TLBFILL_index, 0.U)
-  DiffBridge.io.is_CNTinst_2 := RegNext(io.instr(2).is_CNTinst, 0.U)
-  DiffBridge.io.timer_64_value_2 := RegNext(io.instr(2).timer_64_value, 0.U)
-  DiffBridge.io.wen_2 := RegNext(io.instr(2).wen, 0.U)
-  DiffBridge.io.wdest_2 := RegNext(io.instr(2).wdest, 0.U)
-  DiffBridge.io.wdata_2 := RegNext(io.instr(2).wdata, 0.U)
-  DiffBridge.io.csr_rstat_2 := RegNext(io.instr(2).csr_rstat, 0.U)
-  DiffBridge.io.csr_data_2 := RegNext(io.instr(2).csr_data, 0.U)
+  // DiffBridge.io.index_2 := 2.U
+  // DiffBridge.io.Instrvalid_2 := RegNext(io.instr(2).valid, 0.U)
+  // DiffBridge.io.the_pc_2 := RegNext(io.instr(2).pc, 0.U)
+  // DiffBridge.io.instr_2 := RegNext(io.instr(2).instr, 0.U)
+  // DiffBridge.io.skip_2 := 0.U
+  // DiffBridge.io.is_TLBFILL_2 := RegNext(io.instr(2).is_TLBFILL, 0.U)
+  // DiffBridge.io.TLBFILL_index_2 := RegNext(io.instr(2).TLBFILL_index, 0.U)
+  // DiffBridge.io.is_CNTinst_2 := RegNext(io.instr(2).is_CNTinst, 0.U)
+  // DiffBridge.io.timer_64_value_2 := RegNext(io.instr(2).timer_64_value, 0.U)
+  // DiffBridge.io.wen_2 := RegNext(io.instr(2).wen, 0.U)
+  // DiffBridge.io.wdest_2 := RegNext(io.instr(2).wdest, 0.U)
+  // DiffBridge.io.wdata_2 := RegNext(io.instr(2).wdata, 0.U)
+  // DiffBridge.io.csr_rstat_2 := RegNext(io.instr(2).csr_rstat, 0.U)
+  // DiffBridge.io.csr_data_2 := RegNext(io.instr(2).csr_data, 0.U)
 
   DiffBridge.io.excp_valid := RegNext(io.excp.excp_valid, 0.U)
   DiffBridge.io.eret := RegNext(io.excp.eret, 0.U)
@@ -83,11 +85,27 @@ class DiffCommit extends Module {
   DiffBridge.io.exceptionPC := RegNext(io.excp.exceptionPC, 0.U)
   DiffBridge.io.exceptionInst := RegNext(io.excp.exceptionInst, 0.U)
 
-  DiffBridge.io.storeValid := RegNext(io.store.valid, 0.U)
-  DiffBridge.io.storeIndex := 0.U
-  DiffBridge.io.storePaddr := RegNext(io.store.paddr, 0.U)
-  DiffBridge.io.storeVaddr := RegNext(io.store.vaddr, 0.U)
-  DiffBridge.io.storeData := RegNext(io.store.data, 0.U)
+  DiffBridge.io.storeValid_0 := RegNext(io.store(0).valid, 0.U)
+  DiffBridge.io.storeIndex_0 := 0.U
+  DiffBridge.io.storePaddr_0 := RegNext(io.store(0).paddr, 0.U)
+  DiffBridge.io.storeVaddr_0 := RegNext(io.store(0).vaddr, 0.U)
+  DiffBridge.io.storeData_0:= RegNext(io.store(0).data, 0.U)
+
+  DiffBridge.io.loadValid_0 := RegNext(io.load(0).valid, 0.U)
+  DiffBridge.io.loadIndex_0 := 0.U
+  DiffBridge.io.loadPaddr_0 := RegNext(io.load(0).paddr, 0.U)
+  DiffBridge.io.loadVaddr_0 := RegNext(io.load(0).vaddr, 0.U)
+
+  DiffBridge.io.storeValid_1 := RegNext(io.store(1).valid, 0.U)
+  DiffBridge.io.storeIndex_1 := 1.U
+  DiffBridge.io.storePaddr_1 := RegNext(io.store(1).paddr, 0.U)
+  DiffBridge.io.storeVaddr_1 := RegNext(io.store(1).vaddr, 0.U)
+  DiffBridge.io.storeData_1:= RegNext(io.store(1).data, 0.U)
+
+  DiffBridge.io.loadValid_1 := RegNext(io.load(1).valid, 0.U)
+  DiffBridge.io.loadIndex_1 := 1.U
+  DiffBridge.io.loadPaddr_1 := RegNext(io.load(1).paddr, 0.U)
+  DiffBridge.io.loadVaddr_1 := RegNext(io.load(1).vaddr, 0.U)
 
   DiffBridge.io.REG := io.reg
   
@@ -155,20 +173,20 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val csr_rstat_1 = Input(Bool())          
     val csr_data_1 = Input(UInt(32.W))
 
-    val index_2 = Input(UInt(8.W))
-    val Instrvalid_2 = Input(Bool())
-    val the_pc_2 = Input(UInt(64.W))
-    val instr_2 = Input(UInt(32.W))
-    val skip_2 = Input(Bool())
-    val is_TLBFILL_2 = Input(Bool())
-    val TLBFILL_index_2 = Input(UInt(5.W))
-    val is_CNTinst_2 = Input(Bool())
-    val timer_64_value_2 = Input(UInt(64.W))
-    val wen_2 = Input(Bool())
-    val wdest_2 = Input(UInt(8.W))
-    val wdata_2 = Input(UInt(64.W))
-    val csr_rstat_2 = Input(Bool())
-    val csr_data_2 = Input(UInt(32.W))
+    // val index_2 = Input(UInt(8.W))
+    // val Instrvalid_2 = Input(Bool())
+    // val the_pc_2 = Input(UInt(64.W))
+    // val instr_2 = Input(UInt(32.W))
+    // val skip_2 = Input(Bool())
+    // val is_TLBFILL_2 = Input(Bool())
+    // val TLBFILL_index_2 = Input(UInt(5.W))
+    // val is_CNTinst_2 = Input(Bool())
+    // val timer_64_value_2 = Input(UInt(64.W))
+    // val wen_2 = Input(Bool())
+    // val wdest_2 = Input(UInt(8.W))
+    // val wdata_2 = Input(UInt(64.W))
+    // val csr_rstat_2 = Input(Bool())
+    // val csr_data_2 = Input(UInt(32.W))
 
     val excp_valid = Input(Bool())
     val eret = Input(Bool())
@@ -178,11 +196,27 @@ class DiffBridge extends BlackBox with HasBlackBoxPath {
     val exceptionInst =Input(UInt(32.W))
 
     //DifftestStoreEvent
-    val storeIndex = Input(UInt(8.W))
-    val storeValid = Input(UInt(8.W))
-    val storePaddr = Input(UInt(64.W))
-    val storeVaddr = Input(UInt(64.W))
-    val storeData = Input(UInt(64.W))
+    val storeIndex_0 = Input(UInt(8.W))
+    val storeValid_0 = Input(UInt(8.W))
+    val storePaddr_0 = Input(UInt(64.W))
+    val storeVaddr_0 = Input(UInt(64.W))
+    val storeData_0  = Input(UInt(64.W))
+
+    val storeIndex_1 = Input(UInt(8.W))
+    val storeValid_1 = Input(UInt(8.W))
+    val storePaddr_1 = Input(UInt(64.W))
+    val storeVaddr_1 = Input(UInt(64.W))
+    val storeData_1  = Input(UInt(64.W))
+
+    val loadIndex_0 = Input(UInt(8.W))
+    val loadValid_0 = Input(UInt(8.W))
+    val loadPaddr_0 = Input(UInt(64.W))
+    val loadVaddr_0 = Input(UInt(64.W))
+
+    val loadIndex_1 = Input(UInt(8.W))
+    val loadValid_1 = Input(UInt(8.W))
+    val loadPaddr_1 = Input(UInt(64.W))
+    val loadVaddr_1 = Input(UInt(64.W))
 
     val REG = Input(Vec(32, UInt(64.W)))
 

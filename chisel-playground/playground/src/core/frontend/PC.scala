@@ -37,12 +37,12 @@ class PC extends Module {
   }.elsewhen(io.stall) {
     pcReg := pcReg
     io.nextPC := pcReg
-  }.elsewhen(predictTakenReg) {
-    pcReg := predictTargetReg
-    io.nextPC := predictTargetReg
   }.elsewhen(io.PCPredictTaken) {
     pcReg := io.dnpc
     io.nextPC := io.dnpc
+  }.elsewhen(predictTakenReg) {
+    pcReg := predictTargetReg
+    io.nextPC := predictTargetReg
   }.elsewhen(~io.stall){
     pcReg := snpc
     io.nextPC := snpc

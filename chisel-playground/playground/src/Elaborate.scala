@@ -13,15 +13,20 @@ object Elaborate extends App {
     opt[Boolean]("use-simu")
       .action((x, c) => c.copy(useSimu = x))
       .text("是否使用仿真用 IP")
+    opt[Boolean]("use-count")
+      .action((x, c) => c.copy(useCount = x))
+      .text("是否使用计数器")
   }
   case class Config(
     targetDir: String = "build",
     useDiff: Boolean = true,
-    useSimu: Boolean = true
+    useSimu: Boolean = true,
+    useCount : Boolean = false
   )
   val config = parser.parse(args, Config()).getOrElse(Config())
   GenCtrl.USE_DIFF = config.useDiff
   GenCtrl.USE_SIMU = config.useSimu
+  GenCtrl.USE_COUNT = config.useCount
   
   val firtoolOptions = Array(
     "--lowering-options=" + List(

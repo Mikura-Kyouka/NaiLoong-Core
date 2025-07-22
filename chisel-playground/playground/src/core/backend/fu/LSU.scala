@@ -14,8 +14,8 @@ object LSUOpType {
   def sh   = "b0001001".U
   def sw   = "b0001010".U
 
-  def ll   = "b0100000".U 
-  def sc   = "b0100001".U
+  def ll   = "b0100010".U 
+  def sc   = "b0110010".U
   def isAdd(func: UInt) = func(6)
   def isStore(func: UInt): Bool = func(3)
   def isLoad(func: UInt): Bool = !isStore(func)

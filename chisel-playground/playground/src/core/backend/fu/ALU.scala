@@ -66,12 +66,12 @@ object cpucfg {
   
   def word17 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     4.U( 7.W),   // Linesize-log2 [30: 24]
-                    8.U( 8.W),   // Index-log2    [23: 16]
+                    9.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     2.U( 7.W),   // Linesize-log2 [30: 24]
-                    9.U( 8.W),   // Index-log2    [23: 16]
+                   12.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word19 = Cat( 0.U( 1.W),   // not used      [31: 31]
@@ -209,6 +209,7 @@ class FuOut extends Bundle {
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)
   val tlbInfo = Output(new TlbInstBundle)
+  val failsc = Output(Bool()) // 是否发生了失败的sc指令
 
   // for load/store difftest
   val paddr = Output(UInt(32.W))
@@ -272,9 +273,9 @@ class AligendALU extends Module{
   io.out.bits.tlbInfo.op := io.in.bits.ctrl.tlbInvOp
   io.out.bits.tlbInfo.asid := io.in.bits.src1
   io.out.bits.tlbInfo.va := io.in.bits.src2
-  io.out.bits.vaddr := io.cacop.VA
+  io.out.bits.vaddr := Mux(io.cacop.en, io.cacop.VA, io.in.bits.pc)
 
-  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop
+  val isCACOP = io.in.bits.ctrl.cType === CACOPType.i && io.in.bits.ctrl.cacopOp =/= CACOPOp.nop && io.in.bits.valid
   val cacopOp2 = isCACOP && io.in.bits.ctrl.cacopOp === CACOPOp.op2
 
   when(isCACOP) {
@@ -315,5 +316,6 @@ class AligendALU extends Module{
   io.out.bits.wdata := DontCare
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.optype := DontCare
+  io.out.bits.failsc := false.B // ALU does not handle sc
   io.out.bits.timer64 := io.csrRead.timer64
 } 

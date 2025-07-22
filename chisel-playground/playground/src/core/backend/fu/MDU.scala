@@ -41,6 +41,7 @@ class AlignedMDU extends Module{
   val io = IO(new Bundle{
     val in = Flipped(Decoupled(Output(new PipelineConnectIO)))
     val out = Decoupled(new FuOut)
+    val markIntrpt = Input(Bool())
     val flush = Input(Bool())
   })
   val mdu = Module(new MDU)
@@ -369,5 +370,6 @@ class AlignedMDU extends Module{
   io.out.bits.optype := DontCare
   io.out.bits.fuType := io.in.bits.ctrl.fuType
   io.out.bits.csrNewData := DontCare
-  io.out.bits.exceptionVec := DontCare
+  io.out.bits.exceptionVec := Cat(0.U(15.W), io.markIntrpt)
+  io.out.bits.failsc := false.B // MDU does not handle sc
 } 

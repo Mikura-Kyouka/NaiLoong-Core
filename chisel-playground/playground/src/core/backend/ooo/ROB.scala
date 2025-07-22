@@ -12,7 +12,7 @@ object RobConfig {
   val ROB_ENTRY_NUM = 64
   val ROB_INDEX_WIDTH = log2Ceil(ROB_ENTRY_NUM)
   val ROB_WRITEBACK_NUM = 5
-  val ROB_CMT_NUM = 3
+  val ROB_CMT_NUM = 2
 }
 
 class RobEntry extends Bundle {
@@ -40,13 +40,14 @@ class RobEntry extends Bundle {
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
   }
   val inst_valid = Bool()
-  val csrOp     = UInt(3.W)
+  val csrOp     = UInt(4.W)
   val csrNum    = UInt(14.W)
   val csrNewData = UInt(32.W)
   val eret = Bool() 
   val tlbInfo = new TlbInstBundle
   val cacopOp = UInt(2.W)
   val cType = UInt(2.W)
+  val failsc = Bool()
 
   // for load/store difftest
   val paddr      = UInt(32.W)
@@ -83,6 +84,7 @@ class RobWritebackInfo extends Bundle {
   val optype      = UInt(7.W)
   val timer64     = UInt(64.W)
   val tlbInfo     = new TlbInstBundle
+  val failsc      = Bool() // 是否发生了失败的sc指令
 }
 
 class rtrBundle extends Bundle {
@@ -105,7 +107,7 @@ class BrMisPredInfo extends Bundle {
   val brMisPred = Valid(UInt(32.W))             // 分支预测错误信号
   val actuallyTaken = Bool()
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
-  val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
+  // val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
   val brMisPredPC = UInt(32.W)
 }
 
@@ -136,7 +138,7 @@ class RobIO extends Bundle {
   val commitPC = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))         // 提交的PC
   val commitInstr = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(UInt(32.W))))      // 提交的指令
   // for load/store difftest
-  val commitLS = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(new LSCommitInfo)))   // 提交的load/store信息
+  val commitLS = Output(Vec(RobConfig.ROB_CMT_NUM, Valid(new LSCommitInfo)))   // 提交的store信息
   val commitCSR = Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle))
 
   // 分支预测错误接口
@@ -200,7 +202,6 @@ class Rob extends Module {
         robEntries(allocIdx) := io.allocate.allocEntries(j)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
-        robEntries(allocIdx).use_preg := io.allocate.allocEntries(j).use_preg
       }
     }
     tail := (tail + io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
@@ -213,7 +214,7 @@ class Rob extends Module {
       robEntries(idx).finished     := true.B
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
       robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
-      robEntries(idx).eret         := robEntries(idx).instr === "b00000110010010000011100000000000".U  // FIXME: hardcode
+      robEntries(idx).eret         := io.writeback(i).bits.exceptionVec(10)
       robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, 
                                           true.B, 
                                           Mux(io.writeback(i).bits.redirect.actuallyTaken, 
@@ -228,13 +229,12 @@ class Rob extends Module {
       val wbRfWen = robEntries(idx).rfWen || io.writeback(i).bits.exceptionVec.orR  // 如果有异常则不写寄存器(0有效)
       robEntries(idx).rfWen        := wbRfWen
       // for load/store difftest
-      robEntries(idx).fuType       := io.writeback(i).bits.fuType
       robEntries(idx).paddr        := io.writeback(i).bits.paddr
       robEntries(idx).vaddr        := io.writeback(i).bits.vaddr
       robEntries(idx).wdata        := io.writeback(i).bits.wdata
-      robEntries(idx).optype       := io.writeback(i).bits.optype
       robEntries(idx).timer64      := io.writeback(i).bits.timer64
       robEntries(idx).tlbInfo      := io.writeback(i).bits.tlbInfo
+      robEntries(idx).failsc       := io.writeback(i).bits.failsc
     }
   }
   
@@ -256,7 +256,8 @@ class Rob extends Module {
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
     }
     hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
-                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop
+                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop &&
+                    robEntries(commitIdx).csrOp =/= CSROp.sc
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
@@ -302,7 +303,7 @@ class Rob extends Module {
   io.brMisPredInfo.brMisPred.valid := brMisPred
   io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
-  io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
+  // io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
   io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
 
@@ -350,7 +351,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.isBranch := entry.isBranch
     io.commit.commit(i).bits.csr_rstat := (entry.csrOp === CSROp.rd || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.wr) && entry.csrNum === 5.U
     io.commit.commit(i).bits.csr_data := entry.result
-    io.commit.commit(i).bits.excp := entry.exceptionVec.orR
+    io.commit.commit(i).bits.excp := entry.exceptionVec.orR && !entry.eret
     io.commit.commit(i).bits.timer64 := entry.timer64
     
     // 提交PC信息
@@ -366,6 +367,10 @@ class Rob extends Module {
     io.commitCSR(i).valid := shouldCommit(i) && entry.inst_valid && csr_wen
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
+    io.commitCSR(i).bits.ll := entry.csrOp === CSROp.ll
+    io.commitCSR(i).bits.sc := entry.csrOp === CSROp.sc
+    io.commitCSR(i).bits.lladdr := entry.vaddr // ll指令的地址
+    io.commitCSR(i).bits.idle := entry.csrOp === CSROp.idle // 是否是idle指令
 
     // for load/store difftest
     io.commitLS(i).valid := shouldCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
@@ -440,12 +445,4 @@ class Rob extends Module {
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
                       flushEntry.pc + 4.U))
-
-  val flushCounter = RegInit(0.U(64.W))
-
-  when(io.flush) {
-    flushCounter := flushCounter +& 1.U
-  }
-
-  dontTouch(flushCounter)
 }

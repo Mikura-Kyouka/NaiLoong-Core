@@ -21,7 +21,7 @@ object PipelineConnect {
       s_idle -> Mux(left.valid && right.ready, s_in, s_idle),
       s_in -> Mux(rightOutFire, Mux(left.valid && right.ready, s_in, s_idle), s_in)
     ))
-
+    
     right.bits := reg
 
     val valid = RegInit(false.B)

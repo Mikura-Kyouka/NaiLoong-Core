@@ -87,7 +87,7 @@ class CSRIO extends FunctionUnitIO {
 
 }
 
-class CSR extends Module {
+class CPUCSR extends Module {
     // val io = IO (new CSRIO)
     // val (valid, src1, src2, func) = (io.in.valid, io.in.bits.src1, io.in.bits.src2, io.in.bits.func)
 
@@ -96,7 +96,11 @@ class CSR extends Module {
     val write = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new csr_write_bundle)))
     val exceptionInfo = new csr_excp_bundle
     val plv = Output(UInt(2.W))
+    val llbit = Output(Bool())
+    val lladdr = Output(UInt(32.W))
     val markIntrpt = Output(Bool())
+    val hardIntrpt = Input(UInt(8.W))
+    val idle = Output(Bool())
     val difftest = Output(new DiffCSRBundle)
 
     val to_mmu = Flipped(new CsrToMmuBundle)
@@ -127,11 +131,17 @@ class CSR extends Module {
   val csr_cntc = RegInit(0.U(32.W))
   val csr_ticlr = RegInit(0.U(1.W))
   val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
+  val lladdr = RegInit(0.U(32.W))
   val csr_tlbrentry = RegInit(0.U.asTypeOf(new csr_tlbrentry_bundle))
   val csr_dmw0 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val timer64 = RegInit(0.U(64.W))
   timer64 := timer64 + 1.U
+  val idle = RegInit(false.B)
+  
+  val pgd = WireInit(0.U.asTypeOf(new csr_pgdx_bundle))
+  pgd.base := Mux(csr_badv(31) === 0.U, csr_pgdl.base, csr_pgdh.base)
+  pgd.zero11_0 := 0.U
 
   when(csr_tcfg.en === 1.U && csr_tval =/= "hffffffff".U) {
     when(csr_tval === 0.U && csr_tcfg.periodic === 1.U) {
@@ -140,6 +150,8 @@ class CSR extends Module {
       csr_tval := csr_tval - 1.U 
     }
   }
+  
+  csr_estat.is9_2 := io.hardIntrpt
 
   when(csr_tval === 0.U) {
     csr_estat.is11 := 1.U // 设置定时器中断标志
@@ -209,6 +221,7 @@ class CSR extends Module {
   dontTouch(debug_timer64)
 
   io.plv := csr_crmd.plv
+  io.idle := idle
 
   io.difftest.csr_crmd := csr_crmd.asUInt
   io.difftest.csr_prmd := csr_prmd.asUInt
@@ -224,7 +237,7 @@ class CSR extends Module {
   io.difftest.csr_asid := csr_asid.asUInt
   io.difftest.csr_pgdl := csr_pgdl.asUInt
   io.difftest.csr_pgdh := csr_pgdh.asUInt
-  io.difftest.csr_pgd := csr_pgd.asUInt
+  io.difftest.csr_pgd := pgd.asUInt
   io.difftest.csr_save0 := csr_save0
   io.difftest.csr_save1 := csr_save1
   io.difftest.csr_save2 := csr_save2
@@ -256,7 +269,7 @@ class CSR extends Module {
       CsrName.ASID  -> csr_asid.asUInt,
       CsrName.PGDL  -> csr_pgdl.asUInt,
       CsrName.PGDH  -> csr_pgdh.asUInt,
-      CsrName.PGD   -> csr_pgd.asUInt,
+      CsrName.PGD   -> pgd.asUInt,
       CsrName.SAVE0 -> csr_save0,
       CsrName.SAVE1 -> csr_save1,
       CsrName.SAVE2 -> csr_save2,
@@ -278,13 +291,19 @@ class CSR extends Module {
 
   // write
   for(i <- 0 until RobConfig.ROB_CMT_NUM) {
-    when(io.write(i).valid && csr_crmd.plv === 0.U) { // 只允许PLV0写CSR
+    when(io.write(i).valid && csr_crmd.plv === 0.U && !(io.write(i).bits.ll || io.write(i).bits.sc || io.write(i).bits.idle)) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
           csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
+          // when(io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle).pg === 1.U) {  // "推荐"
+          //   csr_crmd.datf := 1.U // 设置指令缓存使能
+          //   csr_crmd.datm := 1.U // 设置数据缓存使能
+          // }
+          csr_crmd.zero := 0.U
         }
         is(CsrName.PRMD) {
           csr_prmd := io.write(i).bits.csr_data.asTypeOf(new csr_prmd_bundle)
+          csr_prmd.zero := 0.U
         }
         is(CsrName.ECFG) {
           csr_ecfg := io.write(i).bits.csr_data.asTypeOf(new csr_ecfg_bundle)
@@ -296,6 +315,7 @@ class CSR extends Module {
         }
         is(CsrName.EENTRY) {
           csr_eentry := io.write(i).bits.csr_data.asTypeOf(new csr_eentry_bundle)
+          csr_eentry.zero := 0.U
         }
         is(CsrName.ERA) {
           csr_era := io.write(i).bits.csr_data
@@ -325,16 +345,26 @@ class CSR extends Module {
           }
         }
         is(CsrName.TICLR) {
-          csr_estat.is11 := 0.U   // 清除定时器中断标志
+          when(io.write(i).bits.csr_data(0) === 1.U) {
+            csr_estat.is11 := 0.U   // 清除定时器中断标志
+          }
         }
         is(CsrName.DMW0) {
           csr_dmw0 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+          csr_dmw0.zero2_1 := 0.U
+          csr_dmw0.zero24_6 := 0.U
+          csr_dmw0.zero28 := 0.U
         }
         is(CsrName.DMW1) {
           csr_dmw1 := io.write(i).bits.csr_data.asTypeOf(new csr_dmw_bundle)
+          csr_dmw0.zero2_1 := 0.U
+          csr_dmw0.zero24_6 := 0.U
+          csr_dmw0.zero28 := 0.U
         }
         is(CsrName.TLBIDX) {
           csr_tlbidx := io.write(i).bits.csr_data.asTypeOf(new csr_tlbidx_bundle)
+          csr_tlbidx.zero23_4 := 0.U
+          csr_tlbidx.zero30 := 0.U
         }
         is(CsrName.TLBEHI) {
           csr_tlbehi := io.write(i).bits.csr_data.asTypeOf(new csr_tlbehi_bundle)
@@ -342,32 +372,66 @@ class CSR extends Module {
         }
         is(CsrName.TLBELO0) {
           csr_tlbel0 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel0.zero7 := 0.U
+          csr_tlbel0.zero31_28 := 0.U
         }
         is(CsrName.TLBELO1) {
           csr_tlbel1 := io.write(i).bits.csr_data.asTypeOf(new csr_tlbelo_bundle)
+          csr_tlbel1.zero7 := 0.U
+          csr_tlbel1.zero31_28 := 0.U
         }
         is(CsrName.ASID) {
           csr_asid := io.write(i).bits.csr_data.asTypeOf(new csr_asid_bundle)
+          csr_asid.zero31_24 := 0.U
+          csr_asid.zero15_10 := 0.U
         }
         is(CsrName.PGDL) {
           csr_pgdl := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+          csr_pgdl.zero11_0 := 0.U
         }
         is(CsrName.PGDH) {
           csr_pgdh := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
-        }
-        is(CsrName.PGD) {
-          csr_pgd := io.write(i).bits.csr_data.asTypeOf(new csr_pgdx_bundle)
+          csr_pgdh.zero11_0 := 0.U
         }
         is(CsrName.TLBRENTRY) {
           csr_tlbrentry := io.write(i).bits.csr_data.asTypeOf(new csr_tlbrentry_bundle)
+          csr_tlbrentry.zero5_0 := 0.U
+        }
+        is(CsrName.LLBCTL) {
+          csr_llbctl.klo := io.write(i).bits.csr_data(2)
+          when(io.write(i).bits.csr_data(1) === 1.U) {
+            csr_llbctl.rollb := 0.U
+          }
         }
       }
     }
   }
 
+  for(i <- 0 until RobConfig.ROB_CMT_NUM) {
+    when(io.write(i).valid) {
+      when(io.write(i).bits.ll) {
+        csr_llbctl.rollb := 1.U
+        lladdr := io.write(i).bits.lladdr
+      }
+      when(io.write(i).bits.sc) {
+        csr_llbctl.rollb := 0.U
+      }
+      when(io.write(i).bits.idle) {
+        idle := true.B // 处理idle指令
+      }
+    }
+  }
+
+  io.llbit := csr_llbctl.rollb === 1.U
+  io.lladdr := lladdr
+
   // 中断处理
-  val int_vec = csr_ecfg.asUInt & csr_estat.asUInt
+  val int_vec = csr_ecfg.asUInt(12, 0) & csr_estat.asUInt(12, 0)
   io.markIntrpt := csr_crmd.ie === 1.U && int_vec =/= 0.U
+
+  when(io.markIntrpt) {
+    idle := false.B // 中断发生时清除idle状态
+  }
 
   // 异常处理
   val reversedVec = Reverse(io.exceptionInfo.exceptionVec.asUInt)
@@ -420,25 +484,14 @@ class CSR extends Module {
       csr_badv := io.exceptionInfo.exceptionVAddr
       csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
-    when(cause === 1.U) {                // load 操作页无效
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    when(cause === 2.U) {                // store 操作页无效
+    // load 操作页无效 store 操作页无效 页特权等级错 页修改
+    when(cause === 1.U || cause === 2.U || cause === 4.U || cause === 7.U) { 
       csr_badv := io.exceptionInfo.exceptionVAddr 
       csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
     when(cause === 3.U) {                // 取指页无效
       csr_badv := io.exceptionInfo.exceptionPC 
       csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
-    }
-    when(cause === 4.U) {                // 页特权等级错
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    when(cause === 7.U) {                // 页修改
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
     }
   }
   io.exceptionInfo.exceptionNewPC := Mux(cause === 63.U, csr_tlbrentry.asUInt, csr_eentry.asUInt)
@@ -479,7 +532,7 @@ class CSR extends Module {
         }
       }
       is(TlbOp.rd) {
-        when(io.from_mmu.tlb_entry.e.asBool && !csr_tlbidx.idx(15, log2Ceil(MmuConfig.TLB_NUM)).orR) {
+        when(io.from_mmu.tlb_entry.e.asBool) {
           csr_tlbidx.ne := ~io.from_mmu.tlb_entry.e
           csr_tlbidx.ps := io.from_mmu.tlb_entry.ps
           csr_tlbehi.vppn := io.from_mmu.tlb_entry.vppn
