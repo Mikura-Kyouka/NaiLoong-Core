@@ -474,6 +474,7 @@ class CPUCSR extends Module {
     csr_estat.esubcode := 0.U             // TODO: 异常子码
     when(cause === 8.U) {
       csr_badv := io.exceptionInfo.exceptionPC // 取指地址错
+      csr_estat.esubcode := 0.U
     }
     when(cause === 9.U) {
       csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐

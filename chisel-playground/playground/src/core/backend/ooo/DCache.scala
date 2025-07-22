@@ -234,7 +234,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := paddr
+    io.axi.araddr := Cat(paddr(31, 2), 0.U(2.W))
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
     io.axi.arsize := "b010".U  // 32 bits
@@ -242,7 +242,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.rready := true.B
     // axi write chanel
     val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
-    io.axi.awaddr := Mux(isMMIO, paddr, awaddr)
+    io.axi.awaddr := Mux(isMMIO, Cat(paddr(31, 2), 0.U(2.W)), awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
@@ -342,7 +342,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData >> offset)
+      resp.rdata := Mux(isMMIO, io.axi.rdata >> offset, cacheData >> offset)
       io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
     }
 

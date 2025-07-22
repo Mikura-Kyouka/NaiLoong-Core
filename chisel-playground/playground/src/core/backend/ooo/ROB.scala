@@ -215,7 +215,11 @@ class Rob extends Module {
       val idx = io.writeback(i).bits.robIdx
       robEntries(idx).finished     := true.B
       robEntries(idx).exception    := io.writeback(i).bits.exceptionVec.orR
-      robEntries(idx).exceptionVec := io.writeback(i).bits.exceptionVec
+      robEntries(idx).exceptionVec := Cat(io.writeback(i).bits.exceptionVec(15, 9),
+                                          ((robEntries(idx).csrOp === CSROp.rd ||
+                                          robEntries(idx).csrOp === CSROp.xchg ||
+                                          robEntries(idx).csrOp === CSROp.wr) && io.plv === 3.U),
+                                          io.writeback(i).bits.exceptionVec(7, 0))
       robEntries(idx).eret         := io.writeback(i).bits.exceptionVec(10)
       robEntries(idx).brMispredict := Mux(io.writeback(i).bits.redirect.actuallyTaken =/= io.writeback(i).bits.redirect.predictTaken, 
                                           true.B, 
@@ -359,7 +363,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.pc   := entry.pc
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
-    io.commit.commit(i).bits.data := Mux(entry.csrOp =/= CSROp.nop && io.plv === 3.U, 0.U, entry.result)
+    io.commit.commit(i).bits.data := entry.result
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
     io.commit.commit(i).bits.use_preg := entry.use_preg
     io.commit.commit(i).bits.isBranch := entry.isBranch
