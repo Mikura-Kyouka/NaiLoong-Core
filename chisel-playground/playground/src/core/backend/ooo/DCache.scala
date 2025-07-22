@@ -204,7 +204,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
-        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1, s_idle, s_read_mem1), s_write_mem3),
+        s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
         s_write_cache -> s_idle,
@@ -214,7 +214,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                     (!io.req.valid || io.resp.fire)
     io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
                       (io.addr_trans_in.excp.en && state === s_tlb) || (cacopOp0 && state === s_idle) || 
-                      (cacopOp1 && state === s_write_mem3) ||
+                      ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
                       (!hit && cacopOp2 && state === s_judge)) && !flushed 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
