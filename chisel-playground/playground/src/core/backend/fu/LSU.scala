@@ -91,6 +91,9 @@ class LSU extends Module with HasLSUConst {
     val flush = Input(Bool())
     val scommit = Input(Bool())
     val out = Decoupled(new FuOut)
+    val markIntrpt = Input(Bool())
+    val llbit = Input(Bool())
+    val lladdr = Input(UInt(32.W))
   })
   
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
@@ -147,15 +150,15 @@ class LSU extends Module with HasLSUConst {
   writebackSelect := pendingCDBCmtSelect
 
 
-  when(LSUOpType.isLoad(func) && io.in.valid){
+  when(LSUOpType.isLoad(func) && io.in.valid && io.in.bits.valid){
     printf("Load request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
   }
-  when(LSUOpType.isStore(func) && io.in.valid){
+  when(LSUOpType.isStore(func) && io.in.valid && io.in.bits.valid){
     printf("Store request: pc = %x, addr = %x, data = %x, headPtr = %x\n", io.in.bits.pc, addr, io.in.bits.src2, moqHeadPtr)
   }
 
   // load queue enqueue
-  val moqEnqueue = io.in.valid // FIXME:
+  val moqEnqueue = io.in.valid && io.in.bits.valid // FIXME:
   when(moqEnqueue){moqHeadPtr := moqHeadPtr + 1.U}
   // move moqDtlbptr
   // 如果有等待的Dtlb请求，DtlbPtr下个周期增加1（Dtlb一个周期后总能返回数据）
@@ -351,7 +354,7 @@ class LSU extends Module with HasLSUConst {
   //-------------------------------------------------------
   // Send request to dtlb
   val dtlbMoqIdx = moqDtlbPtr
-  io.addr_trans_out.trans_en := io.in.fire // 
+  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid// 
   io.addr_trans_out.vaddr := addr
   when(havePendingDtlbReq){
     moq(moqDtlbPtr).paddr := io.addr_trans_in.paddr
@@ -392,6 +395,7 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.wmask := DontCare
     io.dmemReq.bits.cmd := 0.U
     io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
+    io.dmemReq.bits.isMMIO := moq(moqDmemPtr).isMMIO
     io.dmemReq.valid := true.B
   }.elsewhen(haveUnrequiredStore){
     io.dmemReq.bits.addr := storeQueue(0.U).paddr
@@ -400,6 +404,7 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.wmask := storeQueue(0.U).wmask
     io.dmemReq.bits.cmd := 1.U
     io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
+    io.dmemReq.bits.isMMIO := storeQueue(0.U).isMMIO
     io.dmemReq.valid := true.B
   }
   io.dmemResp.ready := true.B

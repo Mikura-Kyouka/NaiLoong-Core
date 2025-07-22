@@ -11,6 +11,7 @@ class reqBundle extends Bundle{
     val wmask = Output(UInt(4.W))
     val cmd   = Output(Bool())// 0: read, 1: write
     val moqIdx = Output(UInt(3.W)) // moq entry index
+    val isMMIO = Input(Bool())
 }
 
 class respBundle extends Bundle{
@@ -121,24 +122,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       addr := io.cacop.VA.asTypeOf(addrBundle)
     }
 
-    val isMMIO = req.addr(31, 16) === "hbfaf".U
+    val isMMIO = req.isMMIO
 
     //    0          1              2               3             4                  5               6               7               8
     val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
-    when(cacopOp2) {
-      addr := io.addr_trans_in.paddr.asTypeOf(addrBundle)
-    }
 
-    io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := Mux(cacopOp2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
-    io.addr_trans_out.trans_en := true.B
-    io.addr_trans_out.mem_type := Mux(cacopOp2, MemType.load, Mux(req.cmd, MemType.store, MemType.load))
-
-    // val isMMIO = req.addr(31, 16) === "hbfaf".U || req.addr(31, 16) === "hbfe0".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
-    val isMMIO = io.addr_trans_in.mat === 0.U  // 强序非缓存
-
-    //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
     val state = RegInit(s_idle)
 
     // 暂时只支持 1 way
@@ -203,13 +191,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // because store may only write to specific byte
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.fire && !io.flush && !cacopOp0, 
+        s_idle -> Mux(io.req.fire && !cacopOp0, 
                         Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
                         s_idle),
-        s_judge -> Mux(io.flush, 
-                        s_idle, 
-                        Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), 
-                                 Mux(!cacopOp2 && req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(dirty, s_write_mem1, s_read_mem1)))),
+        s_judge -> Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), 
+                                 Mux(!cacopOp2 && req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(dirty, s_write_mem1, s_read_mem1))),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1, s_idle, s_read_mem1), s_write_mem3),
@@ -259,7 +245,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 将这个cacheline标记为not dirty的状态
     val rdata = io.axi.rdata
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
-      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := VecInit(Seq.fill(LineBeats)(rdata)).asUInt
       // dataArray(addr.index)(0)(0) := rdata // TODO
@@ -275,10 +261,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).tag := addr.tag
       // metaArray(addr.index)(0).valid := true.B
       // metaArray(addr.index)(0).dirty := false.B
-      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaValidArray.io.wea := !isMMIO // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
@@ -297,7 +283,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     when(state === s_write_cache) {
       // 完整写入更新后的数据
       // dataArray(addr.index)(0) := VecInit(Seq(newWord))
-      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := newWord
       
@@ -313,10 +299,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).tag := addr.tag
       // metaArray(addr.index)(0).valid := true.B
       // metaArray(addr.index)(0).dirty := true.B
-      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaValidArray.io.wea := !isMMIO // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
