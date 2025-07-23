@@ -39,8 +39,9 @@ class Execute extends Module {
   dmem.io.resp <> lsu.io.dmemResp
   dmem.io.axi <> io.lsAXI
   dmem.io.flush := io.flush
-  dmem.io.cacop := DontCare // FIXME: should be included in moq entry
+  // dmem.io.cacop := DontCare // FIXME: should be included in moq entry
 
+  // lsu.io.cacop := io.cacop
   lsu.io.scommit := io.scommit
   lsu.io.flush := io.flush
   lsu.io.addr_trans_out <> io.addr_trans_out

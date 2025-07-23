@@ -78,6 +78,8 @@ class moqEntry extends Bundle{
   // val loadAddrMisaligned  = Bool()
   // val storeAddrMisaligned = Bool()
   val exceptionVec = UInt(16.W) // 15: load/store addr misaligned, 14: page fault, 13: intrpt, 12: other exceptions
+  val cacopOp = UInt(2.W)
+  val cacopEn = Bool() // CACOPOp.nop
 }
 
 class LSU extends Module with HasLSUConst {
@@ -93,6 +95,7 @@ class LSU extends Module with HasLSUConst {
     val scommit = Input(Bool())
     val out = Decoupled(new FuOut)
     val markIntrpt = Input(Bool())
+    // val cacop = Input(new CACOPIO)
     val llbit = Input(Bool())
     val lladdr = Input(UInt(32.W))
   })
@@ -113,8 +116,11 @@ class LSU extends Module with HasLSUConst {
   val addr = io.in.bits.src1 + io.in.bits.imm
   val wdata = io.in.bits.src2
   val size = func(1, 0)
-  // L/S Queue
 
+  val cacopOp0 = io.in.bits.ctrl.cType === CACOPType.d && io.in.bits.ctrl.cacopOp === CACOPOp.op0
+  val cacopOp1 = io.in.bits.ctrl.cType === CACOPType.d && io.in.bits.ctrl.cacopOp === CACOPOp.op1
+  val cacopOp2 = io.in.bits.ctrl.cType === CACOPType.d && io.in.bits.ctrl.cacopOp === CACOPOp.op2
+  // L/S Queue
   val storeQueueEnqueue = Wire(Bool())
   //     
   //                           Memory reOrder Queue
@@ -220,12 +226,13 @@ class LSU extends Module with HasLSUConst {
     moq(moqHeadPtr).tlbfin := false.B // tlbfinished
     moq(moqHeadPtr).finished := false.B
     moq(moqHeadPtr).exceptionVec := exceptionVec
+    moq(moqHeadPtr).cacopOp := io.in.bits.ctrl.cacopOp// CACOPOp.nop
+    moq(moqHeadPtr).cacopEn := io.in.bits.ctrl.cType === CACOPType.d
     // moq(moqHeadPtr).rollback := false.B
     // moq(moqHeadPtr).loadPageFault := false.B
     // moq(moqHeadPtr).storePageFault := false.B
     // moq(moqHeadPtr).loadAddrMisaligned := findLoadAddrMisaligned
     // moq(moqHeadPtr).storeAddrMisaligned := findStoreAddrMisaligned
-    
   }
 
   when(storeQueueEnqueue){
@@ -335,8 +342,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned
-  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned
+  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d)
+  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d)
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -349,7 +356,7 @@ class LSU extends Module with HasLSUConst {
   //-------------------------------------------------------
   // Send request to dtlb
   val dtlbMoqIdx = moqDtlbPtr
-  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid// 
+  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid && !cacopOp0 && !cacopOp1 // 
   io.addr_trans_out.vaddr := addr
   io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load)
   when(havePendingDtlbReq){
@@ -389,7 +396,7 @@ class LSU extends Module with HasLSUConst {
   dontTouch(havePendingDmemReq)
   io.dmemReq.valid := false.B
   when(havePendingDmemReq){
-    io.dmemReq.bits.addr := moq(moqDmemPtr).paddr
+    io.dmemReq.bits.addr := Mux(moq(moqDmemPtr).cacopEn && (moq(moqDmemPtr).cacopOp === CACOPOp.op0 || moq(moqDmemPtr).cacopOp === CACOPOp.op1), moq(moqDmemPtr).vaddr, moq(moqDmemPtr).paddr)
     io.dmemReq.bits.size := moq(moqDmemPtr).size
     io.dmemReq.bits.wdata := DontCare
     io.dmemReq.bits.wmask := DontCare
@@ -397,6 +404,8 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
     io.dmemReq.bits.isMMIO := moq(moqDmemPtr).isMMIO
     io.dmemReq.valid := true.B
+    io.dmemReq.bits.cacopOp := moq(moqDmemPtr).cacopOp
+    io.dmemReq.bits.cacopEn := moq(moqDmemPtr).cacopEn // ONLY HERE, not store    
   }.elsewhen(haveUnrequiredStore){
     io.dmemReq.bits.addr := storeQueue(0.U).paddr
     io.dmemReq.bits.size := storeQueue(0.U).size
@@ -405,6 +414,7 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.cmd := 1.U
     io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
     io.dmemReq.bits.isMMIO := storeQueue(0.U).isMMIO
+    io.dmemReq.bits.cacopEn := false.B // store queue does not support cacop
     io.dmemReq.valid := true.B
   }
   io.dmemResp.ready := true.B
