@@ -216,6 +216,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                       (io.addr_trans_in.excp.en && state === s_tlb) || 
                       (io.req.valid && cacopOp0 && state === s_idle) || 
                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
+                      (hit && cacopOp2 && !dirty && state === s_judge) ||
                       (!hit && cacopOp2 && state === s_judge) ||
                       (io.req.valid && cacopOp1 && !dirty && state === s_idle)
                      ) && !flushed 
@@ -225,13 +226,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 通知 ROB: Store 指令已经退休
     io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid && isMMIO) || state === s_write_cache && !isMMIO
     io.RobLsuIn.ready := state === s_wait_rob
-
-    val VA = io.cacop.VA.asTypeOf(addrBundle)
-    when(cacopOp0) {
-      metaArray.io.wea := true.B
-      metaArray.io.addra := VA.index
-      metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
-    }
 
     val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)
@@ -355,9 +349,24 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     io.resp.bits := resp
 
-    // when(io.req.valid){
-    //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
-    // }
+    val VA = io.cacop.VA.asTypeOf(addrBundle)
+    when(cacopOp0) {
+      metaArray.io.wea := true.B
+      metaArray.io.addra := VA.index
+      metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
+    }
+
+    when(cacopOp1) {
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.dina := false.B.asUInt
+      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+    }
+
+    when(cacopOp2 && hit) {
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.dina := false.B.asUInt
+      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+    }
 
     if(GenCtrl.USE_COUNT) {
       val counting = RegInit(false.B)
