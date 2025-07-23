@@ -220,7 +220,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
     // 通知 ROB: Store 指令已经退休
-    io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid) || state === s_write_cache
+    io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid && isMMIO) || state === s_write_cache && !isMMIO
     io.RobLsuIn.ready := state === s_wait_rob
 
     val VA = io.cacop.VA.asTypeOf(addrBundle)
