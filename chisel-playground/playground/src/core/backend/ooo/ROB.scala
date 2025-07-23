@@ -263,8 +263,7 @@ class Rob extends Module {
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
     }
     hasCsrRW(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&
-                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop &&
-                    robEntries(commitIdx).csrOp =/= CSROp.sc
+                    canCommit(i) && robEntries(commitIdx).csrOp =/= CSROp.nop
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
@@ -484,7 +483,7 @@ class Rob extends Module {
     head := nextHead
   }
 
-  when (exception || brMisPred || csrWrite || tlbOperation) {
+  when ((exception || brMisPred || csrWrite || tlbOperation) && hasCommit.reduce(_ || _)) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
@@ -497,7 +496,7 @@ class Rob extends Module {
     }
   }
 
-  io.flush := exception || brMisPred || csrWrite || tlbOperation
+  io.flush := (exception || brMisPred || csrWrite || tlbOperation) && hasCommit.reduce(_ || _)
   val flushEntry = robEntries(head +& minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
