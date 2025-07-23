@@ -239,7 +239,7 @@ class LSU extends Module with HasLSUConst {
   //              ------------------------------------------------------------
   //                             |              |              |
   //                            head           cmt            req
-  val storeQueue = Reg(Vec(storeQueueSize, new storeQueueEntry)) 
+  val storeQueue = RegInit(VecInit(Seq.fill(storeQueueSize)(0.U.asTypeOf(new storeQueueEntry))))
   // Store Queue contains store insts that have finished TLB lookup stage
   // There are 2 types of store insts in this queue: ROB-commited (retired) / CDB-commited (commited)
   // CDB-commited insts have already gotten their paddr from TLB,
