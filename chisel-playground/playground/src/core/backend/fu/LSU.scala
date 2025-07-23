@@ -149,15 +149,15 @@ class LSU extends Module with HasLSUConst {
   writebackSelect := pendingCDBCmtSelect
 
 
-  when(LSUOpType.isLoad(func) && io.in.valid && io.in.bits.valid){
+  when(LSUOpType.isLoad(func) && io.in.fire && io.in.bits.valid){
     printf("Load request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
   }
-  when(LSUOpType.isStore(func) && io.in.valid && io.in.bits.valid){
+  when(LSUOpType.isStore(func) && io.in.fire && io.in.bits.valid){
     printf("Store request: pc = %x, addr = %x, data = %x, headPtr = %x\n", io.in.bits.pc, addr, io.in.bits.src2, moqHeadPtr)
   }
 
   // load queue enqueue
-  val moqEnqueue = io.in.valid && io.in.bits.valid // FIXME:
+  val moqEnqueue = io.in.fire && io.in.bits.valid // FIXME:
   when(moqEnqueue){moqHeadPtr := moqHeadPtr + 1.U}
   // move moqDtlbptr
   // 如果有等待的Dtlb请求，DtlbPtr下个周期增加1（Dtlb一个周期后总能返回数据）
@@ -189,19 +189,6 @@ class LSU extends Module with HasLSUConst {
   //   moq(moqTailPtr).finished := false.B
   // }
 
-  // flush TODO: FIXME: TODO: FIXME:
-  when(io.flush) {
-    moqHeadPtr := nextmoqDmemPtr
-    moqDtlbPtr := nextmoqDmemPtr
-    // moqHeadPtr := 0.U
-    // moqTailPtr := 0.U
-    // moqDtlbPtr := 0.U
-    // moqDmemPtr := 0.U
-    for (i <- 0 until moqSize) {
-      moq(i).valid := false.B
-      moq(i).tlbfin := false.B
-    }
-  }
 
   // write data to moq
   // val vaddrIsMMIO = addr(31, 16) === "hbfaf".U
@@ -348,8 +335,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-  findLoadAddrMisaligned  := io.in.valid && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned
-  findStoreAddrMisaligned := io.in.valid && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned
+  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned
+  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -553,6 +540,21 @@ class LSU extends Module with HasLSUConst {
   dontTouch(havePendingCDBCmt)
   io.out.valid := havePendingCDBCmt
   // assert(!(io.out.vlaid && !io.out.ready))
+
+    // flush TODO: FIXME: TODO: FIXME:
+  when(io.flush) {
+    moqHeadPtr := nextmoqDmemPtr
+    moqDtlbPtr := nextmoqDmemPtr
+    moqTailPtr := nextmoqDmemPtr
+    // moqHeadPtr := 0.U
+    // moqTailPtr := 0.U
+    // moqDtlbPtr := 0.U
+    // moqDmemPtr := 0.U
+    for (i <- 0 until moqSize) {
+      moq(i).valid := false.B
+      moq(i).tlbfin := false.B
+    }
+  }
 
   // when(io.flush){
   //   moqHeadPtr := nextmoqDmemPtr
