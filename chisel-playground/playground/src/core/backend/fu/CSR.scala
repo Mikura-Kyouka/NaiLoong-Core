@@ -505,6 +505,7 @@ class CPUCSR extends Module {
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }
+    csr_llbctl.klo := 0.U
     when(csr_estat.ecode === "h3f".U) {
       csr_crmd.da := 0.U
       csr_crmd.pg := 1.U
