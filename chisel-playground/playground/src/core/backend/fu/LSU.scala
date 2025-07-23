@@ -227,8 +227,11 @@ class AligendUnpipelinedLSU extends Module{
                         io.in.bits.exceptionVec.asUInt(8, 1),
                         io.markIntrpt
                         )
+  val exceptionVecFailSC = Cat(io.in.bits.exceptionVec.asUInt(15, 1),
+                               io.markIntrpt
+                              )
 
-  io.out.bits.exceptionVec := exceptionVec
+  io.out.bits.exceptionVec := Mux(io.out.bits.failsc, exceptionVecFailSC, exceptionVec)
   io.out.bits.redirect := io.in.bits.redirect
   io.out.bits.tlbInfo := DontCare
   io.out.bits.vaddr := io.addr_trans_out.vaddr
