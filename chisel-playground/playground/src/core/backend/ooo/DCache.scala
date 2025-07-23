@@ -122,7 +122,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       addr := io.cacop.VA.asTypeOf(addrBundle)
     }
 
-    val isMMIO = req.isMMIO
+    val isMMIO = req.isMMIO //FIXME：
+    // val isMMIO = false.B
 
     //    0          1              2               3             4                  5               6               7               8
     val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
@@ -176,7 +177,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val dirty = metaFlagData(0).dirty
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
-    when(io.req.valid) {
+    when(io.req.fire) {
       flushed := false.B
     }
     when(io.flush) {
@@ -195,7 +196,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                         Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
                         s_idle),
         s_judge -> Mux(hit, Mux(cacopOp2, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), 
-                                 Mux(!cacopOp2 && req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(dirty, s_write_mem1, s_read_mem1))),
+                            Mux(!cacopOp2 && req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(dirty, s_write_mem1, s_read_mem1))),
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1, s_idle, s_read_mem1), s_write_mem3),
@@ -230,7 +231,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.rready := true.B
     // axi write chanel
     val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
-    io.axi.awaddr := awaddr
+    io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
@@ -312,7 +313,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := Mux(isMMIO, io.axi.rdata, cacheData)
+      resp.rdata := cacheData // 直接返回cache中的数据
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 

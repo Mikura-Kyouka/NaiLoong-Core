@@ -72,11 +72,12 @@ class moqEntry extends Bundle{
   val valid    = Bool()
   val tlbfin   = Bool()
   val finished = Bool()
-  val rollback = Bool()
-  val loadPageFault  = Bool()
-  val storePageFault  = Bool()
-  val loadAddrMisaligned  = Bool()
-  val storeAddrMisaligned = Bool()
+  // val rollback = Bool()
+  // val loadPageFault  = Bool()
+  // val storePageFault  = Bool()
+  // val loadAddrMisaligned  = Bool()
+  // val storeAddrMisaligned = Bool()
+  val exceptionVec = UInt(16.W) // 15: load/store addr misaligned, 14: page fault, 13: intrpt, 12: other exceptions
 }
 
 class LSU extends Module with HasLSUConst {
@@ -106,8 +107,6 @@ class LSU extends Module with HasLSUConst {
   // val opResp = 0.U // default load op, for debug
   // val moqidxResp = 0.U
 
-  val storeReq = valid & LSUOpType.isStore(func)
-  val loadReq = valid & LSUOpType.isLoad(func)
   val findLoadAddrMisaligned = Wire(Bool())
   val findStoreAddrMisaligned = Wire(Bool())
 
@@ -208,6 +207,12 @@ class LSU extends Module with HasLSUConst {
   // val vaddrIsMMIO = addr(31, 16) === "hbfaf".U
   // val paddrIsMMIO = true.B // io.dtlb.resp.bits.rdata(31, 16) === "hbfaf".U
 
+  val exceptionVec = Cat(io.in.bits.exceptionVec.asUInt(15, 10), // 3
+                        findLoadAddrMisaligned || findStoreAddrMisaligned,   // 2
+                        io.in.bits.exceptionVec.asUInt(8, 1),  // 1
+                        io.markIntrpt // 0 
+                        )
+
   when(moqEnqueue){
     moq(moqHeadPtr).pc := io.in.bits.pc
     moq(moqHeadPtr).preg := io.in.bits.preg // FIXME: for debug
@@ -227,11 +232,13 @@ class LSU extends Module with HasLSUConst {
     moq(moqHeadPtr).valid := true.B
     moq(moqHeadPtr).tlbfin := false.B // tlbfinished
     moq(moqHeadPtr).finished := false.B
-    moq(moqHeadPtr).rollback := false.B
-    moq(moqHeadPtr).loadPageFault := false.B
-    moq(moqHeadPtr).storePageFault := false.B
-    moq(moqHeadPtr).loadAddrMisaligned := findLoadAddrMisaligned
-    moq(moqHeadPtr).storeAddrMisaligned := findStoreAddrMisaligned
+    moq(moqHeadPtr).exceptionVec := exceptionVec
+    // moq(moqHeadPtr).rollback := false.B
+    // moq(moqHeadPtr).loadPageFault := false.B
+    // moq(moqHeadPtr).storePageFault := false.B
+    // moq(moqHeadPtr).loadAddrMisaligned := findLoadAddrMisaligned
+    // moq(moqHeadPtr).storeAddrMisaligned := findStoreAddrMisaligned
+    
   }
 
   when(storeQueueEnqueue){
@@ -322,6 +329,7 @@ class LSU extends Module with HasLSUConst {
     // storeQueue(storeQueueEnqPtr).isMMIO := moq(moqDmemPtr).isMMIO
     storeQueue(storeQueueEnqPtr).moqIdx := storeQueueEnqSrcPick
     storeQueue(storeQueueEnqPtr).valid := true.B
+    storeQueue(storeQueueEnqPtr).isMMIO := moq(storeQueueEnqSrcPick).isMMIO
   }
 
   //-------------------------------------------------------
@@ -340,8 +348,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-  findLoadAddrMisaligned  := valid && !storeReq && !addrAligned
-  findStoreAddrMisaligned := valid && storeReq && !addrAligned
+  findLoadAddrMisaligned  := io.in.valid && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned
+  findStoreAddrMisaligned := io.in.valid && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -356,12 +364,17 @@ class LSU extends Module with HasLSUConst {
   val dtlbMoqIdx = moqDtlbPtr
   io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid// 
   io.addr_trans_out.vaddr := addr
+  io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load)
   when(havePendingDtlbReq){
     moq(moqDtlbPtr).paddr := io.addr_trans_in.paddr
-    moq(moqDtlbPtr).tlbfin := true.B // tlbfinished
-    // moq(moqDtlbPtr).isMMIO := paddrIsMMIO
-    moq(moqDtlbPtr).loadPageFault := false.B
-    moq(moqDtlbPtr).storePageFault := false.B
+    moq(moqDtlbPtr).tlbfin := true.B
+    moq(moqDtlbPtr).exceptionVec := Cat(io.addr_trans_in.excp.en && io.addr_trans_in.excp.ecode === Ecode.pil,
+    io.addr_trans_in.excp.en && io.addr_trans_in.excp.ecode === Ecode.pis,
+    io.addr_trans_in.excp.en && io.addr_trans_in.excp.ecode === Ecode.ppi,
+    io.addr_trans_in.excp.en && io.addr_trans_in.excp.ecode === Ecode.pme,
+    io.addr_trans_in.excp.en && io.addr_trans_in.excp.ecode === Ecode.tlbr,
+    moq(moqDtlbPtr).exceptionVec(10, 0))
+    moq(moqDtlbPtr).isMMIO := io.addr_trans_in.mat === 0.U
   }
 
   //-------------------------------------------------------
@@ -518,8 +531,8 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.preg := moq(writebackSelect).preg
   // io.out.bits.redirect := moq(writebackSelect).robIdx
   // io.out.bits.csrNewData := moq(writebackSelect).robIdx
-  // io.out.bits.except := moq(writebackSelect).robIdx
-  // io.out.bits.tlbInfo := moq(writebackSelect).robIdx 
+  io.out.bits.exceptionVec := moq(writebackSelect).exceptionVec
+  // io.out.bits.tlbInfo := moq(writebackSelect).robIdx
 
   // for load/store difftest
   io.out.bits.paddr := moq(writebackSelect).paddr
