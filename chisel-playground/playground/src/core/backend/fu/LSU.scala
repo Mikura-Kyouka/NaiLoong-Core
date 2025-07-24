@@ -80,6 +80,7 @@ class moqEntry extends Bundle{
   val exceptionVec = UInt(16.W) // 15: load/store addr misaligned, 14: page fault, 13: intrpt, 12: other exceptions
   val cacopOp = UInt(2.W)
   val cacopEn = Bool() // CACOPOp.nop
+  val redirect = new RedirectIO
 }
 
 class LSU extends Module with HasLSUConst {
@@ -228,6 +229,7 @@ class LSU extends Module with HasLSUConst {
     moq(moqHeadPtr).exceptionVec := exceptionVec
     moq(moqHeadPtr).cacopOp := io.in.bits.ctrl.cacopOp// CACOPOp.nop
     moq(moqHeadPtr).cacopEn := io.in.bits.ctrl.cType === CACOPType.d
+    moq(moqHeadPtr).redirect := io.in.bits.redirect
     // moq(moqHeadPtr).rollback := false.B
     // moq(moqHeadPtr).loadPageFault := false.B
     // moq(moqHeadPtr).storePageFault := false.B
@@ -526,8 +528,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.data := moq(writebackSelect).rdata // if load rdata if write wdata
   io.out.bits.robIdx := moq(writebackSelect).robIdx
   io.out.bits.preg := moq(writebackSelect).preg
-  // io.out.bits.redirect := moq(writebackSelect).robIdx
-  // io.out.bits.csrNewData := moq(writebackSelect).robIdx
+  io.out.bits.redirect := moq(writebackSelect).redirect
   io.out.bits.exceptionVec := moq(writebackSelect).exceptionVec
   // io.out.bits.tlbInfo := moq(writebackSelect).robIdx
 
@@ -544,7 +545,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.wdata := diffWdata << (moq(writebackSelect).vaddr(1, 0) << 3)
   io.out.bits.fuType := FuType.lsu
   io.out.bits.optype := moq(writebackSelect).func
-  // io.out.bits.timer64 :=
+  io.out.bits.timer64 := DontCare
   
   io.in.ready := !moqFull 
   dontTouch(havePendingCDBCmt)

@@ -474,6 +474,7 @@ class CPUCSR extends Module {
     csr_estat.esubcode := 0.U             // TODO: 异常子码
     when(cause === 8.U) {
       csr_badv := io.exceptionInfo.exceptionPC // 取指地址错
+      csr_estat.esubcode := 0.U
     }
     when(cause === 9.U) {
       csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐
@@ -504,6 +505,7 @@ class CPUCSR extends Module {
     when(csr_llbctl.klo =/= 1.U) {
       csr_llbctl := 0.U.asTypeOf(new csr_llbctl_bundle) // 清除LLBit
     }
+    csr_llbctl.klo := 0.U
     when(csr_estat.ecode === "h3f".U) {
       csr_crmd.da := 0.U
       csr_crmd.pg := 1.U
