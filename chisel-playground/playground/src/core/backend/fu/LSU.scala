@@ -156,12 +156,12 @@ class LSU extends Module with HasLSUConst {
   writebackSelect := pendingCDBCmtSelect
 
 
-  when(LSUOpType.isLoad(func) && io.in.fire && io.in.bits.valid){
-    printf("Load request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
-  }
-  when(LSUOpType.isStore(func) && io.in.fire && io.in.bits.valid){
-    printf("Store request: pc = %x, addr = %x, data = %x, headPtr = %x\n", io.in.bits.pc, addr, io.in.bits.src2, moqHeadPtr)
-  }
+  // when(LSUOpType.isLoad(func) && io.in.fire && io.in.bits.valid){
+  //   printf("Load request: pc = %x, addr = %x, headPtr = %x\n", io.in.bits.pc, addr, moqHeadPtr)
+  // }
+  // when(LSUOpType.isStore(func) && io.in.fire && io.in.bits.valid){
+  //   printf("Store request: pc = %x, addr = %x, data = %x, headPtr = %x\n", io.in.bits.pc, addr, io.in.bits.src2, moqHeadPtr)
+  // }
 
   // load queue enqueue
   val moqEnqueue = io.in.fire && io.in.bits.valid // FIXME:
@@ -360,7 +360,7 @@ class LSU extends Module with HasLSUConst {
   val dtlbMoqIdx = moqDtlbPtr
   io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid && !cacopOp0 && !cacopOp1 // 
   io.addr_trans_out.vaddr := addr
-  io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load)
+  io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load) // cacop的func是lw
   when(havePendingDtlbReq){
     moq(moqDtlbPtr).paddr := io.addr_trans_in.paddr
     moq(moqDtlbPtr).tlbfin := true.B
