@@ -247,6 +247,19 @@ class BPU extends Module {
   val btbtag = Module(new BTBTag)
   val btbvalid = Module(new BTBValid)
 
+  // ras
+  val ras      = RegInit(VecInit(Seq.fill(RAS_DEPTH)(0.U(32.W))))
+  val rasTop   = RegInit(0.U(RAS_WIDTH.W))  // 指向“下一次 push”的位置
+  def rasPush(addr: UInt) = {
+    ras(rasTop) := addr
+    rasTop      := rasTop + 1.U
+  }
+  def rasPop(): UInt = {
+    val retAddr = ras(rasTop - 1.U)
+    rasTop      := rasTop - 1.U
+    retAddr
+  }
+
   // get bht data(pht index) // 1st clock
   val bhtIdx = Wire(Vec(ISSUE_WIDTH, UInt(INDEX_WIDTH.W)))
   for(i <- 0 until ISSUE_WIDTH) {
@@ -289,6 +302,7 @@ class BPU extends Module {
   val btbTag = Wire(Vec(ISSUE_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W)))
   val btbValid = Wire(Vec(ISSUE_WIDTH, Bool()))
   val btbData = Wire(Vec(ISSUE_WIDTH, UInt(32.W)))
+
   btbtag.io.raddr0 := btbIdx(0)
   btbtag.io.raddr1 := btbIdx(1)
   btbtag.io.raddr2 := btbIdx(2)
@@ -340,6 +354,7 @@ class BPU extends Module {
   val trainTarget   = RegNext(io.train.target)
   val oldHistory    = Wire(UInt(INDEX_WIDTH.W))
   oldHistory := DontCare
+  
 
   btbdata.io.wen   := trainValid && trainTaken
   btbdata.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)

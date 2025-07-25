@@ -8,9 +8,11 @@ class BhtEntry extends Bundle {
 }
 //                                          ||
 // 2: pc = xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
-class BtbEntry extends Bundle {
-  val target = UInt(32.W)
-}
+// class BtbEntry extends Bundle {
+//   val target = UInt(32.W)
+//   val isCall = Bool()
+//   val isReturn = Bool()
+// }
 
 class BranchTrainInfo extends Bundle {
   val pc = UInt(32.W)
