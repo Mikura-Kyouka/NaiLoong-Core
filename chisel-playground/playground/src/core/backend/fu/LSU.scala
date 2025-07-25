@@ -15,19 +15,13 @@ object LSUOpType {
   def sw   = "b0001010".U
 
   def ll   = "b0100010".U 
-  def sc   = "b0110010".U
+  def sc   = "b0111010".U
   def isAdd(func: UInt) = func(6)
+  // def isAtom(func: UInt): Bool = func(5)
   def isStore(func: UInt): Bool = func(3)
-  def isLoad(func: UInt): Bool = !isStore(func)
+  def isLoad(func: UInt): Bool = !isStore(func) // && !isAtom(func)
   def isLL(func: UInt): Bool = func === ll
   def isSC(func: UInt): Bool = func === sc
-  // def isAMO(func: UInt): Bool = isAtom(func) && !isLR(func) && !isSC(func)
-
-  // def needMemRead(func: UInt): Bool = isLoad(func) || isAMO(func) || isLR(func)
-  // def needMemWrite(func: UInt): Bool = isStore(func) || isAMO(func) || isSC(func)
-
-  def atomW = "010".U
-  def atomD = "011".U
 }
 
 trait HasLSUConst {
@@ -49,6 +43,7 @@ class storeQueueEntry extends Bundle {
   val isMMIO   = Bool()
   val valid    = Bool()
   val moqIdx   = UInt(3.W) // moq entry index
+  val failsc   = Bool()
 }
 
 class moqEntry extends Bundle{
@@ -81,6 +76,7 @@ class moqEntry extends Bundle{
   val cacopOp = UInt(2.W)
   val cacopEn = Bool() // CACOPOp.nop
   val redirect = new RedirectIO
+  val failsc = Bool() // 是否是失败的 SC 指令
 }
 
 class LSU extends Module with HasLSUConst {
@@ -96,12 +92,14 @@ class LSU extends Module with HasLSUConst {
     val scommit = Input(Bool())
     val out = Decoupled(new FuOut)
     val markIntrpt = Input(Bool())
-    // val cacop = Input(new CACOPIO)
     val llbit = Input(Bool())
     val lladdr = Input(UInt(32.W))
   })
   
   val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
+  val addr = io.in.bits.src1 + io.in.bits.imm
+  val failsc = io.in.bits.ctrl.fuOpType === LSUOpType.sc && (!io.llbit || addr =/= io.lladdr)
+  val succsc = io.in.bits.ctrl.fuOpType === LSUOpType.sc && io.llbit && addr === io.lladdr
   dontTouch(io.in.bits.pc)
   io.in.ready := io.out.ready
   io.out := DontCare
@@ -114,7 +112,7 @@ class LSU extends Module with HasLSUConst {
   val findLoadAddrMisaligned = Wire(Bool())
   val findStoreAddrMisaligned = Wire(Bool())
 
-  val addr = io.in.bits.src1 + io.in.bits.imm
+  // val addr = io.in.bits.src1 + io.in.bits.imm
   val wdata = io.in.bits.src2
   val size = func(1, 0)
 
@@ -230,6 +228,7 @@ class LSU extends Module with HasLSUConst {
     moq(moqHeadPtr).cacopOp := io.in.bits.ctrl.cacopOp// CACOPOp.nop
     moq(moqHeadPtr).cacopEn := io.in.bits.ctrl.cType === CACOPType.d
     moq(moqHeadPtr).redirect := io.in.bits.redirect
+    moq(moqHeadPtr).failsc := failsc // 是否是失败的 SC 指令
     // moq(moqHeadPtr).rollback := false.B
     // moq(moqHeadPtr).loadPageFault := false.B
     // moq(moqHeadPtr).storePageFault := false.B
@@ -259,7 +258,7 @@ class LSU extends Module with HasLSUConst {
   val storeCmtPtr     = RegInit(0.U((log2Up(storeQueueSize)+1).W))
   val nextStoreCmtPtr = Wire(UInt((log2Up(storeQueueSize)+1).W))
   val haveUnconfirmedStore = storeHeadPtr =/= storeCmtPtr
-  val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid
+  val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid && !storeQueue(0).failsc
   val haveUnfinishedStore = 0.U =/= storeHeadPtr
   val storeQueueFull = storeHeadPtr === storeQueueSize.U
   // io.haveUnfinishedStore := haveUnfinishedStore // FIXME: 
@@ -280,7 +279,7 @@ class LSU extends Module with HasLSUConst {
   // when dmem try to commit to store queue, i.e. dmem report a write op is finished, dequeue
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
-  val storeQueueDequeue = storeQueueReqsend
+  val storeQueueDequeue = storeQueueReqsend || storeQueue(0).failsc
   when(storeQueueDequeue){
     // storeQueue := Cat(storeQueue(0), storeQueue(storeQueueSize-1, 1))
     // 将队列中第 1 ~ N 项依次赋值给第 0 ~ N-1 项，所有元素整体前移一位
@@ -326,6 +325,7 @@ class LSU extends Module with HasLSUConst {
     storeQueue(storeQueueEnqPtr).moqIdx := storeQueueEnqSrcPick
     storeQueue(storeQueueEnqPtr).valid := true.B
     storeQueue(storeQueueEnqPtr).isMMIO := moq(storeQueueEnqSrcPick).isMMIO
+    storeQueue(storeQueueEnqPtr).failsc := moq(storeQueueEnqSrcPick).failsc
   }
 
   //-------------------------------------------------------
@@ -344,8 +344,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d)
-  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d)
+  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
+  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -358,7 +358,7 @@ class LSU extends Module with HasLSUConst {
   //-------------------------------------------------------
   // Send request to dtlb
   val dtlbMoqIdx = moqDtlbPtr
-  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid && !cacopOp0 && !cacopOp1 // 
+  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid && !cacopOp0 && !cacopOp1 && !failsc
   io.addr_trans_out.vaddr := addr
   io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load) // cacop的func是lw
   when(havePendingDtlbReq){
@@ -483,7 +483,8 @@ class LSU extends Module with HasLSUConst {
       LSUOpType.lh   -> SignExt(rdataSel(15, 0), 32),
       LSUOpType.lw   -> rdataSel,
       LSUOpType.lbu  -> ZeroExt(rdataSel(7, 0) , 32),
-      LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), 32)
+      LSUOpType.lhu  -> ZeroExt(rdataSel(15, 0), 32),
+      LSUOpType.ll   -> rdataSel
   ))
 
   when(io.dmemResp.fire && io.dmemResp.bits.cmd === 0.U){ // load response
@@ -525,7 +526,9 @@ class LSU extends Module with HasLSUConst {
 
   // io.isMMIO := moq(writebackSelect).isMMIO
   io.out.bits.pc :=  moq(writebackSelect).pc
-  io.out.bits.data := moq(writebackSelect).rdata // if load rdata if write wdata
+  val BBBBBBBBBB = LSUOpType.isSC(moq(writebackSelect).func)
+  dontTouch(BBBBBBBBBB)
+  io.out.bits.data := Mux(LSUOpType.isSC(moq(writebackSelect).func), Mux(moq(writebackSelect).failsc, 0.U, 1.U), moq(writebackSelect).rdata) // if load rdata if write wdata
   io.out.bits.robIdx := moq(writebackSelect).robIdx
   io.out.bits.preg := moq(writebackSelect).preg
   io.out.bits.redirect := moq(writebackSelect).redirect
@@ -546,6 +549,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.fuType := FuType.lsu
   io.out.bits.optype := moq(writebackSelect).func
   io.out.bits.timer64 := DontCare
+  io.out.bits.failsc := moq(writebackSelect).failsc // 是否是失败的 SC 指令
   
   io.in.ready := !moqFull 
   dontTouch(havePendingCDBCmt)
