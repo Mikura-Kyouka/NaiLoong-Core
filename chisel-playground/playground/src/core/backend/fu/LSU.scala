@@ -275,7 +275,7 @@ class LSU extends Module with HasLSUConst {
 
   val storeQueueConfirm = io.scommit // TODO: Argo only support 1 scommit / cycle
   // when a store inst actually writes data to dmem, mark it as `waiting for dmem resp`
-  val storeQueueReqsend = io.dmemReq.fire && io.dmemReq.bits.cmd === 1.U && !io.flush //  && MEMOpID.commitToSTQ(opReq)
+  val storeQueueReqsend = io.dmemReq.fire && io.dmemReq.bits.cmd === 1.U // && !io.flush //  && MEMOpID.commitToSTQ(opReq)
   // when dmem try to commit to store queue, i.e. dmem report a write op is finished, dequeue
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
