@@ -377,7 +377,7 @@ class Rob extends Module {
     io.commitCSR(i).bits.idle := entry.csrOp === CSROp.idle // 是否是idle指令
 
     // for load/store difftest
-    io.commitLS(i).valid := shouldCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu
+    io.commitLS(i).valid := shouldCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu && !entry.failsc
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
@@ -421,7 +421,8 @@ class Rob extends Module {
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
   io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
-  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore))
+  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore)) && 
+                !robEntries(head + PriorityEncoder(hasStore)).failsc
 
   val commitNum = PopCount(shouldCommit)
 

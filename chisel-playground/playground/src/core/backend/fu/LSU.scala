@@ -279,8 +279,8 @@ class LSU extends Module with HasLSUConst {
   // when dmem try to commit to store queue, i.e. dmem report a write op is finished, dequeue
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
-  val storeQueueDequeue = storeQueueReqsend || storeQueue(0).failsc
-  when(storeQueueDequeue){
+  val storeQueueDequeue = storeQueueReqsend//  || storeQueue(0).failsc
+  when(storeQueueDequeue || storeQueue(0).failsc){
     // storeQueue := Cat(storeQueue(0), storeQueue(storeQueueSize-1, 1))
     // 将队列中第 1 ~ N 项依次赋值给第 0 ~ N-1 项，所有元素整体前移一位
     List.tabulate(storeQueueSize - 1)(i => {
@@ -298,8 +298,8 @@ class LSU extends Module with HasLSUConst {
   storeCmtPtr := nextStoreCmtPtr
 
   // move storeHeadPtr ptr
-  when(storeQueueDequeue && !storeQueueEnqueue){storeHeadPtr := storeHeadPtr - 1.U}
-  when(!storeQueueDequeue && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
+  when((storeQueueDequeue || storeQueue(0).failsc) && !storeQueueEnqueue){storeHeadPtr := storeHeadPtr - 1.U}
+  when(!(storeQueueDequeue || storeQueue(0).failsc) && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
   val flushStoreHeadPtr = PriorityMux(
     (nextStoreCmtPtr === 0.U) +: (0 until storeQueueSize).map(i => {
       PopCount(VecInit((0 to i).map(j => storeQueue(j).valid))) === nextStoreCmtPtr
