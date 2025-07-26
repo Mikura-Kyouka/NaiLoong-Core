@@ -354,19 +354,6 @@ class BPU extends Module {
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
     // io.target(i) := btbData(i) // modified
     io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
-
-    when(RegNext(io.taken(i) && btbHit(i))) {
-      when(RegNext(isCall(i))) {
-        val retAddr = RegNext(pcNext(i)) + 4.U   // 先算好打印用
-        rasPush(retAddr)
-
-        // printf(p"[RAS PUSH] slot=$i ret=0x${Hexadecimal(retAddr)} oldTop=${rasTop - 1.U}%d newTop=${rasTop}%d\n")
-      }.elsewhen(RegNext(isReturn(i))) {
-        val popped = rasPop()
-
-        // printf(p"[RAS  POP] slot=$i  tar=0x${Hexadecimal(popped)} oldTop=${rasTop + 1.U}%d newTop=${rasTop}%d\n")
-      }
-    }
   }
 
   // train
@@ -424,6 +411,16 @@ class BPU extends Module {
       is(pf)  { pht(idx) := Mux(trainTaken, pt, pff) }
       is(pt)  { pht(idx) := Mux(trainTaken, ptt, pf) }
       is(ptt) { pht(idx) := Mux(trainTaken, ptt, pt) }
+    }
+  }
+
+  when(trainValid && trainTaken) {
+    when(trainIsCall) {                    // ★ push 永远在真正的 call commit 时做
+      rasPush(trainPc + 4.U)
+      printf(p"[RAS PUSH] ret=0x${Hexadecimal(trainPc + 4.U)} newTop=${rasTop}%d\n")
+    }.elsewhen(trainIsReturn) {            // ret commit 才 pop（比预测晚，但绝不会错）
+      val popped = rasPop()
+      printf(p"[RAS POPC] tar=0x${Hexadecimal(popped)} newTop=${rasTop}%d\n")
     }
   }
 }
