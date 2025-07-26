@@ -109,15 +109,15 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val flush = Input(Bool())
         // val cacop = Input(new CACOPIO)
     })
-    val cacopOp0 = io.req.bits.cacopEn && io.req.bits.cacopOp === CACOPOp.op0
-    val cacopOp1 = io.req.bits.cacopEn && io.req.bits.cacopOp === CACOPOp.op1
-    val cacopOp2 = io.req.bits.cacopEn && io.req.bits.cacopOp === CACOPOp.op2
+    val reqReg = RegEnable(io.req.bits, io.req.fire)
+    val req = Mux(io.req.fire, io.req.bits, reqReg)
+
+    val cacopOp0 = req.cacopEn && req.cacopOp === CACOPOp.op0
+    val cacopOp1 = req.cacopEn && req.cacopOp === CACOPOp.op1
+    val cacopOp2 = req.cacopEn && req.cacopOp === CACOPOp.op2
     dontTouch(cacopOp0)
     dontTouch(cacopOp1)
     dontTouch(cacopOp2)
-
-    val reqReg = RegEnable(io.req.bits, io.req.fire)
-    val req = Mux(io.req.fire, io.req.bits, reqReg)
 
     val resp = Wire(new respBundle)
     resp := DontCare
@@ -299,30 +299,19 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val newWord = newWordBytes.asUInt
 
     when(state === s_write_cache) {
-      // 完整写入更新后的数据
-      // dataArray(addr.index)(0) := VecInit(Seq(newWord))
+      // data
       dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := newWord
-      
-      // 同时更新metaArray
-      // val writeMeta = Vec(Ways, new MetaBundle)
-      // for (i <- 0 until Ways) {
-      //   writeMeta(i).tag := addr.tag
-      //   writeMeta(i).valid := true.B
-      //   writeMeta(i).dirty := true.B
-      // }
-      // metaArray.write(addr.index, writeMeta)
-
-      // metaArray(addr.index)(0).tag := addr.tag
-      // metaArray(addr.index)(0).valid := true.B
-      // metaArray(addr.index)(0).dirty := true.B
+      // tag
       metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
+      // valid
       metaValidArray.io.wea := !isMMIO // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
+      // dirty
       metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
