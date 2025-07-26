@@ -82,7 +82,7 @@ class IFU extends Module{
     io.axi.awaddr := 0.U
 
     val pc = Module(new PC())
-    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 512 * 16, ways = 1))) // Pipelined
+    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 1024 * 16, ways = 1))) // Pipelined
     io.out.valid := icache.io.out.valid && !io.flush && !icache.io.s1Cacop
 
     val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
