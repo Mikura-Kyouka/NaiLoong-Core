@@ -243,7 +243,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.araddr := addr.asUInt
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
-    io.axi.arsize := Cat(0.U(1.W), req.size)
+    io.axi.arsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U)
     io.axi.arburst := "b01".U
     io.axi.rready := true.B
     // axi write chanel
@@ -252,7 +252,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
-    io.axi.awsize := Cat(0.U(1.W), req.size)
+    io.axi.awsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U) // 32 bits
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
