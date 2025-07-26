@@ -333,7 +333,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //                   (hit && cacopOp2 && !dirty && state === s_judge) ||
     //                   (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
 
-    when(cacopOp1 || (cacopOp2 && hit)) {
+    when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
       metaArray.io.dina := 0.U
