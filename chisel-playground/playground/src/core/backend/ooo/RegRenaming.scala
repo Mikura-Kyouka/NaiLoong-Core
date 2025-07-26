@@ -281,6 +281,8 @@ class RegRenaming extends Module {
     entry.csrNum := input.ctrl.csrNum
     entry.cacopOp := input.ctrl.cacopOp
     entry.cType := input.ctrl.cType
+    entry.isCall := input.ctrl.isCall
+    entry.isReturn := input.ctrl.isReturn
   }
 
   // 连接到ROB分配接口

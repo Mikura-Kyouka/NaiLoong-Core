@@ -19,4 +19,6 @@ class BranchTrainInfo extends Bundle {
   val target = UInt(32.W)
   val taken = Bool()
   val valid = Bool()
+  val isCall = Bool()
+  val isReturn = Bool()
 }

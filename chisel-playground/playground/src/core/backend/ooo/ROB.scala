@@ -34,6 +34,8 @@ class RobEntry extends Bundle {
   val brMispredict = Bool()
   val brTaken    = Bool()
   val brTarget   = UInt(32.W)
+  val isCall     = Bool()
+  val isReturn   = Bool()
   val fuType     = UInt(3.W)
   val result     = UInt(32.W) //FIXME
   val checkpoint = new Bundle {
@@ -110,6 +112,8 @@ class BrMisPredInfo extends Bundle {
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   // val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
   val brMisPredPC = UInt(32.W)
+  val isCall = Bool()
+  val isReturn = Bool()
 }
 
 class LSCommitInfo extends Bundle {
@@ -323,6 +327,8 @@ class Rob extends Module {
   // io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
   io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
+  io.brMisPredInfo.isCall := robEntries(head + brMisPredIdx).isCall
+  io.brMisPredInfo.isReturn := robEntries(head + brMisPredIdx).isReturn
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U

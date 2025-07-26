@@ -88,23 +88,23 @@ class BHTValid extends Module {
 class BTBData extends Module {
   val io = IO(new Bundle {
     val raddr0 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata0 = Output(UInt(32.W))
+    val rdata0 = Output(UInt(BTB_DATA_WIDTH.W))
     val raddr1 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata1 = Output(UInt(32.W))
+    val rdata1 = Output(UInt(BTB_DATA_WIDTH.W))
     val raddr2 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata2 = Output(UInt(32.W))
+    val rdata2 = Output(UInt(BTB_DATA_WIDTH.W))
     val raddr3 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata3 = Output(UInt(32.W))
+    val rdata3 = Output(UInt(BTB_DATA_WIDTH.W))
 
     val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
-    val wdata = Input(UInt(32.W))
+    val wdata = Input(UInt(BTB_DATA_WIDTH.W))
     val wen = Input(Bool())
   })
-
-  val btbdata0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
-  val btbdata1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
-  val btbdata2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
-  val btbdata3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, 32))
+  // (data, isReturn, isCall) = (32-bit target, 1-bit isReturn, 1-bit isCall)
+  val btbdata0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
+  val btbdata1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
+  val btbdata2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
+  val btbdata3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
 
   btbdata0.io.clka := clock
   btbdata0.io.wea := io.wen && (io.waddr(1, 0) === 0.U)
@@ -302,6 +302,8 @@ class BPU extends Module {
   val btbTag = Wire(Vec(ISSUE_WIDTH, UInt((32 - 2 - BTB_INDEX_WIDTH).W)))
   val btbValid = Wire(Vec(ISSUE_WIDTH, Bool()))
   val btbData = Wire(Vec(ISSUE_WIDTH, UInt(32.W)))
+  val isCall = Wire(Vec(ISSUE_WIDTH, Bool()))
+  val isReturn = Wire(Vec(ISSUE_WIDTH, Bool()))
 
   btbtag.io.raddr0 := btbIdx(0)
   btbtag.io.raddr1 := btbIdx(1)
@@ -323,10 +325,18 @@ class BPU extends Module {
   btbdata.io.raddr1 := btbIdx(1)
   btbdata.io.raddr2 := btbIdx(2)
   btbdata.io.raddr3 := btbIdx(3)
-  btbData(0) := btbdata.io.rdata0
-  btbData(1) := btbdata.io.rdata1
-  btbData(2) := btbdata.io.rdata2
-  btbData(3) := btbdata.io.rdata3
+  btbData(0) := btbdata.io.rdata0(33, 2) // 32-bit target address
+  btbData(1) := btbdata.io.rdata1(33, 2)
+  btbData(2) := btbdata.io.rdata2(33, 2)
+  btbData(3) := btbdata.io.rdata3(33, 2)
+  isReturn(0) := btbdata.io.rdata0(1) // 1: isReturn
+  isReturn(1) := btbdata.io.rdata1(1)
+  isReturn(2) := btbdata.io.rdata2(1)
+  isReturn(3) := btbdata.io.rdata3(1)
+  isCall(0) := btbdata.io.rdata0(0) // 0: isCall
+  isCall(1) := btbdata.io.rdata1(0)
+  isCall(2) := btbdata.io.rdata2(0)
+  isCall(3) := btbdata.io.rdata3(0)
 
   // get pht data // 2nd clock
   val phtData = Wire(Vec(ISSUE_WIDTH, UInt(2.W)))
@@ -342,7 +352,21 @@ class BPU extends Module {
   for(i <- 0 until ISSUE_WIDTH) {
     btbHit(i) := Mux(btbValid(i), (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2)), false.B)
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
-    io.target(i) := btbData(i)
+    // io.target(i) := btbData(i) // modified
+    io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
+
+    when(RegNext(io.taken(i) && btbHit(i))) {
+      when(RegNext(isCall(i))) {
+        val retAddr = RegNext(pcNext(i)) + 4.U   // 先算好打印用
+        rasPush(retAddr)
+
+        // printf(p"[RAS PUSH] slot=$i ret=0x${Hexadecimal(retAddr)} oldTop=${rasTop - 1.U}%d newTop=${rasTop}%d\n")
+      }.elsewhen(RegNext(isReturn(i))) {
+        val popped = rasPop()
+
+        // printf(p"[RAS  POP] slot=$i  tar=0x${Hexadecimal(popped)} oldTop=${rasTop + 1.U}%d newTop=${rasTop}%d\n")
+      }
+    }
   }
 
   // train
@@ -352,13 +376,15 @@ class BPU extends Module {
   val trainPc       = RegNext(io.train.pc)
   val trainTaken    = RegNext(io.train.taken)
   val trainTarget   = RegNext(io.train.target)
+  val trainIsCall   = RegNext(io.train.isCall)
+  val trainIsReturn = RegNext(io.train.isReturn)
   val oldHistory    = Wire(UInt(INDEX_WIDTH.W))
   oldHistory := DontCare
   
 
   btbdata.io.wen   := trainValid && trainTaken
   btbdata.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
-  btbdata.io.wdata := trainTarget
+  btbdata.io.wdata := Cat(trainTarget, trainIsReturn, trainIsCall) // 32-bit target + 1-bit isReturn + 1-bit isCall
 
   btbtag.io.wen   := trainValid && trainTaken
   btbtag.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)

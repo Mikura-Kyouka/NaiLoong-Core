@@ -56,6 +56,14 @@ class Decoder extends Module {
     io.out.bits.ctrl.rfDest := rfDest
     io.out.bits.ctrl.cType := cType
     io.out.bits.ctrl.cacopOp := cacopOp
+    val is_bl = fuType === FuType.bru && fuOpType === ALUOpType.bl
+    val is_jirl = fuType === FuType.bru && fuOpType === ALUOpType.jirl
+    dontTouch(is_bl)
+    dontTouch(is_jirl)
+    dontTouch(fuType)
+    dontTouch(fuOpType)
+    io.out.bits.ctrl.isCall := is_bl || is_jirl && rd === 1.U
+    io.out.bits.ctrl.isReturn := instr === 0x4c000020.U
 
     io.out.bits.data := DontCare
     val imm = LookupTree(immType, Seq(

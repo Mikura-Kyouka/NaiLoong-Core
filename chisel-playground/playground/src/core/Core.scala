@@ -111,6 +111,8 @@ class Core extends Module {
   bpu.io.train.target := pipedBrMisPredInfo.brMisPredTarget
   bpu.io.train.taken := pipedBrMisPredInfo.actuallyTaken
   bpu.io.train.valid := pipedBrMisPredInfo.brMisPred.valid
+  bpu.io.train.isCall := pipedBrMisPredInfo.isCall
+  bpu.io.train.isReturn := pipedBrMisPredInfo.isReturn
 
   dontTouch(bpu.io)
 

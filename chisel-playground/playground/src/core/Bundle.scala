@@ -23,6 +23,8 @@ class CtrlSignalIO extends Bundle {
   val tlbInvOp = Output(UInt(3.W)) // TLB invalidation operation
   val cType = Output(CACOPType())
   val cacopOp = Output(CACOPOp())
+  val isCall = Output(Bool()) // is a call instruction
+  val isReturn = Output(Bool()) // is a return instruction
 }
 
 class DataSrcIO extends Bundle {
