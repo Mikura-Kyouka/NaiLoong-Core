@@ -280,7 +280,6 @@ class Core extends Module {
   If.io.flush := flush
   If.io.dnpc := rob.io.newPC
   If.io.pcSel := flush
-  If.io.idle := csr.io.idle
   
   dontTouch(Rn.io.robAllocate)
 

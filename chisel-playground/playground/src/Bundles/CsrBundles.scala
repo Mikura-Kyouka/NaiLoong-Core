@@ -134,4 +134,5 @@ class csr_excp_bundle extends Bundle {
   val exceptionVec = Input(UInt(16.W)) // 异常向量
   val exceptionNewPC = Output(UInt(32.W)) // 异常处理完成后返回的pc
   val exceptionVAddr = Input(UInt(32.W)) // 异常发生的虚拟地址
+  val idle = Input(Bool()) // 是否是idle指令
 }

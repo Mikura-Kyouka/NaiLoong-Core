@@ -398,6 +398,9 @@ class Rob extends Module {
   io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
   io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).vaddr
+  io.exceptionInfo.idle := robEntries(head + exceptionIdx).fuType === FuType.bru &&
+                           robEntries(head + exceptionIdx).optype === ALUOpType.idle
+
   //excp_ine 
     /*
     exceptionVec[0]  int

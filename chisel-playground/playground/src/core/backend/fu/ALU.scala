@@ -29,12 +29,14 @@ object ALUOpType {
   def bge  = "b0010101".U
   def bltu = "b0010110".U
   def bgeu = "b0010111".U
+  def idle = "b0011000".U
 
   def lu12i = "b1000001".U
 
   // for RAS
   def call = "b1011100".U
   def ret  = "b1011110".U
+
 
   def isAdd(func: UInt) = func(6)
   def isBru(func: UInt) = func(4)

@@ -100,7 +100,6 @@ class CPUCSR extends Module {
     val lladdr = Output(UInt(32.W))
     val markIntrpt = Output(Bool())
     val hardIntrpt = Input(UInt(8.W))
-    val idle = Output(Bool())
     val difftest = Output(new DiffCSRBundle)
 
     val to_mmu = Flipped(new CsrToMmuBundle)
@@ -137,7 +136,6 @@ class CPUCSR extends Module {
   val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val timer64 = RegInit(0.U(64.W))
   timer64 := timer64 + 1.U
-  val idle = RegInit(false.B)
   
   val pgd = WireInit(0.U.asTypeOf(new csr_pgdx_bundle))
   pgd.base := Mux(csr_badv(31) === 0.U, csr_pgdl.base, csr_pgdh.base)
@@ -221,7 +219,6 @@ class CPUCSR extends Module {
   dontTouch(debug_timer64)
 
   io.plv := csr_crmd.plv
-  io.idle := idle
 
   io.difftest.csr_crmd := csr_crmd.asUInt
   io.difftest.csr_prmd := csr_prmd.asUInt
@@ -291,7 +288,7 @@ class CPUCSR extends Module {
 
   // write
   for(i <- 0 until RobConfig.ROB_CMT_NUM) {
-    when(io.write(i).valid && csr_crmd.plv === 0.U && !(io.write(i).bits.ll || io.write(i).bits.sc || io.write(i).bits.idle)) { // 只允许PLV0写CSR
+    when(io.write(i).valid && csr_crmd.plv === 0.U && !(io.write(i).bits.ll || io.write(i).bits.sc)) { // 只允许PLV0写CSR
       switch(io.write(i).bits.csr_num) {
         is(CsrName.CRMD) {
           csr_crmd := io.write(i).bits.csr_data.asTypeOf(new csr_crmd_bundle)
@@ -416,9 +413,6 @@ class CPUCSR extends Module {
       when(io.write(i).bits.sc) {
         csr_llbctl.rollb := 0.U
       }
-      when(io.write(i).bits.idle) {
-        idle := true.B // 处理idle指令
-      }
     }
   }
 
@@ -428,10 +422,6 @@ class CPUCSR extends Module {
   // 中断处理
   val int_vec = csr_ecfg.asUInt(12, 0) & csr_estat.asUInt(12, 0)
   io.markIntrpt := csr_crmd.ie === 1.U && int_vec =/= 0.U
-
-  when(io.markIntrpt) {
-    idle := false.B // 中断发生时清除idle状态
-  }
 
   // 异常处理
   val reversedVec = Reverse(io.exceptionInfo.exceptionVec.asUInt)
@@ -469,7 +459,7 @@ class CPUCSR extends Module {
     csr_crmd.plv := 0.U
     csr_crmd.ie := 0.U
 
-    csr_era := io.exceptionInfo.exceptionPC
+    csr_era := io.exceptionInfo.exceptionPC + Mux(io.exceptionInfo.idle, 4.U, 0.U)
     csr_estat.ecode := io.exceptionInfo.cause
     csr_estat.esubcode := 0.U             // TODO: 异常子码
     when(cause === 8.U) {
