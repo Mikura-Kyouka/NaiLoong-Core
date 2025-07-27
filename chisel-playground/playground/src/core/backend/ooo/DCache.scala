@@ -202,7 +202,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                         s_idle),
         s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
                             // Mux(req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(cacopOp2, s_idle, s_read_mem1))),  // 不命中，写，先驱逐脏数据；读，直接读
-                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), //
+                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, Mux(req.cmd && req.size === "b10".U, s_write_cache, s_read_mem1)))), //
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
