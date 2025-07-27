@@ -254,7 +254,7 @@ class Rob extends Module {
   val canCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCsrRW = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-  val hasBrTaken = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasBr = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
@@ -274,7 +274,9 @@ class Rob extends Module {
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
-    hasBrTaken(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brTaken && !hasException(i)
+    hasBr(i) := canCommit(i) && robEntries(commitIdx).inst_valid && 
+                robEntries(commitIdx).fuType === FuType.bru && ALUOpType.isBru(robEntries(commitIdx).optype) &&
+                !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
     hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&      // FIXME: cacop as tlb operation
@@ -335,15 +337,15 @@ class Rob extends Module {
   io.brMisPredInfo.isReturn := robEntries(head + brMisPredIdx).isReturn
 
 
-  val brTaken = hasBrTaken.reduce(_ || _)
-  val brTakenIdx = PriorityEncoder(hasBrTaken)
-  io.brTrainInfo.brMisPred.valid := brTaken
-  io.brTrainInfo.brMisPred.bits := robEntries(head + brTakenIdx).pc
-  io.brTrainInfo.brMisPredTarget := robEntries(head + brTakenIdx).brTarget
-  io.brTrainInfo.brMisPredPC := robEntries(head + brTakenIdx).pc
-  io.brTrainInfo.actuallyTaken := robEntries(head + brTakenIdx).brTaken
-  io.brTrainInfo.isCall := robEntries(head + brTakenIdx).isCall
-  io.brTrainInfo.isReturn := robEntries(head + brTakenIdx).isReturn
+  val br = hasBr.reduce(_ || _)
+  val brIdx = PriorityEncoder(hasBr)
+  io.brTrainInfo.brMisPred.valid := br
+  io.brTrainInfo.brMisPred.bits := robEntries(head + brIdx).pc
+  io.brTrainInfo.brMisPredTarget := robEntries(head + brIdx).brTarget
+  io.brTrainInfo.brMisPredPC := robEntries(head + brIdx).pc
+  io.brTrainInfo.actuallyTaken := robEntries(head + brIdx).brTaken
+  io.brTrainInfo.isCall := robEntries(head + brIdx).isCall
+  io.brTrainInfo.isReturn := robEntries(head + brIdx).isReturn
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
