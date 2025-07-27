@@ -106,13 +106,13 @@ class Core extends Module {
   If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3) && offset <= 3.U
   If.io.BrPredictTaken(3).predictTarget := bpu.io.target(3)
 
-  val pipedBrMisPredInfo = RegNext(rob.io.brMisPredInfo)
-  bpu.io.train.pc := pipedBrMisPredInfo.brMisPredPC
-  bpu.io.train.target := pipedBrMisPredInfo.brMisPredTarget
-  bpu.io.train.taken := pipedBrMisPredInfo.actuallyTaken
-  bpu.io.train.valid := pipedBrMisPredInfo.brMisPred.valid
-  bpu.io.train.isCall := pipedBrMisPredInfo.isCall
-  bpu.io.train.isReturn := pipedBrMisPredInfo.isReturn
+  val pipedBrTrainInfo = RegNext(rob.io.brTrainInfo)
+  bpu.io.train.pc := pipedBrTrainInfo.brMisPredPC
+  bpu.io.train.target := pipedBrTrainInfo.brMisPredTarget
+  bpu.io.train.taken := pipedBrTrainInfo.actuallyTaken
+  bpu.io.train.valid := pipedBrTrainInfo.brMisPred.valid
+  bpu.io.train.isCall := pipedBrTrainInfo.isCall
+  bpu.io.train.isReturn := pipedBrTrainInfo.isReturn
 
   dontTouch(bpu.io)
 

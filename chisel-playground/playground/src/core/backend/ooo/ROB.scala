@@ -150,6 +150,8 @@ class RobIO extends Bundle {
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
 
+  val brTrainInfo = Output(new BrMisPredInfo)
+
   // 异常接口
   val exceptionInfo = Flipped(new csr_excp_bundle)
 
@@ -252,6 +254,7 @@ class Rob extends Module {
   val canCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCsrRW = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasBrTaken = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
@@ -271,6 +274,7 @@ class Rob extends Module {
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
+    hasBrTaken(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brTaken && !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
     hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&      // FIXME: cacop as tlb operation
@@ -329,6 +333,17 @@ class Rob extends Module {
   io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
   io.brMisPredInfo.isCall := robEntries(head + brMisPredIdx).isCall
   io.brMisPredInfo.isReturn := robEntries(head + brMisPredIdx).isReturn
+
+
+  val brTaken = hasBrTaken.reduce(_ || _)
+  val brTakenIdx = PriorityEncoder(hasBrTaken)
+  io.brTrainInfo.brMisPred.valid := brTaken
+  io.brTrainInfo.brMisPred.bits := robEntries(head + brTakenIdx).pc
+  io.brTrainInfo.brMisPredTarget := robEntries(head + brTakenIdx).brTarget
+  io.brTrainInfo.brMisPredPC := robEntries(head + brTakenIdx).pc
+  io.brTrainInfo.actuallyTaken := robEntries(head + brTakenIdx).brTaken
+  io.brTrainInfo.isCall := robEntries(head + brTakenIdx).isCall
+  io.brTrainInfo.isReturn := robEntries(head + brTakenIdx).isReturn
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U

@@ -352,8 +352,9 @@ class BPU extends Module {
   for(i <- 0 until ISSUE_WIDTH) {
     btbHit(i) := Mux(btbValid(i), (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2)), false.B)
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
-    // io.target(i) := btbData(i) // modified
-    io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
+    io.target(i) := btbData(i) // modified
+    // io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
+
   }
 
   // train
@@ -381,9 +382,17 @@ class BPU extends Module {
   btbvalid.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
   btbvalid.io.wdata := trainTaken 
 
+  switch(trainPc(3, 2)) {
+    is(0.U) { oldHistory := bht.io.rdata0 }
+    is(1.U) { oldHistory := bht.io.rdata1 }
+    is(2.U) { oldHistory := bht.io.rdata2 }
+    is(3.U) { oldHistory := bht.io.rdata3 }
+  }
+  dontTouch(oldHistory)
+
   bht.io.wen   := trainValid
   bht.io.waddr := trainPc(INDEX_WIDTH+1, 2)
-  bht.io.wdata := Cat(trainTarget(HISTORY_WIDTH-2,0), trainTaken)
+  bht.io.wdata := Cat(oldHistory(HISTORY_WIDTH-2, 0), trainTaken)
   bhtvalid.io.wen   := trainValid
   bhtvalid.io.waddr := trainPc(INDEX_WIDTH+1, 2)
   bhtvalid.io.wdata := true.B
@@ -395,13 +404,6 @@ class BPU extends Module {
     is(1.U) { bhtvalidData := bhtvalid.io.rdata1 }
     is(2.U) { bhtvalidData := bhtvalid.io.rdata2 }
     is(3.U) { bhtvalidData := bhtvalid.io.rdata3 }
-  }
-
-  switch(trainPc(3, 2)) {
-    is(0.U) { oldHistory := bht.io.rdata0 }
-    is(1.U) { oldHistory := bht.io.rdata1 }
-    is(2.U) { oldHistory := bht.io.rdata2 }
-    is(3.U) { oldHistory := bht.io.rdata3 }
   }
 
   when (trainValid && bhtvalidData) {
@@ -417,10 +419,10 @@ class BPU extends Module {
   when(trainValid && trainTaken) {
     when(trainIsCall) {                    // ★ push 永远在真正的 call commit 时做
       rasPush(trainPc + 4.U)
-      printf(p"[RAS PUSH] ret=0x${Hexadecimal(trainPc + 4.U)} newTop=${rasTop}%d\n")
+      //printf(p"[RAS PUSH] ret=0x${Hexadecimal(trainPc + 4.U)} newTop=${rasTop}%d\n")
     }.elsewhen(trainIsReturn) {            // ret commit 才 pop（比预测晚，但绝不会错）
       val popped = rasPop()
-      printf(p"[RAS POPC] tar=0x${Hexadecimal(popped)} newTop=${rasTop}%d\n")
+      //printf(p"[RAS POPC] tar=0x${Hexadecimal(popped)} newTop=${rasTop}%d\n")
     }
   }
 }
