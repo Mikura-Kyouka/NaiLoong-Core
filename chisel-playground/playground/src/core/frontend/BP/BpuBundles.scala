@@ -5,6 +5,10 @@ import core.BpuConfig._
 
 class BhtEntry extends Bundle {
   val history = UInt(HISTORY_WIDTH.W)
+  val valid = Bool()
+}
+object BhtEntry {
+  def width: Int = (new BhtEntry).getWidth  // = HISTORY_WIDTH + 1
 }
 //                                          ||
 // 2: pc = xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx

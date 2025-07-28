@@ -9,52 +9,53 @@ import upickle.default
 class BHT extends Module {
   val io = IO(new Bundle {
     val raddr0 = Input(UInt(INDEX_WIDTH.W))
-    val rdata0 = Output(UInt(HISTORY_WIDTH.W))
+    val rdata0 = Output(new BhtEntry)
     val raddr1 = Input(UInt(INDEX_WIDTH.W))
-    val rdata1 = Output(UInt(HISTORY_WIDTH.W))
+    val rdata1 = Output(new BhtEntry)
     val raddr2 = Input(UInt(INDEX_WIDTH.W))
-    val rdata2 = Output(UInt(HISTORY_WIDTH.W))
+    val rdata2 = Output(new BhtEntry)
     val raddr3 = Input(UInt(INDEX_WIDTH.W))
-    val rdata3 = Output(UInt(HISTORY_WIDTH.W))
+    val rdata3 = Output(new BhtEntry)
 
     val waddr = Input(UInt(INDEX_WIDTH.W))
-    val wdata = Input(UInt(HISTORY_WIDTH.W))
+    val wdata = Input(new BhtEntry)
     val wen = Input(Bool())
   })
-
-  val bht0 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
-  val bht1 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
-  val bht2 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
-  val bht3 = Module(new DualPortBRAM(INDEX_WIDTH, HISTORY_WIDTH))
+  
+  private val ENTRY_WIDTH = BhtEntry.width 
+  val bht0 = Module(new DualPortBRAM(INDEX_WIDTH, ENTRY_WIDTH))
+  val bht1 = Module(new DualPortBRAM(INDEX_WIDTH, ENTRY_WIDTH))
+  val bht2 = Module(new DualPortBRAM(INDEX_WIDTH, ENTRY_WIDTH))
+  val bht3 = Module(new DualPortBRAM(INDEX_WIDTH, ENTRY_WIDTH))
 
   bht0.io.clka := clock
   bht0.io.wea := io.wen && (io.waddr(1, 0) === 0.U)
   bht0.io.addra := io.waddr
-  bht0.io.dina := io.wdata
+  bht0.io.dina := io.wdata.asUInt
   bht0.io.addrb := io.raddr0
 
   bht1.io.clka := clock
   bht1.io.wea := io.wen && (io.waddr(1, 0) === 1.U)
   bht1.io.addra := io.waddr
-  bht1.io.dina := io.wdata
+  bht1.io.dina := io.wdata.asUInt
   bht1.io.addrb := io.raddr1
 
   bht2.io.clka := clock
   bht2.io.wea := io.wen && (io.waddr(1, 0) === 2.U)
   bht2.io.addra := io.waddr
-  bht2.io.dina := io.wdata
+  bht2.io.dina := io.wdata.asUInt
   bht2.io.addrb := io.raddr2
 
   bht3.io.clka := clock
   bht3.io.wea := io.wen && (io.waddr(1, 0) === 3.U)
   bht3.io.addra := io.waddr
-  bht3.io.dina := io.wdata
+  bht3.io.dina := io.wdata.asUInt
   bht3.io.addrb := io.raddr3
 
-  io.rdata0 := bht0.io.doutb
-  io.rdata1 := bht1.io.doutb
-  io.rdata2 := bht2.io.doutb
-  io.rdata3 := bht3.io.doutb
+  io.rdata0 := bht0.io.doutb.asTypeOf(new BhtEntry)
+  io.rdata1 := bht1.io.doutb.asTypeOf(new BhtEntry)
+  io.rdata2 := bht2.io.doutb.asTypeOf(new BhtEntry)
+  io.rdata3 := bht3.io.doutb.asTypeOf(new BhtEntry)
 }
 
 class BHTValid extends Module {
@@ -241,7 +242,7 @@ class BPU extends Module {
 
   // 三大表项
   val bht = Module(new BHT)
-  val bhtvalid = Module(new BHTValid)
+  // val bhtvalid = Module(new BHTValid)
   val pht = RegInit(VecInit(Seq.fill(1 << HISTORY_WIDTH)(pf)))
   val btbdata = Module(new BTBData)
   val btbtag = Module(new BTBTag)
@@ -281,15 +282,10 @@ class BPU extends Module {
   bht.io.raddr2 := bhtIdx(2)
   bht.io.raddr3 := bhtIdx(3)
 
-  bhtvalid.io.raddr0 := bhtIdx(0)
-  bhtvalid.io.raddr1 := bhtIdx(1)
-  bhtvalid.io.raddr2 := bhtIdx(2)
-  bhtvalid.io.raddr3 := bhtIdx(3)
-
-  phtIdx(0) := bht.io.rdata0
-  phtIdx(1) := bht.io.rdata1
-  phtIdx(2) := bht.io.rdata2
-  phtIdx(3) := bht.io.rdata3
+  phtIdx(0) := bht.io.rdata0.history
+  phtIdx(1) := bht.io.rdata1.history
+  phtIdx(2) := bht.io.rdata2.history
+  phtIdx(3) := bht.io.rdata3.history
   dontTouch(phtIdx)
 
   // get btb tag/valid/data // 1st clock
@@ -383,27 +379,27 @@ class BPU extends Module {
   btbvalid.io.wdata := trainTaken 
 
   switch(trainPc(3, 2)) {
-    is(0.U) { oldHistory := bht.io.rdata0 }
-    is(1.U) { oldHistory := bht.io.rdata1 }
-    is(2.U) { oldHistory := bht.io.rdata2 }
-    is(3.U) { oldHistory := bht.io.rdata3 }
+    is(0.U) { oldHistory := bht.io.rdata0.history }
+    is(1.U) { oldHistory := bht.io.rdata1.history }
+    is(2.U) { oldHistory := bht.io.rdata2.history }
+    is(3.U) { oldHistory := bht.io.rdata3.history }
   }
   dontTouch(oldHistory)
 
   bht.io.wen   := trainValid
   bht.io.waddr := trainPc(INDEX_WIDTH+1, 2)
-  bht.io.wdata := Cat(oldHistory(HISTORY_WIDTH-2, 0), trainTaken)
-  bhtvalid.io.wen   := trainValid
-  bhtvalid.io.waddr := trainPc(INDEX_WIDTH+1, 2)
-  bhtvalid.io.wdata := true.B
+  val bhtTrainEntry = Wire(new BhtEntry)
+  bhtTrainEntry.history := Cat(oldHistory(HISTORY_WIDTH-2, 0), trainTaken)
+  bhtTrainEntry.valid := true.B
+  bht.io.wdata := bhtTrainEntry
 
   val bhtvalidData = Wire(Bool())
   bhtvalidData := false.B
   switch(trainPc(3, 2)) {
-    is(0.U) { bhtvalidData := bhtvalid.io.rdata0 }
-    is(1.U) { bhtvalidData := bhtvalid.io.rdata1 }
-    is(2.U) { bhtvalidData := bhtvalid.io.rdata2 }
-    is(3.U) { bhtvalidData := bhtvalid.io.rdata3 }
+    is(0.U) { bhtvalidData := bht.io.rdata0.valid }
+    is(1.U) { bhtvalidData := bht.io.rdata1.valid }
+    is(2.U) { bhtvalidData := bht.io.rdata2.valid }
+    is(3.U) { bhtvalidData := bht.io.rdata3.valid }
   }
 
   when (trainValid && bhtvalidData) {
