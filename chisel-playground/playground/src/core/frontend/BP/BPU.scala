@@ -89,52 +89,53 @@ class BHTValid extends Module {
 class BTBData extends Module {
   val io = IO(new Bundle {
     val raddr0 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata0 = Output(UInt(BTB_DATA_WIDTH.W))
+    val rdata0 = Output(new BtbEntry)
     val raddr1 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata1 = Output(UInt(BTB_DATA_WIDTH.W))
+    val rdata1 = Output(new BtbEntry)
     val raddr2 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata2 = Output(UInt(BTB_DATA_WIDTH.W))
+    val rdata2 = Output(new BtbEntry)
     val raddr3 = Input(UInt(BTB_INDEX_WIDTH.W))
-    val rdata3 = Output(UInt(BTB_DATA_WIDTH.W))
+    val rdata3 = Output(new BtbEntry)
 
     val waddr = Input(UInt(BTB_INDEX_WIDTH.W))
-    val wdata = Input(UInt(BTB_DATA_WIDTH.W))
+    val wdata = Input(new BtbEntry)
     val wen = Input(Bool())
   })
-  // (data, isReturn, isCall) = (32-bit target, 1-bit isReturn, 1-bit isCall)
-  val btbdata0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
-  val btbdata1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
-  val btbdata2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
-  val btbdata3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, BTB_DATA_WIDTH))
+  // (data, isReturn, isCall, valid) = (32-bit target, 1-bit isReturn, 1-bit isCall, 1-bit valid)
+  private val ENTRY_WIDTH = BtbEntry.width 
+  val btbdata0 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, ENTRY_WIDTH))
+  val btbdata1 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, ENTRY_WIDTH))
+  val btbdata2 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, ENTRY_WIDTH))
+  val btbdata3 = Module(new DualPortBRAM(BTB_INDEX_WIDTH, ENTRY_WIDTH))
 
   btbdata0.io.clka := clock
   btbdata0.io.wea := io.wen && (io.waddr(1, 0) === 0.U)
   btbdata0.io.addra := io.waddr
-  btbdata0.io.dina := io.wdata
+  btbdata0.io.dina := io.wdata.asUInt
   btbdata0.io.addrb := io.raddr0
 
   btbdata1.io.clka := clock
   btbdata1.io.wea := io.wen && (io.waddr(1, 0) === 1.U)
   btbdata1.io.addra := io.waddr
-  btbdata1.io.dina := io.wdata
+  btbdata1.io.dina := io.wdata.asUInt
   btbdata1.io.addrb := io.raddr1
 
   btbdata2.io.clka := clock
   btbdata2.io.wea := io.wen && (io.waddr(1, 0) === 2.U)
   btbdata2.io.addra := io.waddr
-  btbdata2.io.dina := io.wdata
+  btbdata2.io.dina := io.wdata.asUInt
   btbdata2.io.addrb := io.raddr2
 
   btbdata3.io.clka := clock
   btbdata3.io.wea := io.wen && (io.waddr(1, 0) === 3.U)
   btbdata3.io.addra := io.waddr
-  btbdata3.io.dina := io.wdata
+  btbdata3.io.dina := io.wdata.asUInt
   btbdata3.io.addrb := io.raddr3
 
-  io.rdata0 := btbdata0.io.doutb
-  io.rdata1 := btbdata1.io.doutb
-  io.rdata2 := btbdata2.io.doutb
-  io.rdata3 := btbdata3.io.doutb
+  io.rdata0 := btbdata0.io.doutb.asTypeOf(new BtbEntry)
+  io.rdata1 := btbdata1.io.doutb.asTypeOf(new BtbEntry)
+  io.rdata2 := btbdata2.io.doutb.asTypeOf(new BtbEntry)
+  io.rdata3 := btbdata3.io.doutb.asTypeOf(new BtbEntry)
 }
 
 class BTBTag extends Module {
@@ -246,7 +247,7 @@ class BPU extends Module {
   val pht = RegInit(VecInit(Seq.fill(1 << HISTORY_WIDTH)(pf)))
   val btbdata = Module(new BTBData)
   val btbtag = Module(new BTBTag)
-  val btbvalid = Module(new BTBValid)
+  // val btbvalid = Module(new BTBValid)
 
   // ras
   val ras      = RegInit(VecInit(Seq.fill(RAS_DEPTH)(0.U(32.W))))
@@ -309,30 +310,26 @@ class BPU extends Module {
   btbTag(1) := btbtag.io.rdata1
   btbTag(2) := btbtag.io.rdata2
   btbTag(3) := btbtag.io.rdata3
-  btbvalid.io.raddr0 := btbIdx(0)
-  btbvalid.io.raddr1 := btbIdx(1)
-  btbvalid.io.raddr2 := btbIdx(2)
-  btbvalid.io.raddr3 := btbIdx(3)
-  btbValid(0) := btbvalid.io.rdata0
-  btbValid(1) := btbvalid.io.rdata1
-  btbValid(2) := btbvalid.io.rdata2
-  btbValid(3) := btbvalid.io.rdata3
+  btbValid(0) := btbdata.io.rdata0.valid
+  btbValid(1) := btbdata.io.rdata1.valid
+  btbValid(2) := btbdata.io.rdata2.valid
+  btbValid(3) := btbdata.io.rdata3.valid
   btbdata.io.raddr0 := btbIdx(0)
   btbdata.io.raddr1 := btbIdx(1)
   btbdata.io.raddr2 := btbIdx(2)
   btbdata.io.raddr3 := btbIdx(3)
-  btbData(0) := btbdata.io.rdata0(33, 2) // 32-bit target address
-  btbData(1) := btbdata.io.rdata1(33, 2)
-  btbData(2) := btbdata.io.rdata2(33, 2)
-  btbData(3) := btbdata.io.rdata3(33, 2)
-  isReturn(0) := btbdata.io.rdata0(1) // 1: isReturn
-  isReturn(1) := btbdata.io.rdata1(1)
-  isReturn(2) := btbdata.io.rdata2(1)
-  isReturn(3) := btbdata.io.rdata3(1)
-  isCall(0) := btbdata.io.rdata0(0) // 0: isCall
-  isCall(1) := btbdata.io.rdata1(0)
-  isCall(2) := btbdata.io.rdata2(0)
-  isCall(3) := btbdata.io.rdata3(0)
+  btbData(0) := btbdata.io.rdata0.target // 32-bit target address
+  btbData(1) := btbdata.io.rdata1.target
+  btbData(2) := btbdata.io.rdata2.target
+  btbData(3) := btbdata.io.rdata3.target
+  isReturn(0) := btbdata.io.rdata0.isReturn
+  isReturn(1) := btbdata.io.rdata1.isReturn
+  isReturn(2) := btbdata.io.rdata2.isReturn
+  isReturn(3) := btbdata.io.rdata3.isReturn
+  isCall(0) := btbdata.io.rdata0.isCall
+  isCall(1) := btbdata.io.rdata1.isCall
+  isCall(2) := btbdata.io.rdata2.isCall
+  isCall(3) := btbdata.io.rdata3.isCall
 
   // get pht data // 2nd clock
   val phtData = Wire(Vec(ISSUE_WIDTH, UInt(2.W)))
@@ -368,15 +365,16 @@ class BPU extends Module {
 
   btbdata.io.wen   := trainValid && trainTaken
   btbdata.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
-  btbdata.io.wdata := Cat(trainTarget, trainIsReturn, trainIsCall) // 32-bit target + 1-bit isReturn + 1-bit isCall
+  val btbTrainEntry = Wire(new BtbEntry)
+  btbTrainEntry.target := trainTarget
+  btbTrainEntry.isCall := trainIsCall
+  btbTrainEntry.isReturn := trainIsReturn
+  btbTrainEntry.valid := true.B
+  btbdata.io.wdata := btbTrainEntry
 
   btbtag.io.wen   := trainValid && trainTaken
   btbtag.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
   btbtag.io.wdata := trainPc(31, BTB_INDEX_WIDTH+2)
-
-  btbvalid.io.wen   := trainValid && trainTaken
-  btbvalid.io.waddr := trainPc(BTB_INDEX_WIDTH+1, 2)
-  btbvalid.io.wdata := trainTaken 
 
   switch(trainPc(3, 2)) {
     is(0.U) { oldHistory := bht.io.rdata0.history }

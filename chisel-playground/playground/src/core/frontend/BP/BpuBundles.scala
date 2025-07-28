@@ -12,11 +12,15 @@ object BhtEntry {
 }
 //                                          ||
 // 2: pc = xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
-// class BtbEntry extends Bundle {
-//   val target = UInt(32.W)
-//   val isCall = Bool()
-//   val isReturn = Bool()
-// }
+class BtbEntry extends Bundle {
+  val target = UInt(32.W)
+  val isCall = Bool()
+  val isReturn = Bool()
+  val valid = Bool()
+}
+object BtbEntry {
+  def width: Int = (new BtbEntry).getWidth
+}
 
 class BranchTrainInfo extends Bundle {
   val pc = UInt(32.W)
