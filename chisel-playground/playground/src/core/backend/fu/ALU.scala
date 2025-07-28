@@ -29,12 +29,14 @@ object ALUOpType {
   def bge  = "b0010101".U
   def bltu = "b0010110".U
   def bgeu = "b0010111".U
+  def idle = "b0011000".U
 
   def lu12i = "b1000001".U
 
   // for RAS
   def call = "b1011100".U
   def ret  = "b1011110".U
+
 
   def isAdd(func: UInt) = func(6)
   def isBru(func: UInt) = func(4)
@@ -66,7 +68,7 @@ object cpucfg {
   
   def word17 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     4.U( 7.W),   // Linesize-log2 [30: 24]
-                    9.U( 8.W),   // Index-log2    [23: 16]
+                   10.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
@@ -168,9 +170,9 @@ class ALU extends Module {
   val brValid = (taken || !isBranch) && isBru
   val isJirl = ALUOpType.getBranchType(func) === ALUOpType.getBranchType(ALUOpType.jirl)
   dontTouch(isJirl)
-  io.redirect.actuallyTarget := Mux(isBranch || isJirl,
-                            target, io.pc + io.offset) 
-  io.redirect.actuallyTaken := brValid
+  io.redirect.actuallyTarget := Mux(func === ALUOpType.idle, io.pc, Mux(isBranch || isJirl,
+                                                                        target, io.pc + io.offset))
+  io.redirect.actuallyTaken := brValid || func === ALUOpType.idle
   io.redirect.predictTaken := io.redirect_in.predictTaken
   io.redirect.predictTarget := io.redirect_in.predictTarget
   io.redirect.rtype := DontCare // TODO

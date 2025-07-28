@@ -86,6 +86,7 @@ object Inst {
     def dcacop_op0      = BitPat("b0000011000_????????????_?????_00001")
     def dcacop_op1      = BitPat("b0000011000_????????????_?????_01001")
     def dcacop_op2      = BitPat("b0000011000_????????????_?????_10001")
+    def cacop_nop       = BitPat("b0000011000_????????????_?????_???10")
 
     /* TLB维护指令 */
     def tlbsrch         = BitPat("b00000110010010000010100000000000")
@@ -161,15 +162,16 @@ object Inst {
         icacop_op0      -> List(ImmType.si12    , FuType.bru, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.op0), 
         icacop_op1      -> List(ImmType.si12    , FuType.bru, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.op1), 
         icacop_op2      -> List(ImmType.si12    , FuType.bru, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.op2), 
-        dcacop_op0      -> List(ImmType.si12    , FuType.lsu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op0), 
-        dcacop_op1      -> List(ImmType.si12    , FuType.lsu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op1), 
-        dcacop_op2      -> List(ImmType.si12    , FuType.lsu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op2), 
+        dcacop_op0      -> List(ImmType.si12    , FuType.lsu, LSUOpType.lw,    SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op0), 
+        dcacop_op1      -> List(ImmType.si12    , FuType.lsu, LSUOpType.lw,    SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op1), 
+        dcacop_op2      -> List(ImmType.si12    , FuType.lsu, LSUOpType.lw,    SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.d, CACOPOp.op2), 
+        cacop_nop       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop),
         tlbsrch         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.srch, CACOPType.i, CACOPOp.nop), 
         tlbrd           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.rd,   CACOPType.i, CACOPOp.nop), 
         tlbwr           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.wr,   CACOPType.i, CACOPOp.nop), 
         tlbfill         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.fill, CACOPType.i, CACOPOp.nop), 
         invtlb          -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.inv,  CACOPType.i, CACOPOp.nop), 
         ertn            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.ertn,    TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
-        idle            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.idle,    TlbOp.nop,  CACOPType.i, CACOPOp.nop),
+        idle            -> List(ImmType.si12    , FuType.bru, ALUOpType.idle,  SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop),
     )
 }

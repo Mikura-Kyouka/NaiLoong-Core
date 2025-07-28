@@ -44,8 +44,6 @@ class IFU extends Module{
         val excp_en = Output(Bool())
         val ecode = Output(Ecode())
 
-        val idle = Input(Bool())
-
         val debug0_wb_pc      =Output(UInt(32.W))
         val debug0_wb_rf_wen  =Output(UInt(4.W))
         val debug0_wb_rf_wnum =Output(UInt(5.W))
@@ -84,8 +82,8 @@ class IFU extends Module{
     io.axi.awaddr := 0.U
 
     val pc = Module(new PC())
-    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 512 * 16, ways = 1))) // Pipelined
-    io.out.valid := icache.io.out.valid && !io.flush && !icache.io.s1Cacop && !io.idle
+    val icache = Module(new PipelinedICache()(new ICacheConfig(totalSize = 1024 * 16, ways = 1))) // Pipelined
+    io.out.valid := icache.io.out.valid && !io.flush && !icache.io.s1Cacop
 
     val predictTaken = io.BrPredictTaken.map(_.predictTaken).reduce(_ || _)
     val predictIndex = PriorityEncoder(io.BrPredictTaken.map(_.predictTaken))
@@ -145,7 +143,7 @@ class IFU extends Module{
                                            VecInit(Seq.fill(4)(notValidPredict))))
 
     icache.io.flush := io.flush
-    icache.io.in.valid := io.out.ready && !io.flush && io.addr_trans_in.valid && !io.idle // TODO
+    icache.io.in.valid := io.out.ready && !io.flush && io.addr_trans_in.valid // TODO
     // io.out.bits.inst := icache.io.out.bits.rdata
     // val adef = Wire(new IFU2IDU)
     // adef.Valid := true.B

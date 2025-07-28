@@ -11,8 +11,7 @@ class Execute extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new FuOut))
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val lsAXI = new AXI
-    val RobLsuIn  = Flipped(DecoupledIO())
-    val RobLsuOut = DecoupledIO()
+    val scommit = Input(Bool())
     val flush = Input(Bool())
 
     val csrRead = Flipped(Vec(2, new csr_read_bundle))
@@ -32,12 +31,18 @@ class Execute extends Module {
   val alu1 = Module(new AligendALU)
   val alu2 = Module(new AligendALU)
   val mdu  = Module(new AlignedMDU)
-  val lsu  = Module(new AligendUnpipelinedLSU)
+  val lsu  = Module(new LSU)
   val bru  = Module(new AligendALU) // TODO
 
-  lsu.io.lsAXI <> io.lsAXI
-  lsu.io.RobLsuIn <> io.RobLsuIn
-  lsu.io.RobLsuOut <> io.RobLsuOut
+  val dmem = Module(new DCache()(new DCacheConfig(totalSize = 1024 * 16, ways = 1)))
+  dmem.io.req <> lsu.io.dmemReq
+  dmem.io.resp <> lsu.io.dmemResp
+  dmem.io.axi <> io.lsAXI
+  dmem.io.flush := io.flush
+  // dmem.io.cacop := DontCare // FIXME: should be included in moq entry
+
+  // lsu.io.cacop := io.cacop
+  lsu.io.scommit := io.scommit
   lsu.io.flush := io.flush
   lsu.io.addr_trans_out <> io.addr_trans_out
   lsu.io.addr_trans_in <> io.addr_trans_in

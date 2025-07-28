@@ -7,7 +7,6 @@ import chisel3.util.experimental.decode.Minimizer
 import core.LSUOpType.sw
 import core.FuType.lsu
 import core.LSUOpType.isStore
-import core.MEMOpID.tlb
 
 object RobConfig {
   val ROB_ENTRY_NUM = 64
@@ -136,8 +135,7 @@ class RobIO extends Bundle {
   val writeback = Vec(5, Flipped(Valid(new RobWritebackInfo)))
 
   // ROB 和 LSU 关于 Store 指令的交互
-  val RobLsuIn  = Flipped(DecoupledIO())
-  val RobLsuOut = DecoupledIO()
+  val scommit = Output(Bool())
   
   // 提交接口
   val commit = Output(new RobCommit)                       // 提交信息，用于释放物理寄存器
@@ -258,13 +256,12 @@ class Rob extends Module {
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
     if (i == 0) {
-      val preHasCommit = !robEntries(commitIdx - 1.U).valid
+      val preshouldCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
-                      preHasCommit
+                      preshouldCommit
     } else {
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
                       canCommit(i-1) && !robEntries(commitIdx - 1.U).isStore
@@ -300,17 +297,7 @@ class Rob extends Module {
   // 提交逻辑
   // 生成提交信息
 
-  // 提交 Store 状态机
-  val st_idle :: st_commit :: st_retire :: Nil = Enum(3)
-  
-  val st_state = RegInit(st_idle)
-  val OutValid = RegInit(false.B)
-  val InReady  = RegInit(false.B)
-
   val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-  val hasCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
-  dontTouch(shouldCommit)
-
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
 
@@ -322,8 +309,7 @@ class Rob extends Module {
 
   val brMisPredTemp = hasBrMispred.reduce(_ || _)
   val brMisPredIdx = PriorityEncoder(hasBrMispred)
-  val storeFinished = !hasStore(brMisPredIdx) || hasStore(brMisPredIdx) && st_state === st_retire && io.RobLsuIn.valid
-  val brMisPred = brMisPredTemp && storeFinished
+  val brMisPred = brMisPredTemp
 
   val minIdx = Wire(UInt(2.W))
 
@@ -379,7 +365,7 @@ class Rob extends Module {
     shouldCommit(i) := Mux(hasSpecialCommit, i.U <= minIdx && canCommit(i), canCommit(i))
 
     // 物理寄存器回收信息
-    io.commit.commit(i).valid := hasCommit(i) && !entry.rfWen && entry.rd =/= 0.U && !entry.exceptionVec(9)  // 9: ALE异常
+    io.commit.commit(i).valid := shouldCommit(i) && !entry.rfWen && entry.rd =/= 0.U && !entry.exceptionVec(9)  // 9: ALE异常
     // FIXME: Why old_preg?
     // io.commit.commit(i).bits.dest := entry.old_preg
     io.commit.commit(i).bits.pc   := entry.pc
@@ -395,17 +381,17 @@ class Rob extends Module {
     io.commit.commit(i).bits.timer64 := entry.timer64
     
     // 提交PC信息
-    io.commitPC(i).valid := hasCommit(i) && entry.inst_valid
+    io.commitPC(i).valid := shouldCommit(i) && entry.inst_valid
     io.commitPC(i).bits := entry.pc
     
     // 提交指令信息
-    io.commitInstr(i).valid := hasCommit(i) && entry.inst_valid
+    io.commitInstr(i).valid := shouldCommit(i) && entry.inst_valid
     io.commitInstr(i).bits := entry.instr
 
     // for csr
     val csr_wen = entry.csrOp === CSROp.wr || entry.csrOp === CSROp.xchg || entry.csrOp === CSROp.ertn ||
                   entry.csrOp === CSROp.ll || entry.csrOp === CSROp.sc || entry.csrOp === CSROp.idle
-    io.commitCSR(i).valid := hasCommit(i) && entry.inst_valid && csr_wen && !hasException(i)
+    io.commitCSR(i).valid := shouldCommit(i) && entry.inst_valid && csr_wen && !hasException(i)
     io.commitCSR(i).bits.csr_num := entry.csrNum
     io.commitCSR(i).bits.csr_data := entry.csrNewData
     io.commitCSR(i).bits.ll := entry.csrOp === CSROp.ll
@@ -414,56 +400,16 @@ class Rob extends Module {
     io.commitCSR(i).bits.idle := entry.csrOp === CSROp.idle // 是否是idle指令
 
     // for load/store difftest
-    io.commitLS(i).valid := hasCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu && !entry.failsc
+    io.commitLS(i).valid := shouldCommit(i) && entry.inst_valid && entry.fuType === FuType.lsu && !entry.failsc
     io.commitLS(i).bits.paddr := entry.paddr
     io.commitLS(i).bits.vaddr := entry.vaddr
     io.commitLS(i).bits.wdata := entry.wdata
     io.commitLS(i).bits.optype := entry.optype
 
     // 清除已提交的条目
-    when (hasCommit(i)) {
+    when (shouldCommit(i)) {
       robEntries(commitIdx).valid := false.B
     }
-  }
-  
-  val storeIdx = head + PriorityEncoder(hasStore)
-  dontTouch(storeIdx)
-
-  switch (st_state) {
-    is (st_idle) {
-      when (hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore)) &&
-           !robEntries(storeIdx).failsc) {
-        st_state := st_commit
-        OutValid := true.B
-      }
-    }
-    is (st_commit) {
-      when(io.RobLsuOut.ready) {
-        OutValid := false.B
-        InReady := true.B
-        st_state := st_retire
-      }
-    }
-    is (st_retire) {
-      when (io.RobLsuIn.valid) {
-        InReady := false.B
-        st_state := st_idle
-      }
-    }
-  }
-
-  when(io.flush) {
-    st_state := st_idle
-    OutValid := false.B
-    InReady := false.B
-  }
-
-  io.RobLsuOut.valid := OutValid
-  io.RobLsuIn.ready := InReady
-
-  for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    hasCommit(i) := Mux(hasStore(i), (st_state === st_retire && io.RobLsuIn.valid || robEntries(storeIdx).failsc) && shouldCommit(i), 
-                        shouldCommit(i))
   }
 
   // 提交异常信息
@@ -475,6 +421,9 @@ class Rob extends Module {
   io.exceptionInfo.eret := eret
   io.exceptionInfo.exceptionVec := robEntries(head + exceptionIdx).exceptionVec
   io.exceptionInfo.exceptionVAddr := robEntries(head + exceptionIdx).vaddr
+  io.exceptionInfo.idle := robEntries(head + exceptionIdx).fuType === FuType.bru &&
+                           robEntries(head + exceptionIdx).optype === ALUOpType.idle
+
   //excp_ine 
     /*
     exceptionVec[0]  int
@@ -498,7 +447,10 @@ class Rob extends Module {
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
   io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
-  val commitNum = PopCount(hasCommit)
+  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore)) && 
+                !robEntries(head + PriorityEncoder(hasStore)).failsc
+
+  val commitNum = PopCount(shouldCommit)
 
   // 更新头指针
   val nextHead = (head + commitNum) % RobConfig.ROB_ENTRY_NUM.U
@@ -506,7 +458,7 @@ class Rob extends Module {
     head := nextHead
   }
 
-  when ((exception || brMisPred || csrWrite || tlbOperation) && hasCommit.reduce(_ || _)) {
+  when ((exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)) {
     // 回滚ROB尾指针
     val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
     tail := rollbackTail
@@ -519,7 +471,7 @@ class Rob extends Module {
     }
   }
 
-  io.flush := (exception || brMisPred || csrWrite || tlbOperation) && hasCommit.reduce(_ || _)
+  io.flush := (exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)
   val flushEntry = robEntries(head +& minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 

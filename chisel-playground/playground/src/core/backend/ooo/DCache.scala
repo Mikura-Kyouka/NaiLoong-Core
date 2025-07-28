@@ -6,14 +6,21 @@ import core.ALUOpType.add
 
 class reqBundle extends Bundle{
     val addr  = Output(UInt(32.W))
+    val size  = Output(UInt(2.W))
     val wdata = Output(UInt(32.W))
     val wmask = Output(UInt(4.W))
     val cmd   = Output(Bool())// 0: read, 1: write
+    val moqIdx = Output(UInt(3.W)) // moq entry index
+    val isMMIO = Input(Bool())
+    val cacopOp = Input(UInt(2.W))
+    val cacopEn = Input(Bool())
 }
 
 class respBundle extends Bundle{
     val rdata = Output(UInt(32.W))
     val resp = Output(Bool()) // 0: ready, 1: error
+    val moqIdx = Output(UInt(3.W)) // moq entry index
+    val cmd = Output(Bool()) // 0: read, 1: write
 }
 
 case class DCacheConfig(
@@ -99,40 +106,33 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         val req = Flipped(Decoupled(new reqBundle))
         val resp = Decoupled(new respBundle)
         val axi = new AXI
-        val RobLsuIn  = Flipped(DecoupledIO())
-        val RobLsuOut = DecoupledIO()
         val flush = Input(Bool())
-        val addr_trans_out = Output(new AddrTrans)
-        val addr_trans_in = Input(new AddrTrans)
-
-        val cacop = Input(new CACOPIO)
+        // val cacop = Input(new CACOPIO)
     })
-    val cacopOp0 = io.cacop.en && io.cacop.op === CACOPOp.op0
-    val cacopOp1 = io.cacop.en && io.cacop.op === CACOPOp.op1
-    val cacopOp2 = io.cacop.en && io.cacop.op === CACOPOp.op2
+    val reqReg = RegEnable(io.req.bits, io.req.fire)
+    val req = Mux(io.req.fire, io.req.bits, reqReg)
 
-    val paddr = io.addr_trans_in.paddr
-    val req = io.req.bits
+    val cacopOp0 = req.cacopEn && req.cacopOp === CACOPOp.op0
+    val cacopOp1 = req.cacopEn && req.cacopOp === CACOPOp.op1
+    val cacopOp2 = req.cacopEn && req.cacopOp === CACOPOp.op2
+    dontTouch(cacopOp0)
+    dontTouch(cacopOp1)
+    dontTouch(cacopOp2)
+
     val resp = Wire(new respBundle)
     resp := DontCare
-    val addr = paddr.asTypeOf(addrBundle)
-    when(cacopOp1) {
-      addr := io.cacop.VA.asTypeOf(addrBundle)
-    }
-    when(cacopOp2) {
-      addr := io.addr_trans_in.paddr.asTypeOf(addrBundle)
-    }
+    resp.moqIdx := req.moqIdx // 保留moq entry index
+    val addr = req.addr.asTypeOf(addrBundle)
+    // when(cacopOp0 || cacopOp1) {
+    //   addr := io.cacop.VA.asTypeOf(addrBundle)
+    // }
 
-    io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := Mux(cacopOp2, io.cacop.VA, io.req.bits.addr) // TODO: cacop op3
-    io.addr_trans_out.trans_en := true.B
-    io.addr_trans_out.mem_type := Mux(cacopOp2, MemType.load, Mux(req.cmd, MemType.store, MemType.load))
+    val isMMIO = req.isMMIO //FIXME：
+    // val isMMIO = false.B
 
-    // val isMMIO = req.addr(31, 16) === "hbfaf".U || req.addr(31, 16) === "hbfe0".U || io.addr_trans_in.mat === 0.U  // 强序非缓存
-    val isMMIO = io.addr_trans_in.mat === 0.U  // 强序非缓存
+    //    0          1              2               3             4                  5               6               7               8
+    val s_idle :: s_judge :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: Nil = Enum(9)
 
-    //   000        001          010          011               100               101            110          111
-    val s_idle :: s_judge :: s_wait_rob :: s_write_cache :: s_read_cache :: s_write_mem1 :: s_write_mem2 :: s_write_mem3 :: s_read_mem1 :: s_read_mem2 :: s_tlb :: Nil = Enum(11)
     val state = RegInit(s_idle)
 
     // 暂时只支持 1 way
@@ -182,7 +182,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val dirty = metaFlagData(0).dirty
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
-    when(io.req.valid) {
+    when(io.req.fire) {
       flushed := false.B
     }
     when(io.flush) {
@@ -195,66 +195,75 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //                            +-------------------no----------------------------------+
     // NOTE: Write need to load first and then write, 
     // because store may only write to specific byte
-    //   000        001          010          011               100               101            110          111
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.flush, s_idle, Mux(io.req.valid, Mux(cacopOp0, s_idle, Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), s_tlb)), s_idle)),
-        s_tlb -> Mux(io.flush || io.addr_trans_in.excp.en, s_idle, Mux(isMMIO && !cacopOp2, Mux(req.cmd, s_wait_rob, s_read_mem1), s_judge)),
-        s_judge -> Mux(io.flush, s_idle, Mux(hit, Mux(req.cmd && !cacopOp2, s_wait_rob, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), s_read_cache)), Mux(!cacopOp2 && req.cmd, s_wait_rob, Mux(cacopOp2, s_idle, Mux(dirty, s_write_mem1, s_read_mem1))))),
-        s_wait_rob -> Mux(io.flush, s_idle, Mux(io.RobLsuIn.valid, Mux(isMMIO, s_write_mem1, Mux(hit, s_write_cache, Mux(dirty, s_write_mem1, s_read_mem1))), s_wait_rob)),
+        s_idle -> Mux(io.req.fire && !cacopOp0, 
+                        Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
+                        s_idle),
+        s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
+                            // Mux(req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(cacopOp2, s_idle, s_read_mem1))),  // 不命中，写，先驱逐脏数据；读，直接读
+                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), //
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), //FIXME
+        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
-    io.req.ready := (state === s_idle || state === s_write_cache || state === s_read_cache || (isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid)) && 
-                    (!io.req.valid || io.resp.fire)
-    io.resp.valid := ((isMMIO && io.axi.rvalid) || (isMMIO && io.axi.bvalid) || 
-                      (io.addr_trans_in.excp.en && state === s_tlb) || 
-                      (io.req.valid && cacopOp0 && state === s_idle) || 
+
+    io.req.ready := state === s_idle
+    io.resp.valid := (((isMMIO && io.axi.rvalid) || 
+                      (isMMIO && io.axi.bvalid) || 
                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
                       (hit && cacopOp2 && !dirty && state === s_judge) ||
-                      (!hit && cacopOp2 && state === s_judge) ||
-                      (io.req.valid && cacopOp1 && !dirty && state === s_idle)
-                     ) && !flushed 
+                      (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
+
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
     io.axi := DontCare
-    // 通知 ROB: Store 指令已经退休
-    io.RobLsuOut.valid := (state === s_write_mem3 && io.axi.bvalid && isMMIO) || state === s_write_cache && !isMMIO
-    io.RobLsuIn.ready := state === s_wait_rob
 
-    val offset = req.addr(1, 0) << 3
+    when(cacopOp0) {
+      metaArray.io.wea := true.B
+      metaArray.io.addra := addr.index
+      metaArray.io.dina := 0.U
+    }
+
+    // when(cacopOp1 || (cacopOp2 && hit)) {
+    //   metaArray.io.wea := true.B
+    //   metaArray.io.addra := addr.index
+    //   metaArray.io.dina := 0.U
+    //   metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+    // }
+
+    // val offset = req.addr(1, 0) << 3
     val cacheData = dataReadData(0)(0)
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := Cat(paddr(31, 2), 0.U(2.W))
+    io.axi.araddr := addr.asUInt
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := 0.U
-    io.axi.arsize := "b010".U  // 32 bits
+    io.axi.arsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U)
     io.axi.arburst := "b01".U
     io.axi.rready := true.B
     // axi write chanel
     val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
-    io.axi.awaddr := Mux(isMMIO, Cat(paddr(31, 2), 0.U(2.W)), awaddr)
+    io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
     io.axi.awlen := 0.U
-    io.axi.awsize := "b010".U  // 32 bits
+    io.axi.awsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U) // 32 bits
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
     io.axi.wid := 1.U(4.W)
-    io.axi.wstrb := Mux(isMMIO, req.wmask << req.addr(1, 0), "b1111".U)
-    io.axi.wdata := Mux(isMMIO, req.wdata << offset, cacheData)
+    io.axi.wstrb := Mux(isMMIO, req.wmask, "b1111".U) 
+    io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
     val rdata = io.axi.rdata
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
-      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := VecInit(Seq.fill(LineBeats)(rdata)).asUInt
       // dataArray(addr.index)(0)(0) := rdata // TODO
@@ -270,10 +279,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // metaArray(addr.index)(0).tag := addr.tag
       // metaArray(addr.index)(0).valid := true.B
       // metaArray(addr.index)(0).dirty := false.B
-      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      metaValidArray.io.wea := !isMMIO // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
@@ -281,92 +290,65 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 读取当前字
     val origWord = dataReadData(0)(0)
-
-    // 新的数据寄存器
-    val newWord = Wire(UInt(32.W))
-    newWord := origWord // 默认保持原值
+    val newWordBytes = Wire(Vec(4, UInt(8.W)))
+    val origBytes = origWord.asTypeOf(Vec(4, UInt(8.W)))
+    val wdataBytes = req.wdata.asTypeOf(Vec(4, UInt(8.W)))
+    for(i <- 0 until 4){
+      newWordBytes(i) := Mux(req.wmask(i), wdataBytes(i), origBytes(i))
+    }
+    val newWord = newWordBytes.asUInt
 
     when(state === s_write_cache) {
-      when(req.wmask === "b1111".U) {
-        newWord := req.wdata
-      }.elsewhen(req.wmask === "b0011".U) {
-        when(req.addr(1, 0) === "b00".U) {
-          // 更新低半字
-          newWord := Cat(origWord(31, 16), req.wdata(15, 0))
-        }.elsewhen(req.addr(1, 0) === "b10".U) {
-          // 更新高半字
-          newWord := Cat(req.wdata(15, 0), origWord(15, 0))
-        }
-      }.elsewhen(req.wmask === "b0001".U) {
-        when(req.addr(1, 0) === "b00".U) {
-          newWord := Cat(origWord(31, 8), req.wdata(7, 0))
-        }.elsewhen(req.addr(1, 0) === "b01".U) {
-          newWord := Cat(origWord(31, 16), req.wdata(7, 0), origWord(7, 0))
-        }.elsewhen(req.addr(1, 0) === "b10".U) {
-          newWord := Cat(origWord(31, 24), req.wdata(7, 0), origWord(15, 0))
-        }.otherwise {
-          newWord := Cat(req.wdata(7, 0), origWord(23, 0))
-        }
-      }
-      // 完整写入更新后的数据
-      // dataArray(addr.index)(0) := VecInit(Seq(newWord))
-      dataArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      // data
+      dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
       dataArray.io.dina := newWord
-      
-      // 同时更新metaArray
-      // val writeMeta = Vec(Ways, new MetaBundle)
-      // for (i <- 0 until Ways) {
-      //   writeMeta(i).tag := addr.tag
-      //   writeMeta(i).valid := true.B
-      //   writeMeta(i).dirty := true.B
-      // }
-      // metaArray.write(addr.index, writeMeta)
-
-      // metaArray(addr.index)(0).tag := addr.tag
-      // metaArray(addr.index)(0).valid := true.B
-      // metaArray(addr.index)(0).dirty := true.B
-      metaArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      // tag
+      metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
       metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := io.addr_trans_in.mat === 1.U // 一致可缓存
+      // valid
+      metaValidArray.io.wea := !isMMIO // 一致可缓存
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
+      // dirty
       metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
 
-      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
+      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := Mux(isMMIO, io.axi.rdata >> offset, cacheData >> offset)
-      io.resp.valid := !flushed || io.addr_trans_in.excp.en // 如果没有被flush过，则返回有效响应
+      resp.rdata := cacheData // 直接返回cache中的数据
+      io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     when(isMMIO) {
-      resp.rdata := io.axi.rdata >> offset
+      resp.rdata := io.axi.rdata
+    }
+
+    // io.resp.valid := (((isMMIO && io.axi.rvalid) || 
+    //                   (isMMIO && io.axi.bvalid) || 
+    //                   ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
+    //                   (hit && cacopOp2 && !dirty && state === s_judge) ||
+    //                   (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
+
+    when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
+      // valid
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.addra := addr.index
+      metaValidArray.io.dina := 0.U
+      // dirty
+      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
     }
 
     io.resp.bits := resp
 
-    val VA = io.cacop.VA.asTypeOf(addrBundle)
-    when(cacopOp0) {
-      metaArray.io.wea := true.B
-      metaArray.io.addra := VA.index
-      metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
-    }
+    io.resp.bits.cmd := req.cmd // 保留命令类型
 
-    when(cacopOp1) {
-      metaValidArray.io.wea := true.B
-      metaValidArray.io.dina := false.B.asUInt
-      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
-    }
-
-    when(cacopOp2 && hit) {
-      metaValidArray.io.wea := true.B
-      metaValidArray.io.dina := false.B.asUInt
-      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
-    }
+    // when(io.req.valid){
+    //   printf("DCache: %x, %x, %x, %x\n", req.addr, req.wdata, addr.tag, addr.index)
+    // }
 
     if(GenCtrl.USE_COUNT) {
       val counting = RegInit(false.B)

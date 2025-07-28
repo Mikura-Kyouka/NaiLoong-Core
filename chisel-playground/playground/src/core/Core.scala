@@ -129,7 +129,7 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.out(0).fire, flush)
   PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.out(1).fire, flush)
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
-  PipelineConnect(Issue.io.out(3), Ex.io.in(3), Ex.io.out(3).fire, flush)
+  Issue.io.out(3) <> Ex.io.in(3)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
 
   // for(i <- 0 until 5) {
@@ -282,7 +282,6 @@ class Core extends Module {
   If.io.flush := flush
   If.io.dnpc := rob.io.newPC
   If.io.pcSel := flush
-  If.io.idle := csr.io.idle
   
   dontTouch(Rn.io.robAllocate)
 
@@ -348,8 +347,7 @@ class Core extends Module {
   Rn.io.robAllocate <> rob.io.allocate
 
   // lsu <=> rob
-  Ex.io.RobLsuIn <> rob.io.RobLsuOut
-  Ex.io.RobLsuOut <> rob.io.RobLsuIn
+  Ex.io.scommit := rob.io.scommit
   Ex.io.flush := flush
 
   // arf and rat update
