@@ -190,10 +190,14 @@ class IFU extends Module{
 
       val delayCounter = RegInit(0.U(64.W))
       val ifCounter = RegInit(1.U(32.W))
+      val foo = RegInit(0.U(32.W))
 
       when(io.out.fire) {
         ifCounter := ifCounter + 1.U
-        printf("[IFU] Average IFU delay: %d cycles\n", delayCounter / ifCounter)
+        foo := (foo + 1.U) % 500.U
+        when(foo === 0.U) {
+          printf("[IFU] Average IFU delay: %d cycles\n", delayCounter / ifCounter)
+        }
       }.elsewhen(counting) {
         delayCounter := delayCounter + 1.U
       }

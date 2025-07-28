@@ -476,4 +476,25 @@ class Rob extends Module {
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
                       flushEntry.pc + 4.U))
+
+  if(GenCtrl.USE_COUNT) {
+    // Initialize to 1 to avoid division by zero
+    val brInstCount = RegInit(1.U(32.W))
+    val brMisPredCount = RegInit(1.U(32.W))
+    val foo = RegInit(0.U(32.W))
+
+    when(io.commitInstr.map(_.valid).reduce(_ || _)) {
+      brMisPredCount := brMisPredCount + Mux(io.brMisPredInfo.brMisPred.valid, 1.U, 0.U)
+
+      brInstCount := brInstCount + io.commitInstr.zip(hasBr).map { case (instr, br) => 
+        Mux(instr.valid && br, 1.U, 0.U) 
+      }.reduce(_ +& _)
+      
+      foo := (foo + 1.U) % 500.U
+      when(foo === 0.U) {
+        printf("[ROB] Average BR misprediction rate: %d/%d = %d%%\n", brMisPredCount, brInstCount, 
+             (brMisPredCount * 100.U) / brInstCount)
+      }
+    }
+  }
 }
