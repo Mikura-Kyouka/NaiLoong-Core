@@ -435,6 +435,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   if (GenCtrl.USE_COUNT) {
     val hitCount = RegInit(0.U(32.W))
     val accessCount = RegInit(1.U(32.W))
+    val foo = RegInit(0.U(32.W))
     dontTouch(hitCount)
     dontTouch(accessCount)
     when(hitEn) { 
@@ -443,7 +444,10 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
         hitCount := hitCount + 1.U
       }
       accessCount := accessCount + 1.U
-      printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
+      foo := (foo + 1.U) % 500.U
+      when(foo === 0.U) {
+        printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
+      }
     }
   }
 
