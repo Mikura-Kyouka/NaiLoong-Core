@@ -8,6 +8,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info)) // 从 Dispatch 模块传入的指令
     val out = Decoupled(Output(new PipelineConnectIO)) // 从队列中取出的指令
+    val allReady = Input(Bool())
     // val from_ready = Output(Bool())  // 发射队列没满为真
     // val from_valid = Input(Bool())  
     // val to_valid = Output(Bool())  // 发射队列不为空为真
@@ -31,9 +32,10 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
 
   // 判断是否可以接受
   // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= SIZE.asUInt
-  val valid_count_wire = PopCount(next_valid_vec)
+  val valid_count_wire = PopCount(valid_vec)
   val can_accept = valid_count_wire === 0.U || valid_count_wire <= (SIZE - MAX_CNT).U
   io.in.ready := can_accept
+  val inFire = io.in.valid && io.allReady
 
   // 计算下一拍的valid_count
   val enq_count = Wire(UInt(3.W))  // 最多一次入两条指令
@@ -94,7 +96,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   next_valid_vec := shifted_valid_vec
 
   // Apply the enqueue operation to the shifted state
-  when(io.in.valid) {
+  when(inFire) {
     val base = Mux(io.out.fire, valid_count - 1.U, valid_count)
     for (i <- 1 to MAX_CNT) {
       when(io.in.bits.inst_cnt === i.U) {

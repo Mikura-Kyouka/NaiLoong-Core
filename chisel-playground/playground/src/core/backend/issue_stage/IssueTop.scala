@@ -9,6 +9,7 @@ class IssueTop extends Module {
   val io = IO(new Bundle {
     val in = Flipped(Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info)))
     val out = Vec(ISSUE_WIDTH, Decoupled(new PipelineConnectIO))
+    val in_allReady = Output(Bool())
 
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val rtrInstr = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new retire_inst_info)))
@@ -29,6 +30,13 @@ class IssueTop extends Module {
   mdurs.io_raw.dest := DontCare
   lsurs.io.in  <> io.in(3)
   brurs.io.in  <> io.in(4)
+  val all_ready = alu1rs.io.in.ready && alu2rs.io.in.ready && 
+                  mdurs.io.in.ready && lsurs.io.in.ready && brurs.io.in.ready
+  alu1rs.io.allReady := all_ready
+  alu2rs.io.allReady := all_ready
+  mdurs.io.allReady := all_ready
+  lsurs.io.allReady := all_ready
+  brurs.io.allReady := all_ready
   io.fire(0) := alu1rs.io.out.fire
   io.fire(1) := alu2rs.io.out.fire
   io.fire(2) := mdurs.io.out.fire
@@ -39,8 +47,6 @@ class IssueTop extends Module {
   io.out(2) <> mdurs.io.out
   io.out(3) <> lsurs.io.out
   io.out(4) <> brurs.io.out
-  val all_ready = alu1rs.io.in.ready && alu2rs.io.in.ready && 
-                  mdurs.io.in.ready && lsurs.io.in.ready && brurs.io.in.ready
   io.in(0).ready := all_ready
   io.in(1).ready := all_ready
   io.in(2).ready := all_ready
@@ -51,6 +57,7 @@ class IssueTop extends Module {
   mdurs.io.flush := io.flush
   lsurs.io.flush := io.flush
   brurs.io.flush := io.flush
+  io.in_allReady := all_ready
 
   val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
   for(i <- 0 until ISSUE_WIDTH) {

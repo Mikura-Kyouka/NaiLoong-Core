@@ -7,6 +7,7 @@ class OrderIssueQueue extends Module {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info))
     val out = Decoupled(Output(new PipelineConnectIO))
+    val allReady = Input(Bool())
     // val from_ready = Output(Bool()) io.in.ready
     // val from_valid = Input(Bool()) io.in.valid
     // val to_valid = Output(Bool()) io.out.valid
@@ -32,12 +33,10 @@ class OrderIssueQueue extends Module {
   val valid_count_wire = PopCount(valid_vec)
   val next_count = valid_count_wire + enq_count - deq_count
   io.in.ready := next_count <= (QUEUE_SIZE - 4).U
+  val inFire = io.in.valid && io.allReady
   dontTouch(next_count)
   
-  enq_count := 0.U
-  when(io.in.valid) {
-    enq_count := io.in.bits.inst_cnt
-  }
+  enq_count := io.in.bits.inst_cnt
   // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
   valid_count := PopCount(valid_vec)
 
@@ -72,14 +71,14 @@ class OrderIssueQueue extends Module {
   // write
   switch(io.in.bits.inst_cnt) {
     is(1.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         write_ptr := write_ptr + 1.U
       }
     }
     is(2.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -88,7 +87,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(3.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
@@ -99,7 +98,7 @@ class OrderIssueQueue extends Module {
       }
     }
     is(4.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
         mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
