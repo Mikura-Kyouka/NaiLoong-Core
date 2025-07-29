@@ -345,8 +345,8 @@ class BPU extends Module {
   for(i <- 0 until ISSUE_WIDTH) {
     btbHit(i) := Mux(btbValid(i), (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2)), false.B)
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
-    io.target(i) := btbData(i) // modified
-    //io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
+    // io.target(i) := btbData(i) // modified
+    io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
 
   }
 
