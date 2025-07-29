@@ -170,8 +170,8 @@ class ALU extends Module {
   val brValid = (taken || !isBranch) && isBru
   val isJirl = ALUOpType.getBranchType(func) === ALUOpType.getBranchType(ALUOpType.jirl)
   dontTouch(isJirl)
-  io.redirect.actuallyTarget := Mux(func === ALUOpType.idle, io.pc, Mux(isBranch || isJirl,
-                                                                        target, io.pc + io.offset))
+  io.redirect.actuallyTarget := Mux(io.redirect.actuallyTaken, Mux(func === ALUOpType.idle, io.pc, Mux(isBranch || isJirl,
+                                                                        target, io.pc + io.offset)), io.pc + 4.U)
   io.redirect.actuallyTaken := brValid || func === ALUOpType.idle
   io.redirect.predictTaken := io.redirect_in.predictTaken
   io.redirect.predictTarget := io.redirect_in.predictTarget
