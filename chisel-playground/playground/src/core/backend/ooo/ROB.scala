@@ -248,6 +248,7 @@ class Rob extends Module {
   
   // 判断是否可以提交
   val canCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCsrRW = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasBr = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
@@ -269,7 +270,7 @@ class Rob extends Module {
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
-    hasBr(i) := canCommit(i) && robEntries(commitIdx).inst_valid && 
+    hasBr(i) := shouldCommit(i) && robEntries(commitIdx).inst_valid && 
                 robEntries(commitIdx).fuType === FuType.bru && ALUOpType.isBru(robEntries(commitIdx).optype) &&
                 !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
@@ -294,8 +295,6 @@ class Rob extends Module {
 
   // 提交逻辑
   // 生成提交信息
-
-  val shouldCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val csrWrite = hasCsrRW.reduce(_ || _)
   val csrWriteIdx = PriorityEncoder(hasCsrRW)
 
@@ -323,7 +322,8 @@ class Rob extends Module {
 
   val br = hasBr.reduce(_ || _)
   val brIdx = PriorityEncoder(hasBr)
-  io.brTrainInfo.brMisPred.valid := br
+  dontTouch(brIdx)
+  io.brTrainInfo.brMisPred.valid := br // && io.commitInstr(brIdx).valid
   io.brTrainInfo.brMisPred.bits := robEntries(head + brIdx).pc
   io.brTrainInfo.brMisPredTarget := robEntries(head + brIdx).brTarget
   io.brTrainInfo.brMisPredPC := robEntries(head + brIdx).pc
@@ -494,5 +494,37 @@ class Rob extends Module {
              (brMisPredCount * 100.U) / brInstCount)
       }
     }
+
+    // === Return‑branch performance counter =====================================
+    val retInstCount     = RegInit(1.U(32.W))   // 总的 return 指令数，初始化为 1 避免除 0
+    val retMisPredCount  = RegInit(1.U(32.W))   // 预测错误的 return 数
+    val retFoo           = RegInit(0.U(32.W))   // 打印节拍计数器
+
+    when (io.commitInstr.map(_.valid).reduce(_ || _)) {
+      // 1. 统计 return 指令的分支预测错误
+      //    条件：① 当周期有 misPred 发生；② 该指令标记为 return
+      retMisPredCount := retMisPredCount +
+        Mux(io.brMisPredInfo.brMisPred.valid && io.brMisPredInfo.isReturn, 1.U, 0.U)
+
+      // 2. 统计本周期提交的 return 指令条数
+      //    直接查看 ROB 中对应条目的 isReturn 标志
+      val commitRetCnt = (0 until RobConfig.ROB_CMT_NUM).map { i =>
+        val idx   = (head + i.U) % RobConfig.ROB_ENTRY_NUM.U
+        val valid = io.commitInstr(i).valid
+        val isRet = robEntries(idx).isReturn
+        Mux(valid && isRet, 1.U, 0.U)
+      }.reduce(_ +& _)
+
+      retInstCount := retInstCount + commitRetCnt
+
+      // 3. 每 500 个有提交的周期打印一次
+      retFoo := (retFoo + 1.U) % 500.U
+      when (retFoo === 0.U) {
+        printf("[ROB] Return misprediction rate: %d/%d = %d%%\n",
+          retMisPredCount, retInstCount,
+          (retMisPredCount * 100.U) / retInstCount)
+      }
+    }
+    // ============================================================================
   }
 }

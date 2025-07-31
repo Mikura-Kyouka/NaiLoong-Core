@@ -345,8 +345,8 @@ class BPU extends Module {
   for(i <- 0 until ISSUE_WIDTH) {
     btbHit(i) := Mux(btbValid(i), (btbTag(i) === pcNext(i)(31, BTB_INDEX_WIDTH + 2)), false.B)
     io.taken(i) := btbHit(i) && phtData(i)(1) // 1: taken
-    io.target(i) := btbData(i) // modified
-    // io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
+    // io.target(i) := btbData(i) // modified
+    io.target(i) := Mux(isReturn(i) && btbHit(i), ras(rasTop - 1.U), btbData(i)) // if isReturn, use ras top
 
   }
 
@@ -411,10 +411,10 @@ class BPU extends Module {
   }
 
   when(trainValid && trainTaken) {
-    when(trainIsCall) {                    // ★ push 永远在真正的 call commit 时做
+    when(trainIsCall) {                    
       rasPush(trainPc + 4.U)
       //printf(p"[RAS PUSH] ret=0x${Hexadecimal(trainPc + 4.U)} newTop=${rasTop}%d\n")
-    }.elsewhen(trainIsReturn) {            // ret commit 才 pop（比预测晚，但绝不会错）
+    }.elsewhen(trainIsReturn) {
       val popped = rasPop()
       //printf(p"[RAS POPC] tar=0x${Hexadecimal(popped)} newTop=${rasTop}%d\n")
     }
