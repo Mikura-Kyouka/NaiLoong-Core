@@ -230,9 +230,7 @@ class Rob extends Module {
                                           Mux(io.writeback(i).bits.redirect.actuallyTaken, 
                                               io.writeback(i).bits.redirect.actuallyTarget =/= io.writeback(i).bits.redirect.predictTarget,
                                               false.B))
-      robEntries(idx).brTarget     := Mux(io.writeback(i).bits.redirect.actuallyTaken, 
-                                          io.writeback(i).bits.redirect.actuallyTarget, 
-                                          io.writeback(i).bits.pc + 4.U)
+      robEntries(idx).brTarget     := io.writeback(i).bits.redirect.actuallyTarget
       robEntries(idx).brTaken      := io.writeback(i).bits.redirect.actuallyTaken
       robEntries(idx).result       := io.writeback(i).bits.writeData
       robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
@@ -475,7 +473,7 @@ class Rob extends Module {
   val flushEntry = robEntries(head +& minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
-                      flushEntry.pc + 4.U))
+                      flushEntry.brTarget))
 
   if(GenCtrl.USE_COUNT) {
     // Initialize to 1 to avoid division by zero

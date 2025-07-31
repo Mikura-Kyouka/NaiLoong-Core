@@ -56,7 +56,12 @@ class AlignedMDU extends Module{
   
   mdu.io.in.valid := io.in.valid
   mdu.io.out.ready := io.out.ready
-  io.out.bits.redirect := io.in.bits.redirect
+  io.out.bits.redirect.actuallyTaken := io.in.bits.redirect.actuallyTaken
+  io.out.bits.redirect.actuallyTarget := io.in.bits.pc + 4.U
+  io.out.bits.redirect.predictTaken := io.in.bits.redirect.predictTaken
+  io.out.bits.redirect.predictTarget := io.in.bits.redirect.predictTarget
+  io.out.bits.redirect.rtype := io.in.bits.redirect.rtype
+  io.out.bits.redirect.valid := io.in.bits.redirect.valid
   io.out.bits.timer64 := DontCare  // TODO
   io.out.bits.tlbInfo := DontCare
   io.out.bits.vaddr := DontCare

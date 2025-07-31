@@ -531,7 +531,12 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.data := Mux(LSUOpType.isSC(moq(writebackSelect).func), Mux(moq(writebackSelect).failsc, 0.U, 1.U), moq(writebackSelect).rdata) // if load rdata if write wdata
   io.out.bits.robIdx := moq(writebackSelect).robIdx
   io.out.bits.preg := moq(writebackSelect).preg
-  io.out.bits.redirect := moq(writebackSelect).redirect
+  io.out.bits.redirect.actuallyTaken := moq(writebackSelect).redirect.actuallyTaken
+  io.out.bits.redirect.actuallyTarget := moq(writebackSelect).pc + 4.U
+  io.out.bits.redirect.predictTaken := moq(writebackSelect).redirect.predictTaken
+  io.out.bits.redirect.predictTarget := moq(writebackSelect).redirect.predictTarget
+  io.out.bits.redirect.rtype := moq(writebackSelect).redirect.rtype
+  io.out.bits.redirect.valid := moq(writebackSelect).redirect.valid
   io.out.bits.exceptionVec := moq(writebackSelect).exceptionVec
   // io.out.bits.tlbInfo := moq(writebackSelect).robIdx
 
