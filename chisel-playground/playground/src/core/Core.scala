@@ -116,7 +116,7 @@ class Core extends Module {
 
   dontTouch(bpu.io)
 
-  val flush = rob.io.flush
+  val flush = rob.io.flush || RegNext(rob.io.flush)
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, flush)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.out.fire, flush)
@@ -146,10 +146,7 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
   Issue.io.out(3) <> Ex.io.in(3)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
-
-  // for(i <- 0 until 5) {
-  //   Dispatch.io.out(i) <> Issue.io.in(i)
-  // }
+  Issue.io.inst_cnt := Dispatch.io.inst_cnt
 
 
   val ifAXI = Wire(new AXI)
@@ -295,7 +292,7 @@ class Core extends Module {
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
 
   If.io.flush := flush
-  If.io.dnpc := rob.io.newPC
+  If.io.dnpc := RegNext(rob.io.newPC)
   If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)

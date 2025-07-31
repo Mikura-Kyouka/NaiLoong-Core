@@ -11,6 +11,8 @@ class IssueTop extends Module {
     val out = Vec(ISSUE_WIDTH, Decoupled(new PipelineConnectIO))
     val in_allReady = Output(Bool())
 
+    val inst_cnt = Vec(ISSUE_WIDTH, Input(UInt(3.W)))
+
     val fire = Vec(ISSUE_WIDTH, Output(Bool()))
     val rtrInstr = Flipped(Vec(RobConfig.ROB_CMT_NUM, Valid(new retire_inst_info)))
     val ex_bypass = Input(Vec(5, new bypass_info))
@@ -20,15 +22,19 @@ class IssueTop extends Module {
   val alu1rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
   val alu2rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
   val mdurs  = Module(new UnorderIssueQueue(check_dest = false, SIZE = MDU_QUEUE_SIZE, MAX_CNT = 4))
-  val lsurs  = Module(new OrderIssueQueue)
-  val brurs  = Module(new OrderIssueQueue)
+  val lsurs  = Module(new OrderIssueQueue(SIZE = 8, MAX_CNT = 4))
+  val brurs  = Module(new OrderIssueQueue(SIZE = 6, MAX_CNT = 4))
   alu1rs.io.in <> io.in(0)
   alu1rs.io_raw := DontCare
+  alu1rs.io.inst_cnt := io.inst_cnt(0)
   alu2rs.io.in <> io.in(1)
   alu2rs.io_raw.dest := io.out(0).bits.preg
+  alu2rs.io.inst_cnt := io.inst_cnt(1)
   mdurs.io.in  <> io.in(2)
   mdurs.io_raw.dest := DontCare
+  mdurs.io.inst_cnt := io.inst_cnt(2)
   lsurs.io.in  <> io.in(3)
+  lsurs.io.inst_cnt := io.inst_cnt(3)
   brurs.io.in  <> io.in(4)
   val all_ready = alu1rs.io.in.ready && alu2rs.io.in.ready && 
                   mdurs.io.in.ready && lsurs.io.in.ready && brurs.io.in.ready
@@ -37,6 +43,7 @@ class IssueTop extends Module {
   mdurs.io.allReady := all_ready
   lsurs.io.allReady := all_ready
   brurs.io.allReady := all_ready
+  brurs.io.inst_cnt := io.inst_cnt(4)
   io.fire(0) := alu1rs.io.out.fire
   io.fire(1) := alu2rs.io.out.fire
   io.fire(2) := mdurs.io.out.fire

@@ -12,6 +12,7 @@ class Dispatch extends Module {
     val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
     val out = Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info))
     val busy_info = Output(Vec(5, new busy_info))
+    val inst_cnt = Vec(ISSUE_WIDTH, Output(UInt(3.W)))
   })
 
   val dispatch_dest = WireInit(VecInit(Seq.fill(4)(0.U(3.W)))) // 3 bits for 5 FuType
@@ -111,6 +112,8 @@ class Dispatch extends Module {
       io.busy_info(4).valid := inst.preg =/= 0.U
     }
   }
+
+  io.inst_cnt := io.out.map(_.bits.inst_cnt)
 
   // // for busy reg
   // for (i <- 0 until 4) {

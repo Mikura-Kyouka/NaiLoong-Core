@@ -462,27 +462,41 @@ class CPUCSR extends Module {
     csr_era := io.exceptionInfo.exceptionPC + Mux(io.exceptionInfo.idle, 4.U, 0.U)
     csr_estat.ecode := io.exceptionInfo.cause
     csr_estat.esubcode := 0.U             // TODO: 异常子码
-    when(cause === 8.U) {
-      csr_badv := io.exceptionInfo.exceptionPC // 取指地址错
-      csr_estat.esubcode := 0.U
-    }
-    when(cause === 9.U) {
-      csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐
-    }
-    when(cause === 63.U) {                // TLB 重填
-      csr_crmd.da := 1.U
-      csr_crmd.pg := 0.U
-      csr_badv := io.exceptionInfo.exceptionVAddr
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    // load 操作页无效 store 操作页无效 页特权等级错 页修改
-    when(cause === 1.U || cause === 2.U || cause === 4.U || cause === 7.U) { 
-      csr_badv := io.exceptionInfo.exceptionVAddr 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
-    }
-    when(cause === 3.U) {                // 取指页无效
-      csr_badv := io.exceptionInfo.exceptionPC 
-      csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
+    
+    switch(cause) {
+      is(3.U) {
+        csr_badv := io.exceptionInfo.exceptionPC // 取指页无效
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
+      }
+      is(8.U) {
+        csr_badv := io.exceptionInfo.exceptionPC // 取指地址错
+        csr_estat.esubcode := 0.U
+      }
+      is(1.U) {
+        csr_badv := io.exceptionInfo.exceptionVAddr // load 操作页无效
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+      }
+      is(2.U) {
+        csr_badv := io.exceptionInfo.exceptionVAddr // store 操作页无效
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+      }
+      is(4.U) {
+        csr_badv := io.exceptionInfo.exceptionVAddr // 页特权等级错
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+      }
+      is(7.U) {
+        csr_badv := io.exceptionInfo.exceptionVAddr // 页修改
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+      }
+      is(9.U) {
+        csr_badv := io.exceptionInfo.exceptionVAddr // 地址非对齐
+      }
+      is(63.U) {                                    
+        csr_badv := io.exceptionInfo.exceptionVAddr // TLB 重填
+        csr_crmd.da := 1.U
+        csr_crmd.pg := 0.U
+        csr_tlbehi.vppn := io.exceptionInfo.exceptionVAddr(31, 13)
+      }
     }
   }
   io.exceptionInfo.exceptionNewPC := Mux(cause === 63.U, csr_tlbrentry.asUInt, csr_eentry.asUInt)
