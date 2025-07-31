@@ -21,8 +21,8 @@ class OrderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
 
   val mem = Reg(Vec(SIZE.toInt, new PipelineConnectIO))
   val valid_vec = RegInit(VecInit(Seq.fill(SIZE.toInt)(false.B)))
-  val write_ptr = RegInit(0.U(log2Ceil(SIZE).W))
-  val read_ptr = RegInit(0.U(log2Ceil(SIZE).W))
+  val write_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
+  val read_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
   val valid_count = RegInit(0.U((log2Ceil(SIZE.toInt) + 1).W))
   val enq_count = Wire(UInt(3.W))
   val deq_count = Mux(io.out.fire, 1.U, 0.U)

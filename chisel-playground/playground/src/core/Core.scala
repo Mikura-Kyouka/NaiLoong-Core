@@ -290,10 +290,6 @@ class Core extends Module {
   io.debug1_wb_rf_wen := If.io.debug1_wb_rf_wen
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
-
-  If.io.flush := flush
-  If.io.dnpc := RegNext(rob.io.newPC)
-  If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)
 
@@ -374,7 +370,19 @@ class Core extends Module {
   csr.io.hardIntrpt := io.intrpt
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
-  csr.io.exceptionInfo <> rob.io.exceptionInfo
+  // csr.io.exceptionInfo <> rob.io.exceptionInfo
+  csr.io.exceptionInfo.valid := RegNext(rob.io.exceptionInfo.valid)
+  csr.io.exceptionInfo.exceptionPC := RegNext(rob.io.exceptionInfo.exceptionPC)
+  csr.io.exceptionInfo.exceptionInst := RegNext(rob.io.exceptionInfo.exceptionInst)
+  csr.io.exceptionInfo.eret := RegNext(rob.io.exceptionInfo.eret)
+  csr.io.exceptionInfo.exceptionVec := RegNext(rob.io.exceptionInfo.exceptionVec)
+  csr.io.exceptionInfo.exceptionVAddr := RegNext(rob.io.exceptionInfo.exceptionVAddr)
+  csr.io.exceptionInfo.idle := RegNext(rob.io.exceptionInfo.idle)
+
+  rob.io.exceptionInfo.intrNo := csr.io.exceptionInfo.intrNo
+  rob.io.exceptionInfo.cause := csr.io.exceptionInfo.cause
+  rob.io.exceptionInfo.exceptionNewPC := csr.io.exceptionInfo.exceptionNewPC
+
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
   Ex.io.markIntrpt := csr.io.markIntrpt
@@ -399,6 +407,10 @@ class Core extends Module {
   mmu.io.out1.bits <> Ex.io.addr_trans_in
 
   rob.io.plv := csr.io.plv
+
+  If.io.flush := flush
+  If.io.dnpc := Mux(csr.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
+  If.io.pcSel := flush
 
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
