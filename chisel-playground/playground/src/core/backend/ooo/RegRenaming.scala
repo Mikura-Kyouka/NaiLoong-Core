@@ -534,6 +534,8 @@ class RegRenaming extends Module {
   //     }
   //   }
   // }
+  val debugPregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
+  dontTouch(debugPregUsing)
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
@@ -541,6 +543,10 @@ class RegRenaming extends Module {
       when(io.rob.commit(i).bits.preg.orR) {
         // pregUsing(io.rob.commit(i).bits.preg) := true.B
         arat(io.rob.commit(i).bits.dest).preg := io.rob.commit(i).bits.preg
+        debugPregUsing(io.rob.commit(i).bits.preg) := true.B
+      }
+      when(arat(io.rob.commit(i).bits.dest).preg.orR) {
+        debugPregUsing(arat(io.rob.commit(i).bits.dest).preg) := false.B
       }
     }
   }
@@ -555,8 +561,11 @@ class RegRenaming extends Module {
                                freeList.io.free(0).bits.orR
   freeList.io.free(0).bits := arat(commit(0).bits.dest).preg
   freeList.io.free(1).valid := commit(1).valid && commit(1).bits.inst_valid && 
-                               freeList.io.free(1).bits.orR && !(commit(0).bits.dest === commit(1).bits.dest)
-  freeList.io.free(1).bits := arat(commit(1).bits.dest).preg
+                               freeList.io.free(1).bits.orR
+  freeList.io.free(1).bits := Mux(commit(0).bits.dest === commit(1).bits.dest,
+                                  commit(0).bits.preg,
+                                  arat(commit(1).bits.dest).preg)
+
 
   // 分支预测错误/异常回滚
   when(io.flush && RegNext(io.flush)) {
