@@ -105,7 +105,7 @@ class Decoder extends Module {
     // 检查点ID赋值（这样能保证唯一性吗？）
     val seed = RegInit(UInt(16.W), 1234567.U)
     
-    when (io.out.bits.ctrl.fuType === FuType.bru) {
+    when (io.out.fire) {
         seed := seed + 1.U
     }
     io.out.bits.cf.runahead_checkpoint_id := seed
@@ -168,6 +168,10 @@ class IDU extends Module {
 //   val crossPageIPFFix = Output(Bool())
 //   val runahead_checkpoint_id = Output(UInt(64.W))
 //   val isBranch = Output(Bool())
+    val seed = RegInit(UInt(16.W), 1234567.U)
+    when (io.out.fire) {
+        seed := seed + 4.U
+    }
 
     decoder1.io.in.valid := io.in.valid
     decoder2.io.in.valid := io.in.valid
@@ -230,8 +234,8 @@ class IDU extends Module {
     io.out.bits(0).intrVec := decoder1.io.out.bits.cf.intrVec
     io.out.bits(0).brIdx := decoder1.io.out.bits.cf.brIdx
     io.out.bits(0).crossPageIPFFix := decoder1.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(0).checkpoint.id := decoder1.io.out.bits.cf.runahead_checkpoint_id
-    io.out.bits(0).checkpoint.needSave := decoder1.io.out.bits.ctrl.fuType === FuType.bru
+    io.out.bits(0).checkpoint.id := seed + 0.U
+    io.out.bits(0).checkpoint.needSave := true.B
     io.out.bits(0).isBranch := decoder1.io.out.bits.cf.isBranch
     io.out.bits(0).ctrl <> decoder1.io.out.bits.ctrl
     io.out.bits(0).src1 := decoder1.io.out.bits.data.src1
@@ -245,8 +249,8 @@ class IDU extends Module {
     io.out.bits(1).intrVec := decoder2.io.out.bits.cf.intrVec
     io.out.bits(1).brIdx := decoder2.io.out.bits.cf.brIdx
     io.out.bits(1).crossPageIPFFix := decoder2.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(1).checkpoint.id := decoder2.io.out.bits.cf.runahead_checkpoint_id
-    io.out.bits(1).checkpoint.needSave := decoder2.io.out.bits.ctrl.fuType === FuType.bru
+    io.out.bits(1).checkpoint.id := seed + 1.U
+    io.out.bits(1).checkpoint.needSave := true.B
     io.out.bits(1).isBranch := decoder2.io.out.bits.cf.isBranch
     io.out.bits(1).ctrl <> decoder2.io.out.bits.ctrl
     io.out.bits(1).src1 := decoder2.io.out.bits.data.src1
@@ -260,8 +264,8 @@ class IDU extends Module {
     io.out.bits(2).intrVec := decoder3.io.out.bits.cf.intrVec
     io.out.bits(2).brIdx := decoder3.io.out.bits.cf.brIdx
     io.out.bits(2).crossPageIPFFix := decoder3.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(2).checkpoint.id := decoder3.io.out.bits.cf.runahead_checkpoint_id
-    io.out.bits(2).checkpoint.needSave := decoder3.io.out.bits.ctrl.fuType === FuType.bru
+    io.out.bits(2).checkpoint.id := seed + 2.U
+    io.out.bits(2).checkpoint.needSave := true.B
     io.out.bits(2).isBranch := decoder3.io.out.bits.cf.isBranch
     io.out.bits(2).ctrl <> decoder3.io.out.bits.ctrl
     io.out.bits(2).src1 := decoder3.io.out.bits.data.src1
@@ -275,8 +279,8 @@ class IDU extends Module {
     io.out.bits(3).intrVec := decoder4.io.out.bits.cf.intrVec
     io.out.bits(3).brIdx := decoder4.io.out.bits.cf.brIdx
     io.out.bits(3).crossPageIPFFix := decoder4.io.out.bits.cf.crossPageIPFFix
-    io.out.bits(3).checkpoint.id := decoder4.io.out.bits.cf.runahead_checkpoint_id
-    io.out.bits(3).checkpoint.needSave := decoder4.io.out.bits.ctrl.fuType === FuType.bru
+    io.out.bits(3).checkpoint.id := seed + 3.U
+    io.out.bits(3).checkpoint.needSave := true.B
     io.out.bits(3).isBranch := decoder4.io.out.bits.cf.isBranch
     io.out.bits(3).ctrl <> decoder4.io.out.bits.ctrl
     io.out.bits(3).src1 := decoder4.io.out.bits.data.src1

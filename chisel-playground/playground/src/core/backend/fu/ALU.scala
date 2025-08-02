@@ -206,7 +206,7 @@ class FuOut extends Bundle {
   val pc     = Output(UInt(32.W))
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
-  val preg   = Output(UInt(6.W))
+  val preg   = Output(UInt(RegConfig.PHYS_REG_BITS.W))
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)
