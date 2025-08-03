@@ -318,6 +318,7 @@ class RegRenaming extends Module {
       }
 
       tail := (tail +& freeCount) % entries.size.U
+      //full := false.B
     }
 
     io.count := Mux(tail === head && !full, entries.size.U, 
@@ -536,6 +537,8 @@ class RegRenaming extends Module {
   // }
   val debugPregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
   dontTouch(debugPregUsing)
+  val debugCount = PopCount(debugPregUsing)
+  dontTouch(debugCount)
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
@@ -550,6 +553,7 @@ class RegRenaming extends Module {
       }
     }
   }
+  // assert(freeList.io.count === (RegConfig.PHYS_REG_NUM.U - debugCount))
 
   // 连接ROB回收接口
   // freeList.io.free.zip(io.rob.commit).foreach { case (free, commit) =>
@@ -557,14 +561,14 @@ class RegRenaming extends Module {
   //   free.bits  := arat(commit.bits.preg).preg
   // }
   val commit = io.rob.commit
-  freeList.io.free(0).valid := commit(0).valid && commit(0).bits.inst_valid && 
-                               freeList.io.free(0).bits.orR
+  freeList.io.free(0).valid := commit(0).valid && commit(0).bits.inst_valid && arat(commit(0).bits.dest).preg.orR
   freeList.io.free(0).bits := arat(commit(0).bits.dest).preg
-  freeList.io.free(1).valid := commit(1).valid && commit(1).bits.inst_valid && 
-                               freeList.io.free(1).bits.orR
-  freeList.io.free(1).bits := Mux(commit(0).bits.dest === commit(1).bits.dest,
-                                  commit(0).bits.preg,
+
+  freeList.io.free(1).valid := commit(1).valid && commit(1).bits.inst_valid && arat(commit(1).bits.dest).preg.orR
+  freeList.io.free(1).bits := Mux(commit(0).valid && commit(0).bits.dest === commit(1).bits.dest && commit(0).bits.inst_valid, 
+                                  commit(0).bits.preg, 
                                   arat(commit(1).bits.dest).preg)
+
 
 
   // 分支预测错误/异常回滚
