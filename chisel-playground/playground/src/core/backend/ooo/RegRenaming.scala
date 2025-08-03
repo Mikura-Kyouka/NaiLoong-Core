@@ -402,6 +402,10 @@ class RegRenaming extends Module {
 
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg && instValid
+    dontTouch(rfWen)
+    dontTouch(isZeroReg)
+    dontTouch(instValid)
+    dontTouch(needAlloc)
     freeList.io.allocReq(i).valid := needAlloc && io.in.valid && io.out.ready
     freeList.io.allocReq(i).bits := DontCare
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.fire
@@ -585,6 +589,7 @@ class RegRenaming extends Module {
     freeList.io.rollback.valid := true.B
 
     // pregUsing := pregUsingCheckpoint(checkpoint_id)
+    rat := arat
   }.otherwise {
     freeList.io.rollback.bits := DontCare
     freeList.io.rollback.valid := false.B
