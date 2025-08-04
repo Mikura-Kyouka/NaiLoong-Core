@@ -84,7 +84,7 @@ class Arb extends Module {
   io.out.awlen := 0.U
   io.out.awsize := "b010".U // 32 bits
   io.out.awburst := "b01".U
-  io.out.wlast := true.B
+  io.out.wlast := io.lsu.wlast
 
   io.ifu.arready := 0.U
   io.ifu.rvalid := 0.U
@@ -169,6 +169,7 @@ class Arb extends Module {
     io.lsu.bvalid := io.out.bvalid
     io.lsu.bresp := io.out.bresp
     io.lsu.bid := io.out.bid
+    // io.lsu.wlast := io.out.wlast
   }.otherwise {
     io.out.araddr := 0.U
     io.out.arvalid := false.B

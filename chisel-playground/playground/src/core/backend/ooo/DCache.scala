@@ -189,6 +189,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       flushed := true.B
     }
 
+    val wburst = RegInit(0.U(WordIndexBits.W))
+
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
     // !hit -> find one line -> dirty? --yes--> write this dirty cacheline to mem -> read from mem to cache -> read/write cache
@@ -204,7 +206,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                             // Mux(req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(cacopOp2, s_idle, s_read_mem1))),  // 不命中，写，先驱逐脏数据；读，直接读
                             Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, Mux(req.cmd && req.size === "b10".U, s_write_cache, s_read_mem1)))), //
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
+        s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux((io.axi.rvalid && io.axi.rlast), Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
@@ -237,10 +239,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // }
 
     // val offset = req.addr(1, 0) << 3
-    val cacheData = dataReadData(0).asUInt
+    // val wburst = RegInit(0.U(WordIndexBits.W))
+    val cacheData = dataReadData(0)(wburst).asUInt
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := Cat(addr.asUInt(31, OffsetBits), 0.U(OffsetBits.W))// 32 bits address
+    io.axi.araddr := Mux(isMMIO, req.addr, Cat(addr.asUInt(31, OffsetBits), 0.U(OffsetBits.W)))// 32 bits address
     io.axi.arid := 1.U(4.W)
     io.axi.arlen := Mux(isMMIO, 0.U, (LineBeats - 1).asUInt) // Burst_Length = AxLEN[7:0] + 1
     io.axi.arsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U)
@@ -255,6 +258,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     io.axi.awsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U) // 32 bits
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
+    io.axi.wlast := isMMIO
     io.axi.wid := 1.U(4.W)
     io.axi.wstrb := Mux(isMMIO, req.wmask, "b1111".U) 
     io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
@@ -288,6 +292,19 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaValidArray.io.dina := true.B
       // dirty
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+    }
+
+    // io.axi.wlast := false.B
+    when(io.axi.wready && io.axi.wvalid && state === s_write_mem2 && !isMMIO) {
+      wburst := wburst + 1.U
+    }
+
+    when(wburst === 3.U) {
+      io.axi.wlast := true.B
+    }
+
+    when(io.axi.bvalid) {
+      wburst := 0.U
     }
 
     // 读取当前字
@@ -326,7 +343,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := cacheData // 直接返回cache中的数据
+      resp.rdata := dataReadData(0)(addr.WordIndex) // 直接返回cache中的数据
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
