@@ -8,7 +8,7 @@ import os.makeDir.all
 
 object RegConfig {
   val ARCH_REG_NUM = 32
-  val PHYS_REG_NUM = 48
+  val PHYS_REG_NUM = 64
   val PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM) + 1
   val CHECKPOINT_DEPTH = 48
   val CHECKPOINT_BITS = log2Ceil(CHECKPOINT_DEPTH)
