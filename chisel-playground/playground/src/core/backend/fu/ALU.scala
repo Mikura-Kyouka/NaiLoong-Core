@@ -73,7 +73,7 @@ object cpucfg {
 
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     2.U( 7.W),   // Linesize-log2 [30: 24]
-                   12.U( 8.W),   // Index-log2    [23: 16]
+                   13.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word19 = Cat( 0.U( 1.W),   // not used      [31: 31]
@@ -170,8 +170,8 @@ class ALU extends Module {
   val brValid = (taken || !isBranch) && isBru
   val isJirl = ALUOpType.getBranchType(func) === ALUOpType.getBranchType(ALUOpType.jirl)
   dontTouch(isJirl)
-  io.redirect.actuallyTarget := Mux(func === ALUOpType.idle, io.pc, Mux(isBranch || isJirl,
-                                                                        target, io.pc + io.offset))
+  io.redirect.actuallyTarget := Mux(io.redirect.actuallyTaken, Mux(func === ALUOpType.idle, io.pc, Mux(isBranch || isJirl,
+                                                                        target, io.pc + io.offset)), io.pc + 4.U)
   io.redirect.actuallyTaken := brValid || func === ALUOpType.idle
   io.redirect.predictTaken := io.redirect_in.predictTaken
   io.redirect.predictTarget := io.redirect_in.predictTarget
@@ -206,7 +206,7 @@ class FuOut extends Bundle {
   val pc     = Output(UInt(32.W))
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
-  val preg   = Output(UInt(6.W))
+  val preg   = Output(UInt(RegConfig.PHYS_REG_BITS.W))
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)

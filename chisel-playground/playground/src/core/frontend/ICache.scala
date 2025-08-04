@@ -373,10 +373,24 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     val cacheDataVec = Output(Vec(LineBeats, UInt(32.W)))
     val inFire = Input(Bool())
   })
-  val addr = io.in.bits.addr
-  val wordIndex = io.in.bits.wordIndex
-  val index = io.in.bits.index 
-  val tag = io.in.bits.tag
+  //    00          01           10           
+  val s_idle :: s_fetching :: s_wait_data :: s_valid :: s_judge :: Nil = Enum(5)
+  val state = RegInit(s_idle)
+
+  val bitsReg = RegEnable(io.in.bits, io.in.valid)
+  val bits = Mux(io.in.valid, io.in.bits, bitsReg)
+
+  val HIT = io.metaArrayTag === bits.tag && io.metaArrayValid && io.in.valid
+  dontTouch(HIT)
+  val hitEn = RegNext(io.inFire)
+  val hitReg = RegEnable(HIT, hitEn) // RegEnable(nextValue, enable)
+  val hit = HIT || (hitReg && ~hitEn)
+  dontTouch(hit)
+  
+  val addr = bits.addr
+  val wordIndex = bits.wordIndex
+  val index = bits.index 
+  val tag = bits.tag
 
   io.axi := DontCare
   // val dataArray = SyncReadMem(Sets, Vec(Ways, Vec(LineBeats, UInt(32.W))))
@@ -387,18 +401,6 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dataArray.io.addra := index
   dataArray.io.dina := DontCare
   dataArray.io.addrb := index
-
-  val HIT = io.metaArrayTag === io.in.bits.tag && io.metaArrayValid && io.in.valid
-  dontTouch(HIT)
-  val hitEn = RegNext(io.inFire)
-  val hitReg = RegEnable(HIT, hitEn) // RegEnable(nextValue, enable)
-  val hit = HIT || (hitReg && ~hitEn)
-  dontTouch(hit)
-
-  io.out.bits.hit := hit
-  io.out.bits.wordIndex := wordIndex
-  io.out.bits.brPredictTaken := io.in.bits.brPredictTaken
-  io.out.bits.pc := io.in.bits.pc
 
   val cacheData = Wire(Vec(LineBeats, UInt(32.W)))
   cacheData := dataArray.io.doutb.asTypeOf(Vec(LineBeats, UInt(32.W)))
@@ -412,11 +414,8 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits.wordIndex := wordIndex
 
   // miss access
-  //    00          01           10           
-  val s_idle :: s_fetching :: s_wait_data :: s_valid :: s_judge :: Nil = Enum(5)
-  val state = RegInit(s_idle)
   val refetchLatch = RegInit(false.B)
-  when(io.flush && (state =/= s_idle || !hit || io.in.bits.mat === 0.U)) { refetchLatch := true.B }
+  when(io.flush && (state =/= s_idle && state =/= s_valid || (!hit || io.in.bits.mat === 0.U) && io.in.valid)) { refetchLatch := true.B }
   when(io.axi.rlast && io.axi.rvalid) {refetchLatch := false.B}
   val refetch = io.flush || refetchLatch
 
@@ -435,6 +434,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   if (GenCtrl.USE_COUNT) {
     val hitCount = RegInit(0.U(32.W))
     val accessCount = RegInit(1.U(32.W))
+    val foo = RegInit(0.U(32.W))
     dontTouch(hitCount)
     dontTouch(accessCount)
     when(hitEn) { 
@@ -443,7 +443,10 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
         hitCount := hitCount + 1.U
       }
       accessCount := accessCount + 1.U
-      printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
+      foo := (foo + 1.U) % 500.U
+      when(foo === 0.U) {
+        printf("[ICache] Hit Rate: %d / %d = %d %%\n", hitCount, accessCount, hitCount * 100.U / accessCount)
+      }
     }
   }
 
@@ -496,16 +499,20 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     io.out.bits.rdata := cacheData
   }
 
-  io.out.bits.addr := io.in.bits.addr
-  io.out.bits.isCACOP := io.in.bits.isCACOP
-  io.out.bits.cacopOp := io.in.bits.cacopOp
-  io.out.bits.mat := io.in.bits.mat
-  io.out.bits.excp := io.in.bits.excp
-  io.out.bits.ecode := io.in.bits.ecode
-  io.out.valid := ((hit && io.in.bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || 
+  io.out.bits.hit := hit
+  io.out.bits.wordIndex := wordIndex
+  io.out.bits.brPredictTaken := bits.brPredictTaken
+  io.out.bits.pc := bits.pc
+  io.out.bits.addr := bits.addr
+  io.out.bits.isCACOP := bits.isCACOP
+  io.out.bits.cacopOp := bits.cacopOp
+  io.out.bits.mat := bits.mat
+  io.out.bits.excp := bits.excp
+  io.out.bits.ecode := bits.ecode
+  io.out.valid := ((hit && bits.mat === 1.U && state === s_idle && (!io.flush && io.in.valid)) || 
                    (state === s_valid && !refetch) ||
-                   (state ===s_idle && io.in.bits.excp && (!io.flush && io.in.valid)))
-  io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || ((io.axi.rlast && io.axi.rvalid) && state === s_wait_data))
+                   (state === s_idle && io.in.bits.excp && (!io.flush && io.in.valid)))
+  io.in.ready := (!io.in.valid || io.out.fire) && (state === s_idle || state === s_valid) && io.out.ready
 }
 
 class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
@@ -568,8 +575,20 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   io.out.bits(3).Valid := ValidVec(3)
   io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 
-  io.in.ready := !io.in.valid || io.out.fire
-  io.out.valid := io.in.valid && !io.flush
+  val flagReg = RegInit(flag)
+
+  when(io.out.fire) {
+    flagReg := false.B 
+  }
+  when(flag) {
+    flagReg := true.B 
+  }
+  when(io.flush) {
+    flagReg := false.B 
+  }
+
+  io.in.ready := io.out.ready
+  io.out.valid := io.in.valid && !io.flush && (flag || flagReg)
 
   for(i <- 0 until 4) {
     io.out.bits(i).excp.en := io.in.bits.excp

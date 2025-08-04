@@ -9,7 +9,7 @@ import core.FuType.lsu
 import core.LSUOpType.isStore
 
 object RobConfig {
-  val ROB_ENTRY_NUM = 64
+  val ROB_ENTRY_NUM = 32
   val ROB_INDEX_WIDTH = log2Ceil(ROB_ENTRY_NUM)
   val ROB_WRITEBACK_NUM = 5
   val ROB_CMT_NUM = 2
@@ -33,6 +33,8 @@ class RobEntry extends Bundle {
   val brMispredict = Bool()
   val brTaken    = Bool()
   val brTarget   = UInt(32.W)
+  val isCall     = Bool()
+  val isReturn   = Bool()
   val fuType     = UInt(3.W)
   val result     = UInt(32.W) //FIXME
   val checkpoint = new Bundle {
@@ -91,6 +93,7 @@ class rtrBundle extends Bundle {
   val pc   = UInt(32.W)
   val dest = UInt(5.W)
   val preg = UInt(RegConfig.PHYS_REG_BITS.W)
+  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val data = UInt(32.W)
   val inst_valid = Bool()
   val use_preg = Bool()
@@ -109,6 +112,8 @@ class BrMisPredInfo extends Bundle {
   val brMisPredTarget = UInt(32.W)               // 分支预测错误目标地址
   // val brMisPredChkpt = UInt(RegConfig.CHECKPOINT_DEPTH.W) // 分支预测错误检查点ID
   val brMisPredPC = UInt(32.W)
+  val isCall = Bool()
+  val isReturn = Bool()
 }
 
 class LSCommitInfo extends Bundle {
@@ -144,6 +149,8 @@ class RobIO extends Bundle {
   // 分支预测错误接口
   val brMisPredInfo = Output(new BrMisPredInfo)
 
+  val brTrainInfo = Output(new BrMisPredInfo)
+
   // 异常接口
   val exceptionInfo = Flipped(new csr_excp_bundle)
 
@@ -154,6 +161,7 @@ class RobIO extends Bundle {
 
   val flush = Output(Bool())
   val newPC = Output(UInt(32.W))
+  val rollbackChkpt = Output(UInt(RegConfig.CHECKPOINT_DEPTH.W)) // 回滚检查点ID
   
   // FIXME
   // val cdb = Vec(5, Flipped(Valid(new OOCommitIO)))
@@ -197,14 +205,14 @@ class Rob extends Module {
 
     for (j <- 0 until 4) {
       when (instValid(j) && (prefixSum(j) < io.allocate.allocCount)) {
-        val allocIdx = ((tail + prefixSum(j)) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
+        val allocIdx = (tail + prefixSum(j))
         io.allocate.allocResp(j) := allocIdx
         robEntries(allocIdx) := io.allocate.allocEntries(j)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
       }
     }
-    tail := (tail + io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
+    tail := tail + io.allocate.allocCount
   }
   
   // 指令完成逻辑
@@ -224,9 +232,7 @@ class Rob extends Module {
                                           Mux(io.writeback(i).bits.redirect.actuallyTaken, 
                                               io.writeback(i).bits.redirect.actuallyTarget =/= io.writeback(i).bits.redirect.predictTarget,
                                               false.B))
-      robEntries(idx).brTarget     := Mux(io.writeback(i).bits.redirect.actuallyTaken, 
-                                          io.writeback(i).bits.redirect.actuallyTarget, 
-                                          io.writeback(i).bits.pc + 4.U)
+      robEntries(idx).brTarget     := io.writeback(i).bits.redirect.actuallyTarget
       robEntries(idx).brTaken      := io.writeback(i).bits.redirect.actuallyTaken
       robEntries(idx).result       := io.writeback(i).bits.writeData
       robEntries(idx).csrNewData   := io.writeback(i).bits.csrNewData
@@ -246,11 +252,13 @@ class Rob extends Module {
   val canCommit = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasCsrRW = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasBrMispred = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
+  val hasBr = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasException = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    val commitIdx = ((head + i.U) % RobConfig.ROB_ENTRY_NUM.U)(5, 0)
+    val commitIdx = (head + i.U)
+    dontTouch(commitIdx)
     if (i == 0) {
       val preshouldCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
@@ -264,6 +272,9 @@ class Rob extends Module {
     hasException(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid && 
                        canCommit(i) && (robEntries(commitIdx).exception || robEntries(commitIdx).eret)
     hasBrMispred(i) := canCommit(i) && robEntries(commitIdx).inst_valid && robEntries(commitIdx).brMispredict && !hasException(i)
+    hasBr(i) := canCommit(i) && robEntries(commitIdx).inst_valid && 
+                robEntries(commitIdx).fuType === FuType.bru && ALUOpType.isBru(robEntries(commitIdx).optype) &&
+                !hasException(i)
     hasStore(i) := robEntries(commitIdx).inst_valid && robEntries(commitIdx).isStore &&
                     !hasException(i)
     hasTlb(i) := robEntries(commitIdx).valid && robEntries(commitIdx).inst_valid &&      // FIXME: cacop as tlb operation
@@ -272,7 +283,7 @@ class Rob extends Module {
                   canCommit(i) && !hasException(i)
   }
 
-  val store_entry = robEntries(head +& PriorityEncoder(hasStore))
+  val store_entry = robEntries(head + PriorityEncoder(hasStore))
 
   // 判断在环形缓冲区中idx是否在start之后且在end之前
   def isAfter(idx: UInt, start: UInt, end: UInt): Bool = {
@@ -304,14 +315,27 @@ class Rob extends Module {
   val minIdx = Wire(UInt(2.W))
 
   io.brMisPredInfo.brMisPred.valid := brMisPred
-  io.brMisPredInfo.brMisPred.bits := robEntries(head + brMisPredIdx).pc
-  io.brMisPredInfo.brMisPredTarget := robEntries(head + brMisPredIdx).brTarget
+  io.brMisPredInfo.brMisPred.bits := robEntries((head + brMisPredIdx)).pc
+  io.brMisPredInfo.brMisPredTarget := robEntries((head + brMisPredIdx)).brTarget
   // io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
-  io.brMisPredInfo.brMisPredPC := robEntries(head + brMisPredIdx).pc
-  io.brMisPredInfo.actuallyTaken := robEntries(head + brMisPredIdx).brTaken
+  io.brMisPredInfo.brMisPredPC := robEntries((head + brMisPredIdx)).pc
+  io.brMisPredInfo.actuallyTaken := robEntries((head + brMisPredIdx)).brTaken
+  io.brMisPredInfo.isCall := robEntries((head + brMisPredIdx)).isCall
+  io.brMisPredInfo.isReturn := robEntries((head + brMisPredIdx)).isReturn
+
+
+  val br = hasBr.reduce(_ || _)
+  val brIdx = PriorityEncoder(hasBr)
+  io.brTrainInfo.brMisPred.valid := br
+  io.brTrainInfo.brMisPred.bits := robEntries(head + brIdx).pc
+  io.brTrainInfo.brMisPredTarget := robEntries(head + brIdx).brTarget
+  io.brTrainInfo.brMisPredPC := robEntries(head + brIdx).pc
+  io.brTrainInfo.actuallyTaken := robEntries(head + brIdx).brTaken
+  io.brTrainInfo.isCall := robEntries(head + brIdx).isCall
+  io.brTrainInfo.isReturn := robEntries(head + brIdx).isReturn
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
+    val commitIdx = head + i.U
     val entry = robEntries(commitIdx)
     
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
@@ -348,6 +372,7 @@ class Rob extends Module {
     io.commit.commit(i).bits.pc   := entry.pc
     io.commit.commit(i).bits.dest := entry.rd
     io.commit.commit(i).bits.preg := entry.preg
+    io.commit.commit(i).bits.old_preg := entry.old_preg
     io.commit.commit(i).bits.data := entry.result
     io.commit.commit(i).bits.inst_valid := entry.inst_valid
     io.commit.commit(i).bits.use_preg := entry.use_preg
@@ -437,7 +462,7 @@ class Rob extends Module {
 
   when ((exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)) {
     // 回滚ROB尾指针
-    val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    val rollbackTail = (head + minIdx + 1.U)
     tail := rollbackTail
     // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
@@ -449,8 +474,30 @@ class Rob extends Module {
   }
 
   io.flush := (exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)
-  val flushEntry = robEntries(head +& minIdx)
+  val flushEntry = robEntries(head + minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 
-                      flushEntry.pc + 4.U))
+                      flushEntry.brTarget))
+  io.rollbackChkpt := flushEntry.checkpoint.id
+
+  if(GenCtrl.USE_COUNT) {
+    // Initialize to 1 to avoid division by zero
+    val brInstCount = RegInit(1.U(32.W))
+    val brMisPredCount = RegInit(1.U(32.W))
+    val foo = RegInit(0.U(32.W))
+
+    when(io.commitInstr.map(_.valid).reduce(_ || _)) {
+      brMisPredCount := brMisPredCount + Mux(io.brMisPredInfo.brMisPred.valid, 1.U, 0.U)
+
+      brInstCount := brInstCount + io.commitInstr.zip(hasBr).map { case (instr, br) => 
+        Mux(instr.valid && br, 1.U, 0.U) 
+      }.reduce(_ +& _)
+      
+      foo := (foo + 1.U) % 500.U
+      when(foo === 0.U) {
+        printf("[ROB] Average BR misprediction rate: %d/%d = %d%%\n", brMisPredCount, brInstCount, 
+             (brMisPredCount * 100.U) / brInstCount)
+      }
+    }
+  }
 }

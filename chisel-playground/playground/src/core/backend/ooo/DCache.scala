@@ -352,9 +352,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     }
 
     when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
-      metaArray.io.wea := true.B
-      metaArray.io.addra := addr.index
-      metaArray.io.dina := 0.U
+      // valid
+      metaValidArray.io.wea := true.B
+      metaValidArray.io.addra := addr.index
+      metaValidArray.io.dina := 0.U
+      // dirty
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
     }
 
@@ -376,10 +378,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
       val delayCounter = RegInit(0.U(64.W))
       val lsCounter = RegInit(1.U(32.W))
+      val foo = RegInit(0.U(32.W))
 
       when(io.resp.fire) {
         lsCounter := lsCounter + 1.U
-        printf("[LSU] Average LSU delay: %d cycles\n", delayCounter / lsCounter)
+        foo := (foo + 1.U) % 100.U
+        when(foo === 0.U) {
+          printf("[DCache] Average DCache delay: %d cycles\n", delayCounter / lsCounter)
+        }
       }.elsewhen(counting) {
         delayCounter := delayCounter + 1.U
       }

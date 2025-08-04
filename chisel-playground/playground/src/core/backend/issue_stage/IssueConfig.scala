@@ -9,5 +9,5 @@ object IssueConfig {
   def UNORDER_QUEUE_SIZE = 4
   def MDU_QUEUE_SIZE = 6
   def QUEUE_SIZE = 8
-  def PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM)
+  def PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM) + 1
 }

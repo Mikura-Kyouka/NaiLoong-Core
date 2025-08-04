@@ -2,42 +2,39 @@ package core
 import chisel3._
 import IssueConfig._
 
-class OrderIssueQueue extends Module {
+class OrderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info))
     val out = Decoupled(Output(new PipelineConnectIO))
+    val inst_cnt = Input(UInt(3.W))
+    val allReady = Input(Bool())
     // val from_ready = Output(Bool()) io.in.ready
     // val from_valid = Input(Bool()) io.in.valid
     // val to_valid = Output(Bool()) io.out.valid
     // val to_ready = Input(Bool()) io.out.ready
 
-    val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
+    val busyreg = Input(Vec(PHYS_REG_NUM + 1, Bool()))
     val pram_read = Flipped(new payloadram_read_info)
     val flush = Input(Bool())
   })
 
-  val mem = Reg(Vec(QUEUE_SIZE.toInt, new PipelineConnectIO))
-  val valid_vec = RegInit(VecInit(Seq.fill(QUEUE_SIZE.toInt)(false.B)))
-  val write_ptr = RegInit(0.U(log2Ceil(QUEUE_SIZE).W))
-  val read_ptr = RegInit(0.U(log2Ceil(QUEUE_SIZE).W))
-  val valid_count = RegInit(0.U((log2Ceil(QUEUE_SIZE.toInt) + 1).W))
+  val mem = Reg(Vec(SIZE.toInt, new PipelineConnectIO))
+  val valid_vec = RegInit(VecInit(Seq.fill(SIZE.toInt)(false.B)))
+  val write_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
+  val read_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
+  val valid_count = RegInit(0.U((log2Ceil(SIZE.toInt) + 1).W))
   val enq_count = Wire(UInt(3.W))
   val deq_count = Mux(io.out.fire, 1.U, 0.U)
 
   // FIXME: ???
-  // val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) >= io.in.bits.inst_cnt
-  val can_accept = Mux(write_ptr >= read_ptr, QUEUE_SIZE.U - (write_ptr - read_ptr), read_ptr - write_ptr) - enq_count + deq_count >= 4.U
-  // io.in.ready := can_accept && valid_count <= 4.U
+  val inFire = io.in.valid && io.allReady
   val valid_count_wire = PopCount(valid_vec)
-  val next_count = valid_count_wire + enq_count - deq_count
-  io.in.ready := next_count <= (QUEUE_SIZE - 4).U
+  val next_count = valid_count_wire +& Mux(inFire, enq_count, 0.U) - deq_count
+  io.in.ready := RegNext(next_count) + io.inst_cnt <= (SIZE).U
   dontTouch(next_count)
   
-  enq_count := 0.U
-  when(io.in.valid) {
-    enq_count := io.in.bits.inst_cnt
-  }
+  enq_count := io.in.bits.inst_cnt
   // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
   valid_count := PopCount(valid_vec)
 
@@ -66,49 +63,49 @@ class OrderIssueQueue extends Module {
   io.out.valid := can_issue
   when(io.out.fire) {  // 发生握手才读出
     valid_vec(read_ptr) := false.B
-    read_ptr := read_ptr + 1.U
+    read_ptr := (read_ptr + 1.U) % SIZE.U
   }
 
   // write
   switch(io.in.bits.inst_cnt) {
     is(1.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
-        write_ptr := write_ptr + 1.U
+        write_ptr := (write_ptr + 1.U) % SIZE.U
       }
     }
     is(2.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
-        mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
-        valid_vec(write_ptr + 1.U) := true.B
-        write_ptr := write_ptr + 2.U
+        mem((write_ptr + 1.U) % SIZE.U) := io.in.bits.inst_vec(1)
+        valid_vec((write_ptr + 1.U) % SIZE.U) := true.B
+        write_ptr := (write_ptr + 2.U) % SIZE.U
       }
     }
     is(3.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
-        mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
-        valid_vec(write_ptr + 1.U) := true.B
-        mem(write_ptr + 2.U) := io.in.bits.inst_vec(2)
-        valid_vec(write_ptr + 2.U) := true.B
-        write_ptr := write_ptr + 3.U
+        mem((write_ptr + 1.U) % SIZE.U) := io.in.bits.inst_vec(1)
+        valid_vec((write_ptr + 1.U) % SIZE.U) := true.B
+        mem((write_ptr + 2.U) % SIZE.U) := io.in.bits.inst_vec(2)
+        valid_vec((write_ptr + 2.U) % SIZE.U) := true.B
+        write_ptr := (write_ptr + 3.U) % SIZE.U
       }
     }
     is(4.U) {
-      when(io.in.valid) {
+      when(inFire) {
         mem(write_ptr) := io.in.bits.inst_vec(0)
         valid_vec(write_ptr) := true.B
-        mem(write_ptr + 1.U) := io.in.bits.inst_vec(1)
-        valid_vec(write_ptr + 1.U) := true.B
-        mem(write_ptr + 2.U) := io.in.bits.inst_vec(2)
-        valid_vec(write_ptr + 2.U) := true.B
-        mem(write_ptr + 3.U) := io.in.bits.inst_vec(3)
-        valid_vec(write_ptr + 3.U) := true.B
-        write_ptr := write_ptr + 4.U
+        mem((write_ptr + 1.U) % SIZE.U) := io.in.bits.inst_vec(1)
+        valid_vec((write_ptr + 1.U) % SIZE.U) := true.B
+        mem((write_ptr + 2.U) % SIZE.U) := io.in.bits.inst_vec(2)
+        valid_vec((write_ptr + 2.U) % SIZE.U) := true.B
+        mem((write_ptr + 3.U) % SIZE.U) := io.in.bits.inst_vec(3)
+        valid_vec((write_ptr + 3.U) % SIZE.U) := true.B
+        write_ptr := (write_ptr + 4.U) % SIZE.U
       }
     }
   }
@@ -117,7 +114,7 @@ class OrderIssueQueue extends Module {
   when(io.flush) {
     write_ptr := 0.U
     read_ptr := 0.U
-    for (i <- 0 until QUEUE_SIZE.toInt) {
+    for (i <- 0 until SIZE.toInt) {
       valid_vec(i) := false.B
     }
   }

@@ -106,33 +106,47 @@ class Core extends Module {
   If.io.BrPredictTaken(3).predictTaken := bpu.io.taken(3) && offset <= 3.U
   If.io.BrPredictTaken(3).predictTarget := bpu.io.target(3)
 
-  val pipedBrMisPredInfo = RegNext(rob.io.brMisPredInfo)
-  bpu.io.train.pc := pipedBrMisPredInfo.brMisPredPC
-  bpu.io.train.target := pipedBrMisPredInfo.brMisPredTarget
-  bpu.io.train.taken := pipedBrMisPredInfo.actuallyTaken
-  bpu.io.train.valid := pipedBrMisPredInfo.brMisPred.valid
+  val pipedBrTrainInfo = RegNext(rob.io.brTrainInfo)
+  bpu.io.train.pc := pipedBrTrainInfo.brMisPredPC
+  bpu.io.train.target := pipedBrTrainInfo.brMisPredTarget
+  bpu.io.train.taken := pipedBrTrainInfo.actuallyTaken
+  bpu.io.train.valid := pipedBrTrainInfo.brMisPred.valid
+  bpu.io.train.isCall := pipedBrTrainInfo.isCall
+  bpu.io.train.isReturn := pipedBrTrainInfo.isReturn
 
   dontTouch(bpu.io)
 
-  val flush = rob.io.flush
+  val flush = rob.io.flush || RegNext(rob.io.flush)
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, flush)
-  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.out.fire, flush)
+  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, flush)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), flush)
-  PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
-  PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)
-  PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
-  PipelineConnect2(Dispatch.io.out(3), Issue.io.in(3), Issue.io.out(3).fire, flush)
-  PipelineConnect2(Dispatch.io.out(4), Issue.io.in(4), Issue.io.out(4).fire, flush)
+  // PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
+  // PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)
+  // PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
+  // PipelineConnect2(Dispatch.io.out(3), Issue.io.in(3), Issue.io.out(3).fire, flush)
+  // PipelineConnect2(Dispatch.io.out(4), Issue.io.in(4), Issue.io.out(4).fire, flush)
+  Issue.io.in(0).bits := Dispatch.io.out(0).bits
+  Issue.io.in(1).bits := Dispatch.io.out(1).bits
+  Issue.io.in(2).bits := Dispatch.io.out(2).bits
+  Issue.io.in(3).bits := Dispatch.io.out(3).bits
+  Issue.io.in(4).bits := Dispatch.io.out(4).bits
+  Issue.io.in(0).valid := Dispatch.io.out(0).valid
+  Issue.io.in(1).valid := Dispatch.io.out(1).valid
+  Issue.io.in(2).valid := Dispatch.io.out(2).valid
+  Issue.io.in(3).valid := Dispatch.io.out(3).valid
+  Issue.io.in(4).valid := Dispatch.io.out(4).valid
+  Dispatch.io.out(0).ready := Issue.io.in_allReady
+  Dispatch.io.out(1).ready := Issue.io.in_allReady
+  Dispatch.io.out(2).ready := Issue.io.in_allReady
+  Dispatch.io.out(3).ready := Issue.io.in_allReady
+  Dispatch.io.out(4).ready := Issue.io.in_allReady
   PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.out(0).fire, flush)
   PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.out(1).fire, flush)
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
   Issue.io.out(3) <> Ex.io.in(3)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
-
-  // for(i <- 0 until 5) {
-  //   Dispatch.io.out(i) <> Issue.io.in(i)
-  // }
+  Issue.io.inst_cnt := Dispatch.io.inst_cnt
 
 
   val ifAXI = Wire(new AXI)
@@ -276,10 +290,6 @@ class Core extends Module {
   io.debug1_wb_rf_wen := If.io.debug1_wb_rf_wen
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
-
-  If.io.flush := flush
-  If.io.dnpc := rob.io.newPC
-  If.io.pcSel := flush
   
   dontTouch(Rn.io.robAllocate)
 
@@ -343,6 +353,7 @@ class Core extends Module {
 
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
+  // Rn.io.rollbackChkpt := rob.io.rollbackChkpt
 
   // lsu <=> rob
   Ex.io.scommit := rob.io.scommit
@@ -360,7 +371,19 @@ class Core extends Module {
   csr.io.hardIntrpt := io.intrpt
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
-  csr.io.exceptionInfo <> rob.io.exceptionInfo
+  // csr.io.exceptionInfo <> rob.io.exceptionInfo
+  csr.io.exceptionInfo.valid := RegNext(rob.io.exceptionInfo.valid)
+  csr.io.exceptionInfo.exceptionPC := RegNext(rob.io.exceptionInfo.exceptionPC)
+  csr.io.exceptionInfo.exceptionInst := RegNext(rob.io.exceptionInfo.exceptionInst)
+  csr.io.exceptionInfo.eret := RegNext(rob.io.exceptionInfo.eret)
+  csr.io.exceptionInfo.exceptionVec := RegNext(rob.io.exceptionInfo.exceptionVec)
+  csr.io.exceptionInfo.exceptionVAddr := RegNext(rob.io.exceptionInfo.exceptionVAddr)
+  csr.io.exceptionInfo.idle := RegNext(rob.io.exceptionInfo.idle)
+
+  rob.io.exceptionInfo.intrNo := csr.io.exceptionInfo.intrNo
+  rob.io.exceptionInfo.cause := csr.io.exceptionInfo.cause
+  rob.io.exceptionInfo.exceptionNewPC := csr.io.exceptionInfo.exceptionNewPC
+
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
   Ex.io.markIntrpt := csr.io.markIntrpt
@@ -385,6 +408,10 @@ class Core extends Module {
   mmu.io.out1.bits <> Ex.io.addr_trans_in
 
   rob.io.plv := csr.io.plv
+
+  If.io.flush := flush
+  If.io.dnpc := Mux(csr.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
+  If.io.pcSel := flush
 
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
