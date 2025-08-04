@@ -30,7 +30,7 @@ object PipelineConnect {
     when(isFlush) { valid := false.B }
 
     left.ready := right.ready
-    right.valid := valid
+    right.valid := valid && !isFlush
   }
 }
 

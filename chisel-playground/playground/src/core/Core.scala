@@ -119,7 +119,7 @@ class Core extends Module {
   val flush = rob.io.flush || RegNext(rob.io.flush)
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, flush)
-  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.out.fire, flush)
+  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, flush)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), flush)
   // PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
   // PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)

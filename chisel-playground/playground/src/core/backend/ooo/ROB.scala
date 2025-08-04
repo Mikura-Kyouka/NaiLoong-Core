@@ -258,6 +258,7 @@ class Rob extends Module {
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     val commitIdx = (head + i.U)
+    dontTouch(commitIdx)
     if (i == 0) {
       val preshouldCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
