@@ -366,7 +366,7 @@ class Core extends Module {
   Rn.io.brMispredict := rob.io.brMisPredInfo
   Rn.io.exception := rob.io.exceptionInfo.valid
 
-  Rn.io.flush := flush
+  Rn.io.flush := RegNext(rob.io.flush)
 
   csr.io.hardIntrpt := io.intrpt
   // rob <=> csr
@@ -409,9 +409,9 @@ class Core extends Module {
 
   rob.io.plv := csr.io.plv
 
-  If.io.flush := flush
+  If.io.flush := RegNext(rob.io.flush)
   If.io.dnpc := Mux(csr.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
-  If.io.pcSel := flush
+  If.io.pcSel := RegNext(rob.io.flush)
 
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)

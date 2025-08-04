@@ -432,7 +432,7 @@ class RegRenaming extends Module {
   val commit = io.rob.commit
 
   // 分支预测错误/异常回滚
-  when(io.flush && RegNext(io.flush)) {
+  when(io.flush) {
     rat := emptyRat
   }
 
@@ -523,7 +523,7 @@ class RegRenaming1 extends Module {
                                   arat(commit(1).bits.dest).preg)
 
   // 分支预测错误/异常回滚
-  when(io.flush && RegNext(io.flush)) {
+  when(io.flush) {
     freeList.io.rollback.bits.head := 0.U
     freeList.io.rollback.bits.tail := 0.U
     freeList.io.rollback.valid := true.B
@@ -556,7 +556,7 @@ class RegRenaming1 extends Module {
   }))
 
 
-  when(io.flush && RegNext(io.flush)) {
+  when(io.flush) {
     arat := emptyRat
   }
 
