@@ -72,8 +72,8 @@ object cpucfg {
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
-                    2.U( 7.W),   // Linesize-log2 [30: 24]
-                   12.U( 8.W),   // Index-log2    [23: 16]
+                    4.U( 7.W),   // Linesize-log2 [30: 24]
+                   11.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word19 = Cat( 0.U( 1.W),   // not used      [31: 31]
@@ -206,7 +206,7 @@ class FuOut extends Bundle {
   val pc     = Output(UInt(32.W))
   val data   = Output(UInt(32.W))
   val robIdx = Output(UInt(RobConfig.ROB_INDEX_WIDTH.W))
-  val preg   = Output(UInt(6.W))
+  val preg   = Output(UInt(RegConfig.PHYS_REG_BITS.W))
   val redirect = Output(new RedirectIO)
   val csrNewData = Output(UInt(32.W))
   val exceptionVec = UInt(16.W)

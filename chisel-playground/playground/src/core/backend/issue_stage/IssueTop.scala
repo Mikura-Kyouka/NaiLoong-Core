@@ -66,7 +66,7 @@ class IssueTop extends Module {
   brurs.io.flush := io.flush
   io.in_allReady := all_ready
 
-  val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
+  val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM + 1)(false.B)))
   for(i <- 0 until ISSUE_WIDTH) {
     when(io.in(i).valid) {
       for(j <- 0 until 4) {
@@ -78,7 +78,7 @@ class IssueTop extends Module {
   }
   
   when(io.flush) {
-    for(i <- 0 until PHYS_REG_NUM) {
+    for(i <- 0 until PHYS_REG_NUM + 1) {
       busyreg(i) := false.B
     }
   }

@@ -15,7 +15,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
     // val to_valid = Output(Bool())  // 发射队列不为空为真
     // val to_ready = Input(Bool())
 
-    val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))  // 物理寄存器是否被占用
+    val busyreg = Input(Vec(PHYS_REG_NUM + 1, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
     val flush = Input(Bool())
   })

@@ -33,7 +33,7 @@ sealed trait HasCacheConst {
 
   val TotalSize = cacheConfig.totalSize
   val Ways = cacheConfig.ways
-  val LineSize = 4 // TODO: byte
+  val LineSize = 16 // byte
   val LineBeats = LineSize / 4 // DATA WIDTH 32
   val Sets = TotalSize / LineSize / Ways
   val OffsetBits = log2Up(LineSize) // 26 6 2
@@ -165,8 +165,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     val is_collision = RegInit(false.B)
     val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
     syncReadAddr := addr.index
-    is_collision := io.axi.rvalid && state === s_read_mem2 && !isMMIO || state === s_write_cache
-    collison_data := Mux(io.axi.rvalid && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
+    is_collision := (io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO || state === s_write_cache
+    collison_data := Mux((io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
                                                                             VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
 
     val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
@@ -189,6 +189,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       flushed := true.B
     }
 
+    val wburst = RegInit(0.U(WordIndexBits.W))
+
     // reference: 《SuperScalar RISC Processor Design》 P. 103
     // hit -> write/read dataArray
     // !hit -> find one line -> dirty? --yes--> write this dirty cacheline to mem -> read from mem to cache -> read/write cache
@@ -201,13 +203,12 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                         Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
                         s_idle),
         s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
-                            // Mux(req.cmd, Mux(dirty, s_write_mem1, s_read_mem1), Mux(cacopOp2, s_idle, s_read_mem1))),  // 不命中，写，先驱逐脏数据；读，直接读
-                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), //
+                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), 
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux(io.axi.wready, s_write_mem3, s_write_mem2),
+        s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux(io.axi.rvalid, Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
+        s_read_mem2 -> Mux((io.axi.rvalid && io.axi.rlast), Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
@@ -237,59 +238,77 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // }
 
     // val offset = req.addr(1, 0) << 3
-    val cacheData = dataReadData(0)(0)
+    // val wburst = RegInit(0.U(WordIndexBits.W))
+    val cacheData = dataReadData(0)(wburst).asUInt
     // axi read chanel
     io.axi.arvalid := state === s_read_mem1
-    io.axi.araddr := addr.asUInt
+    io.axi.araddr := Mux(isMMIO, req.addr, Cat(addr.asUInt(31, OffsetBits), 0.U(OffsetBits.W)))// 32 bits address
     io.axi.arid := 1.U(4.W)
-    io.axi.arlen := 0.U
+    io.axi.arlen := Mux(isMMIO, 0.U, (LineBeats - 1).asUInt) // Burst_Length = AxLEN[7:0] + 1
     io.axi.arsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U)
     io.axi.arburst := "b01".U
     io.axi.rready := true.B
     // axi write chanel
-    val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(2.W))
+    val awaddr = Cat(metaReadData(0).tag, addr.index, 0.U(OffsetBits.W))
     io.axi.awaddr := Mux(isMMIO, req.addr, awaddr)
     io.axi.awvalid := state === s_write_mem1
     io.axi.awid := 1.U(4.W)
-    io.axi.awlen := 0.U
+    io.axi.awlen := Mux(isMMIO, 0.U, (LineBeats - 1).asUInt)
     io.axi.awsize := Mux(isMMIO, Cat(0.U(1.W), req.size), "b010".U) // 32 bits
     io.axi.awburst := "b01".U
     io.axi.wvalid := state === s_write_mem2
+    io.axi.wlast := isMMIO
     io.axi.wid := 1.U(4.W)
     io.axi.wstrb := Mux(isMMIO, req.wmask, "b1111".U) 
     io.axi.wdata := Mux(isMMIO, req.wdata, cacheData)
     io.axi.bready := state === s_write_mem3
     // 从下级存储器读取Data Block到Cache刚刚被选定的line中 
     // 将这个cacheline标记为not dirty的状态
+    val burst = RegInit(0.U(WordIndexBits.W))
+    val dataLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
     val rdata = io.axi.rdata
+
+    val axiDataLatch = RegInit(VecInit(Seq.fill(LineBeats)(0.U(32.W))))
     when(io.axi.rvalid && state === s_read_mem2 && !isMMIO) {
-      dataArray.io.wea := !isMMIO // 一致可缓存
+      burst := burst + 1.U
+      axiDataLatch(burst) := rdata
+      dataLatch(burst) := rdata
+    }
+
+    when((io.axi.rlast && io.axi.rvalid) && state === s_read_mem2 && !isMMIO) {
+      burst := 0.U 
+      // data
+      dataArray.io.wea := !isMMIO
       dataArray.io.addra := addr.index
-      dataArray.io.dina := VecInit(Seq.fill(LineBeats)(rdata)).asUInt
-      // dataArray(addr.index)(0)(0) := rdata // TODO
-
-      // val writeMeta = Vec(Ways, new MetaBundle)
-      // for (i <- 0 until Ways) {
-      //   writeMeta(i).tag := addr.tag
-      //   writeMeta(i).valid := true.B
-      //   writeMeta(i).dirty := false.B
-      // }
-      // metaArray.write(addr.index, writeMeta)
-
-      // metaArray(addr.index)(0).tag := addr.tag
-      // metaArray(addr.index)(0).valid := true.B
-      // metaArray(addr.index)(0).dirty := false.B
-      metaArray.io.wea := !isMMIO // 一致可缓存
+      dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
+      // tag
+      metaArray.io.wea := !isMMIO
       metaArray.io.addra := addr.index
-      metaArray.io.dina := addr.tag // tag
-      metaValidArray.io.wea := !isMMIO // 一致可缓存
+      metaArray.io.dina := addr.tag 
+      // valid
+      metaValidArray.io.wea := !isMMIO 
       metaValidArray.io.addra := addr.index
-      metaValidArray.io.dina := true.B // valid
+      metaValidArray.io.dina := true.B
+      // dirty
       metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
     }
 
+    // io.axi.wlast := false.B
+    when(io.axi.wready && io.axi.wvalid && state === s_write_mem2 && !isMMIO) {
+      wburst := wburst + 1.U
+    }
+
+    when(wburst === 3.U) {
+      io.axi.wlast := true.B
+    }
+
+    when(io.axi.bvalid) {
+      wburst := 0.U
+    }
+
     // 读取当前字
-    val origWord = dataReadData(0)(0)
+    val originalLine = dataReadData(0)
+    val origWord = originalLine(addr.WordIndex)
     val newWordBytes = Wire(Vec(4, UInt(8.W)))
     val origBytes = origWord.asTypeOf(Vec(4, UInt(8.W)))
     val wdataBytes = req.wdata.asTypeOf(Vec(4, UInt(8.W)))
@@ -298,11 +317,15 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     }
     val newWord = newWordBytes.asUInt
 
+    val updatedLine = Wire(Vec(originalLine.length, UInt(32.W)))
+    updatedLine := originalLine
+    updatedLine(addr.WordIndex) := newWord
+
     when(state === s_write_cache) {
       // data
       dataArray.io.wea := !isMMIO // 一致可缓存
       dataArray.io.addra := addr.index
-      dataArray.io.dina := newWord
+      dataArray.io.dina := updatedLine.asUInt // 更新后的数据
       // tag
       metaArray.io.wea := !isMMIO // 一致可缓存
       metaArray.io.addra := addr.index
@@ -319,19 +342,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     // 将所需要的数据返回给load指令
     when(state === s_read_cache){
-      resp.rdata := cacheData // 直接返回cache中的数据
+      resp.rdata := dataReadData(0)(addr.WordIndex) // 直接返回cache中的数据
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
 
     when(isMMIO) {
       resp.rdata := io.axi.rdata
     }
-
-    // io.resp.valid := (((isMMIO && io.axi.rvalid) || 
-    //                   (isMMIO && io.axi.bvalid) || 
-    //                   ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
-    //                   (hit && cacopOp2 && !dirty && state === s_judge) ||
-    //                   (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
 
     when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
       // valid
