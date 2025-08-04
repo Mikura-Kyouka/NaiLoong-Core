@@ -205,14 +205,14 @@ class Rob extends Module {
 
     for (j <- 0 until 4) {
       when (instValid(j) && (prefixSum(j) < io.allocate.allocCount)) {
-        val allocIdx = ((tail +& prefixSum(j)) % RobConfig.ROB_ENTRY_NUM.U)
+        val allocIdx = (tail + prefixSum(j))
         io.allocate.allocResp(j) := allocIdx
         robEntries(allocIdx) := io.allocate.allocEntries(j)
         robEntries(allocIdx).valid := true.B
         robEntries(allocIdx).finished := false.B
       }
     }
-    tail := (tail +& io.allocate.allocCount) % RobConfig.ROB_ENTRY_NUM.U
+    tail := tail + io.allocate.allocCount
   }
   
   // 指令完成逻辑
@@ -257,7 +257,7 @@ class Rob extends Module {
   val hasStore = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   val hasTlb = Wire(Vec(RobConfig.ROB_CMT_NUM, Bool()))
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    val commitIdx = ((head +& i.U) % RobConfig.ROB_ENTRY_NUM.U)
+    val commitIdx = (head + i.U)
     if (i == 0) {
       val preshouldCommit = !robEntries(commitIdx - 1.U).valid
       canCommit(i) := robEntries(commitIdx).valid && (robEntries(commitIdx).finished) &&
@@ -282,7 +282,7 @@ class Rob extends Module {
                   canCommit(i) && !hasException(i)
   }
 
-  val store_entry = robEntries((head +& PriorityEncoder(hasStore)) % RobConfig.ROB_ENTRY_NUM.U)
+  val store_entry = robEntries(head + PriorityEncoder(hasStore))
 
   // 判断在环形缓冲区中idx是否在start之后且在end之前
   def isAfter(idx: UInt, start: UInt, end: UInt): Bool = {
@@ -314,13 +314,13 @@ class Rob extends Module {
   val minIdx = Wire(UInt(2.W))
 
   io.brMisPredInfo.brMisPred.valid := brMisPred
-  io.brMisPredInfo.brMisPred.bits := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).pc
-  io.brMisPredInfo.brMisPredTarget := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).brTarget
+  io.brMisPredInfo.brMisPred.bits := robEntries((head + brMisPredIdx)).pc
+  io.brMisPredInfo.brMisPredTarget := robEntries((head + brMisPredIdx)).brTarget
   // io.brMisPredInfo.brMisPredChkpt := robEntries(head + brMisPredIdx).checkpoint.id
-  io.brMisPredInfo.brMisPredPC := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).pc
-  io.brMisPredInfo.actuallyTaken := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).brTaken
-  io.brMisPredInfo.isCall := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).isCall
-  io.brMisPredInfo.isReturn := robEntries((head +& brMisPredIdx) % RobConfig.ROB_ENTRY_NUM.asUInt).isReturn
+  io.brMisPredInfo.brMisPredPC := robEntries((head + brMisPredIdx)).pc
+  io.brMisPredInfo.actuallyTaken := robEntries((head + brMisPredIdx)).brTaken
+  io.brMisPredInfo.isCall := robEntries((head + brMisPredIdx)).isCall
+  io.brMisPredInfo.isReturn := robEntries((head + brMisPredIdx)).isReturn
 
 
   val br = hasBr.reduce(_ || _)
@@ -334,7 +334,7 @@ class Rob extends Module {
   io.brTrainInfo.isReturn := robEntries(head + brIdx).isReturn
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
-    val commitIdx = (head +& i.U) % RobConfig.ROB_ENTRY_NUM.U
+    val commitIdx = head + i.U
     val entry = robEntries(commitIdx)
     
     // 在异常或分支预测错误情况下，只提交head---head+x位置的指令
@@ -461,7 +461,7 @@ class Rob extends Module {
 
   when ((exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)) {
     // 回滚ROB尾指针
-    val rollbackTail = (head +& minIdx + 1.U) % RobConfig.ROB_ENTRY_NUM.U
+    val rollbackTail = (head + minIdx + 1.U)
     tail := rollbackTail
     // 清除所有在tail之后的条目
     for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {

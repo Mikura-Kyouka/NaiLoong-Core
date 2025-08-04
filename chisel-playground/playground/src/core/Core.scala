@@ -353,7 +353,7 @@ class Core extends Module {
 
   // allocate rob entries in rename stage
   Rn.io.robAllocate <> rob.io.allocate
-  Rn.io.rollbackChkpt := rob.io.rollbackChkpt
+  // Rn.io.rollbackChkpt := rob.io.rollbackChkpt
 
   // lsu <=> rob
   Ex.io.scommit := rob.io.scommit

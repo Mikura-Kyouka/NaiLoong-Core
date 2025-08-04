@@ -24,7 +24,7 @@ class Rename extends Module {
     val robAllocate = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
     val flush = Input(Bool())
-    val rollbackChkpt = Input(UInt(RegConfig.CHECKPOINT_BITS.W)) // 回滚检查点ID
+    // val rollbackChkpt = Input(UInt(RegConfig.CHECKPOINT_BITS.W)) // 回滚检查点ID
   })
   
   val regRenaming = Module(new RegRenaming)
@@ -40,7 +40,7 @@ class Rename extends Module {
   regRenaming.io.brMispredict := io.brMispredict
   regRenaming.io.exception := io.exception
   regRenaming.io.flush := io.flush
-  regRenaming.io.rollbackChkpt := io.rollbackChkpt
+  // regRenaming.io.rollbackChkpt := io.rollbackChkpt
 
   for (i <- 0 until 4) {
     regRenaming.io.in.bits(i).ctrl := io.in.bits(i).ctrl
@@ -57,7 +57,7 @@ class Rename extends Module {
     io.out.bits(i).kIsArf := regRenaming.io.out.bits(i).kIsArf
     io.out.bits(i).datak := regRenaming.io.out.bits(i).datak
     io.out.bits(i).preg := regRenaming.io.out.bits(i).preg
-    io.out.bits(i).old_preg := regRenaming.io.out.bits(i).old_preg
+    io.out.bits(i).old_preg := DontCare
     io.out.bits(i).checkpoint.needSave := regRenaming.io.out.bits(i).checkpoint.valid
     io.out.bits(i).checkpoint.id := regRenaming.io.out.bits(i).checkpoint.id
     io.out.bits(i).robIdx := regRenaming.io.out.bits(i).robIdx   // 添加ROB索引
@@ -100,7 +100,7 @@ class RenameOutput extends Bundle {
   val kIsArf   = Bool()
   val datak    = UInt(32.W)
   val preg     = UInt(RegConfig.PHYS_REG_BITS.W)
-  val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
+  // val old_preg = UInt(RegConfig.PHYS_REG_BITS.W)
   val checkpoint = new Bundle {
     val valid = Bool()
     val id    = UInt(RegConfig.CHECKPOINT_DEPTH.W)
@@ -124,7 +124,7 @@ class RegRenaming extends Module {
     val robAllocate  = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
     val flush = Input(Bool())
-    val rollbackChkpt = Input(UInt(RegConfig.CHECKPOINT_DEPTH.W)) // 回滚检查点ID
+    // val rollbackChkpt = Input(UInt(RegConfig.CHECKPOINT_DEPTH.W)) // 回滚检查点ID
   })
 
   val arf = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
@@ -157,7 +157,7 @@ class RegRenaming extends Module {
     entry
   }))
 
-  val pregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
+  // val pregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
   // // Define a Vec type for the checkpoint RAT
   // val checkpointRATEntryType = Vec(RegConfig.ARCH_REG_NUM, new aliasTableEntry)
   // val checkpointRAT = RegInit(VecInit(Seq.fill(RegConfig.CHECKPOINT_DEPTH) {
@@ -196,8 +196,8 @@ class RegRenaming extends Module {
     })
     // 寄存器初始化
     val entries = RegInit(VecInit((1 to RegConfig.PHYS_REG_NUM).map(_.U)))
-    val entryUsed = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM)(false.B)))
-    val entryUsedCount = PopCount(entryUsed)
+    // val entryUsed = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM)(false.B)))
+    // val entryUsedCount = PopCount(entryUsed)
     val head = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
     val tail = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
     val full = RegInit(false.B)
@@ -214,7 +214,7 @@ class RegRenaming extends Module {
 
     for (i <- 0 until 4) {
       reqValid(i) := io.allocReq(i).valid
-      reqReady(i) := (io.count > PopCount(reqValid)) || entryUsedCount === 0.U
+      reqReady(i) := (io.count > PopCount(reqValid)) || io.count === 0.U && !full
       respValid(i) := reqValid(i) && reqReady(i)
     }
 
@@ -226,26 +226,6 @@ class RegRenaming extends Module {
     for (i <- 0 until 4) {
       allocIndexes(i) := (head +& cnt(i)) % entries.size.U
     }
-
-    // val finalAllocIndexes = WireInit(allocIndexes)
-
-    // // 如果分配的索引为0，则将其和其后的加1
-    // val allocIndexesHasZeroVec = VecInit(Seq.fill(4)(false.B))
-    // val allocZeroIndex = WireInit(0.U(2.W))
-    // for (i <- 0 until 4) {
-    //   allocIndexesHasZeroVec(i) := allocIndexes(i) === 0.U && respValid(i)
-    // }
-    // val allocIndexesHasZero = allocIndexesHasZeroVec.reduce(_ || _)
-    // when(allocIndexesHasZero) {
-    //   allocZeroIndex := PriorityEncoder(allocIndexesHasZeroVec)
-    // }
-    // when(allocIndexesHasZero) {
-    //   for (i <- 0 until 4) {
-    //     when(respValid(i) && i.asUInt >= allocZeroIndex) {
-    //       finalAllocIndexes(i) := allocIndexes(i) + 1.U
-    //     }
-    //   }
-    // }
 
     // 并行分配逻辑
     val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
@@ -259,46 +239,15 @@ class RegRenaming extends Module {
     // Head指针更新
     when(io.allocResp.map(_.valid).reduce(_||_) && io.fire) {
       head := (head +& allocCnt) % entries.size.U
-      switch(allocCnt) {
-        is(1.U) {
-          entryUsed(allocIndexes(0)) := true.B
-        }
-        is(2.U) {
-          entryUsed(allocIndexes(0)) := true.B
-          entryUsed(allocIndexes(1)) := true.B
-        }
-        is(3.U) {
-          entryUsed(allocIndexes(0)) := true.B
-          entryUsed(allocIndexes(1)) := true.B
-          entryUsed(allocIndexes(2)) := true.B  
-        }
-        is(4.U) {
-          entryUsed(allocIndexes(0)) := true.B
-          entryUsed(allocIndexes(1)) := true.B
-          entryUsed(allocIndexes(2)) := true.B
-          entryUsed(allocIndexes(3)) := true.B  
-        }
-      }
       when((head +& allocCnt) % entries.size.U === tail) {
         full := true.B
       }
     }
+    
     when(head =/= tail || io.rollback.valid) {
       full := false.B
     }
 
-    // 回收逻辑
-    // val freeValidCount = PopCount(io.free.map(_.valid))
-    // when(freeValidCount > 0.U) {
-    //   // tail := (tail +& freeValidCount) % entries.size.U
-    //   tail := Mux(tail + freeValidCount >= entries.size.U,
-    //             tail + freeValidCount - entries.size.U + 1.U,
-    //             tail + freeValidCount)
-    //   for (i <- 0 until freeValidCount.litValue.toInt) {
-    //     val freeIndex = (tail + i.U) % entries.size.U
-    //     entries(freeIndex) := io.free(i).bits
-    //   }
-    // }
     val freeValid = io.free.map(_.valid)
     val freeCount = PopCount(freeValid)
 
@@ -313,7 +262,7 @@ class RegRenaming extends Module {
         when(freeValid(i) && prefixSum(i) < freeCount) {
           val freeIndex = (tail +& prefixSum(i)) % entries.size.U
           entries(freeIndex) := io.free(i).bits
-          entryUsed(freeIndex) := false.B
+          // entryUsed(freeIndex) := false.B
         }
       }
 
@@ -377,7 +326,7 @@ class RegRenaming extends Module {
   }
 
   io.in.ready := canAlloc && io.out.ready && (!hasPending || io.out.fire) && !(RegNext(io.out.fire) && io.in.valid && !io.out.fire)
-  dontTouch(canAlloc)
+  // dontTouch(canAlloc)
   io.out.valid := io.in.valid && canAlloc && 
                   PopCount(freeList.io.allocResp.map(_.valid)) === PopCount(freeList.io.allocReq.map(_.valid))
 
@@ -403,10 +352,6 @@ class RegRenaming extends Module {
 
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg && instValid
-    dontTouch(rfWen)
-    dontTouch(isZeroReg)
-    dontTouch(instValid)
-    dontTouch(needAlloc)
     freeList.io.allocReq(i).valid := needAlloc && io.in.valid && io.out.ready
     freeList.io.allocReq(i).bits := DontCare
     freeList.io.allocResp(i).ready := needAlloc && io.in.valid && io.out.fire
@@ -465,7 +410,7 @@ class RegRenaming extends Module {
   io.out.bits(0).jIsArf := temp_jIsArf(0)
   io.out.bits(0).prk := temp_prk(0)
   io.out.bits(0).kIsArf := temp_kIsArf(0)
-  io.out.bits(0).old_preg := temp_old_preg(0)
+  // io.out.bits(0).old_preg := temp_old_preg(0)
 
   for (i <- 0 until 4) {
     val input = io.in.bits(i)
@@ -477,7 +422,7 @@ class RegRenaming extends Module {
     io.out.bits(i).prk := temp_prk(i)
     io.out.bits(i).jIsArf := temp_jIsArf(i)
     io.out.bits(i).kIsArf := temp_kIsArf(i)
-    io.out.bits(i).old_preg := temp_old_preg(i)
+    // io.out.bits(i).old_preg := temp_old_preg(i)
 
     for (j <- 0 until i) {
       when(rj.orR && rj === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid && io.in.bits(j).ctrl.rfWen === RfWen.y) {
@@ -488,9 +433,9 @@ class RegRenaming extends Module {
         io.out.bits(i).prk := allocated_preg(j)
         io.out.bits(i).kIsArf := false.B
       }
-      when(rd.orR && rd === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid && io.in.bits(j).ctrl.rfWen === RfWen.y) {
-        io.out.bits(i).old_preg := allocated_preg(j)
-      }
+      // when(rd.orR && rd === io.in.bits(j).ctrl.rfDest && io.in.bits(j).inst_valid && io.in.bits(j).ctrl.rfWen === RfWen.y) {
+      //   io.out.bits(i).old_preg := allocated_preg(j)
+      // }
     }
     io.out.bits(i).dataj := Mux(rat(io.out.bits(i).prj).neverUsed, arf(rj), prf(io.out.bits(i).prj))
     io.out.bits(i).datak := Mux(rat(io.out.bits(i).prk).neverUsed, arf(rk), prf(io.out.bits(i).prk))
@@ -521,17 +466,17 @@ class RegRenaming extends Module {
   }
   
   // 零寄存器不保留旧值
-  io.out.bits.foreach { out =>
-    when(out.preg === 0.U) {
-      out.old_preg := 0.U
-    }
-  }
+  // io.out.bits.foreach { out =>
+  //   when(out.preg === 0.U) {
+  //     out.old_preg := 0.U
+  //   }
+  // }
   
-  io.robAllocate.allocEntries.foreach { entry =>
-    when(entry.preg === 0.U) {
-      entry.old_preg := 0.U
-    }
-  }
+  // io.robAllocate.allocEntries.foreach { entry =>
+  //   when(entry.preg === 0.U) {
+  //     entry.old_preg := 0.U
+  //   }
+  // }
 
   // when(io.out.fire) {
   //   for (i <- 0 until 4) {
@@ -540,10 +485,10 @@ class RegRenaming extends Module {
   //     }
   //   }
   // }
-  val debugPregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
-  dontTouch(debugPregUsing)
-  val debugCount = PopCount(debugPregUsing)
-  dontTouch(debugCount)
+  // val debugPregUsing = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM + 1)(false.B)))
+  // dontTouch(debugPregUsing)
+  // val debugCount = PopCount(debugPregUsing)
+  // dontTouch(debugCount)
 
   for (i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.rob.commit(i).valid && io.rob.commit(i).bits.inst_valid) {
@@ -552,10 +497,10 @@ class RegRenaming extends Module {
         // pregUsing(io.rob.commit(i).bits.preg) := true.B
         arat(io.rob.commit(i).bits.dest).preg := io.rob.commit(i).bits.preg
         arat(io.rob.commit(i).bits.dest).neverUsed := false.B
-        debugPregUsing(io.rob.commit(i).bits.preg) := true.B
+        // debugPregUsing(io.rob.commit(i).bits.preg) := true.B
       }
       when(arat(io.rob.commit(i).bits.dest).preg.orR) {
-        debugPregUsing(arat(io.rob.commit(i).bits.dest).preg) := false.B
+        // debugPregUsing(arat(io.rob.commit(i).bits.dest).preg) := false.B
       }
     }
   }
@@ -579,10 +524,10 @@ class RegRenaming extends Module {
 
   // 分支预测错误/异常回滚
   when(io.flush && RegNext(io.flush)) {
-    val checkpoint_id = RegNext(io.rollbackChkpt) % RegConfig.CHECKPOINT_DEPTH.U
+    // val checkpoint_id = RegNext(io.rollbackChkpt) % RegConfig.CHECKPOINT_DEPTH.U
     // val ratSnapshot = checkpointRAT(checkpoint_id)
     // rat := ratSnapshot
-    dontTouch(checkpoint_id)
+    // dontTouch(checkpoint_id)
     // rat := checkpointRAT(checkpoint_id)
 
     // val freelistSnapshot = checkpointFreelist(checkpoint_id)
