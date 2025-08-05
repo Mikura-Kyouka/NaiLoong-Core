@@ -533,6 +533,11 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   val ValidVec = Wire(UInt(4.W))
   ValidVec := MuxLookup(io.in.bits.addr(4,2), "b1111".U)(
     Seq(
+      // 0.U -> "b1111".U,
+      // 1.U -> "b1111".U,
+      // 2.U -> "b1111".U,
+      // 3.U -> "b1111".U,
+      // 4.U -> "b1111".U,
       5.U -> "b0111".U,
       6.U -> "b0011".U,
       7.U -> "b0001".U,

@@ -16,7 +16,20 @@ class PCIO extends Bundle {
 class PC extends Module {
   val io = IO(new PCIO)
   val pcReg = RegInit("h1c000000".U(32.W)) // TODO
-  val snpc = pcReg + 16.U
+  // 00 04 08 0c, 10 14 18 1c // 20 
+  val snpc = Wire(UInt(32.W))
+  snpc := MuxLookup(pcReg(4, 0), (pcReg + 16.U))(
+    Seq(
+      0.U -> (pcReg + 16.U),
+      4.U -> (pcReg + 16.U),
+      8.U -> (pcReg + 16.U),
+      12.U -> (pcReg + 16.U),
+      16.U -> Cat((pcReg + 16.U)(31, 5), 0.U(5.W)),
+      20.U -> Cat((pcReg + 16.U)(31, 5), 0.U(5.W)),
+      24.U -> Cat((pcReg + 16.U)(31, 5), 0.U(5.W)),
+      28.U -> Cat((pcReg + 16.U)(31, 5), 0.U(5.W))
+    )
+  )
   val predictTakenReg = RegInit(false.B)
   val predictTargetReg = RegInit("h00000000".U(32.W))
 
