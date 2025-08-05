@@ -410,7 +410,7 @@ class Core extends Module {
   rob.io.plv := csr.io.plv
 
   If.io.flush := RegNext(rob.io.flush)
-  If.io.dnpc := Mux(csr.io.exceptionInfo.valid, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
+  If.io.dnpc := Mux(csr.io.exceptionInfo.valid || csr.io.exceptionInfo.eret, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
   If.io.pcSel := RegNext(rob.io.flush)
 
   if (GenCtrl.USE_DIFF) {
@@ -466,12 +466,12 @@ class Core extends Module {
       DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
       DiffCommit.io.instr(k).csr_data      := Mux1H(sel.zip(diffcsr_data))
 
-      DiffCommit.io.excp.excp_valid := rob.io.exceptionInfo.valid
+      DiffCommit.io.excp.excp_valid := csr.io.exceptionInfo.valid
       DiffCommit.io.excp.eret := csr.io.exceptionInfo.eret
       DiffCommit.io.excp.intrNo := csr.io.exceptionInfo.intrNo
       DiffCommit.io.excp.cause := csr.io.exceptionInfo.cause
-      DiffCommit.io.excp.exceptionPC := rob.io.exceptionInfo.exceptionPC
-      DiffCommit.io.excp.exceptionInst := rob.io.exceptionInfo.exceptionInst
+      DiffCommit.io.excp.exceptionPC := csr.io.exceptionInfo.exceptionPC
+      DiffCommit.io.excp.exceptionInst := csr.io.exceptionInfo.exceptionInst
 
       when(DiffCommit.io.instr(k).valid && DiffCommit.io.instr(k).is_TLBFILL) {
         tlb_refill_index := tlb_refill_index + 1.U
