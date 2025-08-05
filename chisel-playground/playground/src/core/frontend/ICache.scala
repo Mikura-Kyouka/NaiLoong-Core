@@ -15,7 +15,7 @@ sealed trait HasICacheConst {
 
   val TotalSize = cacheConfig.totalSize
   val Ways = cacheConfig.ways
-  val LineSize = 4 * 4 // TODO: byte
+  val LineSize = 8 * 4 // TODO: byte
   val LineBeats = LineSize / 4 // DATA WIDTH 32
   val Sets = TotalSize / LineSize / Ways
   val OffsetBits = log2Up(LineSize) // 26 6 2
@@ -248,7 +248,7 @@ class Stage1Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
 class Stage2Out(implicit val cacheConfig: ICacheConfig) extends ICacheBundle {
   val addr = Output(UInt(32.W))
   val pc = Output(UInt(32.W))
-  val rdata = Output(Vec(4, UInt(32.W)))
+  val rdata = Output(Vec(LineBeats, UInt(32.W)))
   val hit = Output(Bool())
   val mat = Output(UInt(2.W))
   val excp = Output(Bool())
@@ -473,24 +473,17 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     axiDataLatch(burst) := rdata
     dataLatch(burst) := rdata
   }
+  
   when((io.axi.rlast && io.axi.rvalid) && state === s_wait_data) {
     burst := 0.U
-    // dataArray update 
-    // dataArray(index)(0)(0) := axiDataLatch(0)
-    // dataArray(index)(0)(1) := axiDataLatch(1)
-    // dataArray(index)(0)(2) := axiDataLatch(2)
-    // dataArray(index)(0)(3) := rdata
+
     dataArray.io.wea := io.in.bits.mat === 1.U // 一致可缓存
-    dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
+    dataArray.io.dina := Cat(rdata, axiDataLatch(6), axiDataLatch(5), axiDataLatch(4), axiDataLatch(3), axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
     io.metaArrayWrite.valid := io.in.bits.mat === 1.U // 一致可缓存
     io.metaArrayWrite.index := index
     io.metaArrayWrite.tag := tag
   }
-  
-  // when(burst === io.in.bits.wordIndex) {
-  //   dataLatch := io.axi.rdata 
-  // }
 
   // io.out.bits.rdata := DontCare
   when(!hit || io.in.bits.mat === 0.U) {
@@ -538,12 +531,11 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
   dontTouch(rdata)
 
   val ValidVec = Wire(UInt(4.W))
-  ValidVec := MuxLookup(io.in.bits.addr(3,2), 0.U(4.W))(
+  ValidVec := MuxLookup(io.in.bits.addr(4,2), "b1111".U)(
     Seq(
-      0.U -> "b1111".U,
-      1.U -> "b1110".U,
-      2.U -> "b1100".U,
-      3.U -> "b1000".U
+      5.U -> "b0111".U,
+      6.U -> "b0011".U,
+      7.U -> "b0001".U,
     )
   )
 
@@ -554,24 +546,26 @@ class Stage3(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     ValidVec := "b1111".U
   }
 
+  val addr = io.in.bits.addr.asTypeOf(addrBundle)
+
   // 0 0000, 4 0100, 8 1000, c 1100
-  io.out.bits(0).inst := rdata(0)
-  io.out.bits(0).pc := Cat(io.in.bits.pc(31, 4), "h0".U(4.W))
+  io.out.bits(0).inst := rdata(addr.WordIndex)
+  io.out.bits(0).pc := io.in.bits.pc
   io.out.bits(0).Valid := ValidVec(0)
   io.out.bits(0).brPredict := io.in.bits.brPredictTaken(0)
 
-  io.out.bits(1).inst := rdata(1)
-  io.out.bits(1).pc := Cat(io.in.bits.pc(31, 4), "h4".U(4.W))
+  io.out.bits(1).inst := rdata(addr.WordIndex + 1.U)
+  io.out.bits(1).pc := io.in.bits.pc + "h4".U
   io.out.bits(1).Valid := ValidVec(1)
   io.out.bits(1).brPredict := io.in.bits.brPredictTaken(1)
 
-  io.out.bits(2).inst := rdata(2)
-  io.out.bits(2).pc := Cat(io.in.bits.pc(31, 4), "h8".U(4.W))
+  io.out.bits(2).inst := rdata(addr.WordIndex + 2.U)
+  io.out.bits(2).pc := io.in.bits.pc + "h8".U
   io.out.bits(2).Valid := ValidVec(2)
   io.out.bits(2).brPredict := io.in.bits.brPredictTaken(2)
 
-  io.out.bits(3).inst := rdata(3)
-  io.out.bits(3).pc := Cat(io.in.bits.pc(31, 4), "hc".U(4.W))
+  io.out.bits(3).inst := rdata(addr.WordIndex + 3.U)
+  io.out.bits(3).pc := io.in.bits.pc + "hc".U
   io.out.bits(3).Valid := ValidVec(3)
   io.out.bits(3).brPredict := io.in.bits.brPredictTaken(3)
 

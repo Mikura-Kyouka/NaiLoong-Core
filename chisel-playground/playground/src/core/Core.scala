@@ -88,7 +88,7 @@ class Core extends Module {
   val mmu = Module(new MMU)
   
 
-  val nextPC = Cat(If.io.nextPC(31, 4), 0.U(4.W))
+  val nextPC = If.io.nextPC
   bpu.io.pc(0) := nextPC
   bpu.io.pc(1) := nextPC + 4.U
   bpu.io.pc(2) := nextPC + 8.U
