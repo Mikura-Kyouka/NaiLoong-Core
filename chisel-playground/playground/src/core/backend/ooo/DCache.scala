@@ -33,7 +33,7 @@ sealed trait HasCacheConst {
 
   val TotalSize = cacheConfig.totalSize
   val Ways = cacheConfig.ways
-  val LineSize = 16 // byte
+  val LineSize = 32 // byte
   val LineBeats = LineSize / 4 // DATA WIDTH 32
   val Sets = TotalSize / LineSize / Ways
   val OffsetBits = log2Up(LineSize) // 26 6 2
@@ -213,7 +213,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
                             Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), 
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
+        s_write_mem2 -> Mux((io.axi.wready && (wburst === (LineBeats - 1).U || isMMIO)), s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
         s_read_mem2 -> Mux((io.axi.rvalid && io.axi.rlast), Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
@@ -293,7 +293,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       // data
       dataArray.io.wea := !isMMIO
       dataArray.io.addra := addr.index
-      dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
+      dataArray.io.dina := Cat(rdata, axiDataLatch(6), axiDataLatch(5), axiDataLatch(4), axiDataLatch(3), axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
       // tag
       metaArray.io.wea := !isMMIO
       metaArray.io.addra := addr.index
@@ -314,7 +314,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       wburst := wburst + 1.U
     }
 
-    when(wburst === 3.U) {
+    when(wburst === (LineBeats - 1).U) {
       io.axi.wlast := true.B
     }
 
