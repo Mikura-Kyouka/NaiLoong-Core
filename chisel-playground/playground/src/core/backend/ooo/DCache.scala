@@ -138,7 +138,8 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // 暂时只支持 1 way
     val metaArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * (TagBits)))
     val metaValidArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * 1))
-    val metaFlagArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle))))))
+    // val metaFlagArray = RegInit(VecInit(Seq.fill(Sets)(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle))))))
+    val metaFlagArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * 1))
     val dataArray = Module(new DualPortBRAM(log2Ceil(Sets), Ways * LineBeats * 32))
 
     // a 口只用于写入，b 口只用于读取
@@ -160,16 +161,23 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     dataArray.io.wea := false.B // 后续覆盖
     dataArray.io.addrb := addr.index
 
-    val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
-    val is_collision = RegInit(false.B)
-    val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
-    syncReadAddr := addr.index
-    is_collision := (io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO || state === s_write_cache
-    collison_data := Mux((io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
-                                                                            VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
+    metaFlagArray.io.clka := clock
+    metaFlagArray.io.addra := addr.index
+    metaFlagArray.io.dina := 0.U // 后续覆盖
+    metaFlagArray.io.wea := false.B // 后续覆盖
+    metaFlagArray.io.addrb := addr.index
 
-    val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
+    val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
+    // val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
+    // val is_collision = RegInit(false.B)
+    // val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
+    // syncReadAddr := addr.index
+    // is_collision := (io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO || state === s_write_cache
+    // collison_data := Mux((io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
+    //                                                                         VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
+
+    // val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
+    val metaFlagData = metaFlagArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
 
@@ -179,7 +187,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     val hit = hitVec.orR
 
-    val dirty = metaFlagData(0).dirty
+    val dirty = metaFlagData(0)// .dirty
 
     val flushed = RegInit(false.B) // 用于标记当前事务是否已经被flush过
     when(io.req.fire) {
@@ -228,6 +236,11 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaArray.io.wea := true.B
       metaArray.io.addra := addr.index
       metaArray.io.dina := 0.U
+
+      // metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+      metaFlagArray.io.wea := true.B
+      metaFlagArray.io.addra := addr.index
+      metaFlagArray.io.dina := false.B
     }
 
     // when(cacopOp1 || (cacopOp2 && hit)) {
@@ -290,7 +303,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B
       // dirty
-      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+      // metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+      metaFlagArray.io.wea := true.B
+      metaFlagArray.io.addra := addr.index
+      metaFlagArray.io.dina := false.B
     }
 
     // io.axi.wlast := false.B
@@ -335,7 +351,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := true.B // valid
       // dirty
-      metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
+      // metaFlagArray(addr.index)(0) := true.B.asTypeOf(new MetaFlagBundle) // dirty
+      metaFlagArray.io.wea := true.B
+      metaFlagArray.io.addra := addr.index
+      metaFlagArray.io.dina := true.B
 
       io.resp.valid := !flushed // 如果没有被flush过，则返回有效响应
     }
@@ -356,7 +375,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       metaValidArray.io.addra := addr.index
       metaValidArray.io.dina := 0.U
       // dirty
-      metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+      // metaFlagArray(addr.index)(0) := false.B.asTypeOf(new MetaFlagBundle) // dirty
+      metaFlagArray.io.wea := true.B
+      metaFlagArray.io.addra := addr.index
+      metaFlagArray.io.dina := false.B
     }
 
     io.resp.bits := resp
