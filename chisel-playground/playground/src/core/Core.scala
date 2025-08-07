@@ -372,13 +372,13 @@ class Core extends Module {
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
   // csr.io.exceptionInfo <> rob.io.exceptionInfo
-  csr.io.exceptionInfo.valid := rob.io.exceptionInfo.valid
-  csr.io.exceptionInfo.exceptionPC := rob.io.exceptionInfo.exceptionPC
-  csr.io.exceptionInfo.exceptionInst := rob.io.exceptionInfo.exceptionInst
-  csr.io.exceptionInfo.eret := rob.io.exceptionInfo.eret
-  csr.io.exceptionInfo.exceptionVec := rob.io.exceptionInfo.exceptionVec
-  csr.io.exceptionInfo.exceptionVAddr := rob.io.exceptionInfo.exceptionVAddr
-  csr.io.exceptionInfo.idle := rob.io.exceptionInfo.idle
+  csr.io.exceptionInfo.valid := RegNext(rob.io.exceptionInfo.valid)
+  csr.io.exceptionInfo.exceptionPC := RegNext(rob.io.exceptionInfo.exceptionPC)
+  csr.io.exceptionInfo.exceptionInst := RegNext(rob.io.exceptionInfo.exceptionInst)
+  csr.io.exceptionInfo.eret := RegNext(rob.io.exceptionInfo.eret)
+  csr.io.exceptionInfo.exceptionVec := RegNext(rob.io.exceptionInfo.exceptionVec)
+  csr.io.exceptionInfo.exceptionVAddr := RegNext(rob.io.exceptionInfo.exceptionVAddr)
+  csr.io.exceptionInfo.idle := RegNext(rob.io.exceptionInfo.idle)
 
   rob.io.exceptionInfo.intrNo := csr.io.exceptionInfo.intrNo
   rob.io.exceptionInfo.cause := csr.io.exceptionInfo.cause
@@ -466,11 +466,11 @@ class Core extends Module {
       DiffCommit.io.instr(k).csr_rstat     := Mux1H(sel.zip(diffcsr_rstat))
       DiffCommit.io.instr(k).csr_data      := Mux1H(sel.zip(diffcsr_data))
 
-      DiffCommit.io.excp.excp_valid := csr.io.exceptionInfo.valid
-      DiffCommit.io.excp.eret := csr.io.exceptionInfo.eret
-      DiffCommit.io.excp.intrNo := csr.io.exceptionInfo.intrNo
-      DiffCommit.io.excp.cause := csr.io.exceptionInfo.cause
-      DiffCommit.io.excp.exceptionPC := csr.io.exceptionInfo.exceptionPC
+      DiffCommit.io.excp.excp_valid    := csr.io.exceptionInfo.valid
+      DiffCommit.io.excp.eret          := csr.io.exceptionInfo.eret
+      DiffCommit.io.excp.intrNo        := csr.io.exceptionInfo.intrNo
+      DiffCommit.io.excp.cause         := csr.io.exceptionInfo.cause
+      DiffCommit.io.excp.exceptionPC   := csr.io.exceptionInfo.exceptionPC
       DiffCommit.io.excp.exceptionInst := csr.io.exceptionInfo.exceptionInst
 
       when(DiffCommit.io.instr(k).valid && DiffCommit.io.instr(k).is_TLBFILL) {
