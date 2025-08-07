@@ -425,19 +425,22 @@ class MMU extends Module {
   excp0 := 0.U.asTypeOf(new ExceptionBundle)
   excp1 := 0.U.asTypeOf(new ExceptionBundle)
 
-  when(io.from_csr.crmd.plv > io.out0.bits.plv) {
+  val trans_en_next0 = RegNext(io.in0.trans_en)
+  val trans_en_next1 = RegNext(io.in1.trans_en)
+
+  when(io.from_csr.crmd.plv > io.out0.bits.plv && trans_en_next0) {
     excp0.en := true.B
     excp0.ecode := Ecode.ppi
   }
-  when(io.out0.bits.mem_type === MemType.fetch && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0)) {
+  when(io.out0.bits.mem_type === MemType.fetch && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0) && trans_en_next0) {
     excp0.en := true.B
     excp0.ecode := Ecode.pif
   }
-  when(io.out0.bits.mem_type === MemType.load && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0)) {
+  when(io.out0.bits.mem_type === MemType.load && !io.out0.bits.v && !(dmw0_hit_0 || dmw1_hit_0) && trans_en_next0) {
     excp0.en := true.B
     excp0.ecode := Ecode.pil
   }
-  when(!io.out0.bits.found.asBool && !(dmw0_hit_0 || dmw1_hit_0)) {
+  when(!io.out0.bits.found.asBool && !(dmw0_hit_0 || dmw1_hit_0) && trans_en_next0) {
     excp0.en := true.B
     excp0.ecode := Ecode.tlbr
   }
@@ -447,23 +450,23 @@ class MMU extends Module {
   }
 
   // 与上面逻辑一样
-  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.d.asBool && !(dmw0_hit_1 || dmw1_hit_1) && trans_en_next1) {
     excp1.en := true.B
     excp1.ecode := Ecode.pme
   }
-  when(io.from_csr.crmd.plv > io.out1.bits.plv && !(dmw0_hit_1 || dmw1_hit_1)) {
+  when(io.from_csr.crmd.plv > io.out1.bits.plv && !(dmw0_hit_1 || dmw1_hit_1) && trans_en_next1) {
     excp1.en := true.B
     excp1.ecode := Ecode.ppi
   }
-  when(io.out1.bits.mem_type === MemType.load && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1)) {
+  when(io.out1.bits.mem_type === MemType.load && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1) && trans_en_next1) {
     excp1.en := true.B
     excp1.ecode := Ecode.pil
   }
-  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1)) {
+  when(io.out1.bits.mem_type === MemType.store && !io.out1.bits.v && !(dmw0_hit_1 || dmw1_hit_1) && trans_en_next1) {
     excp1.en := true.B
     excp1.ecode := Ecode.pis
   }
-  when(!io.out1.bits.found.asBool && !(dmw0_hit_1 || dmw1_hit_1)) {
+  when(!io.out1.bits.found.asBool && !(dmw0_hit_1 || dmw1_hit_1) && trans_en_next1) {
     excp1.en := true.B
     excp1.ecode := Ecode.tlbr
   }

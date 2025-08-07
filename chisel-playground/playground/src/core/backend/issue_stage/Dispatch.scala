@@ -73,10 +73,6 @@ class Dispatch extends Module {
         io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).valid := inst.preg =/= 0.U
 
         alu_dispatched := true.B
-        // dispatch_dest(i) := 0.U
-        // dispatch_vec_dest(i) := cnt
-        // io.busy_info(0).preg := inst.preg
-        // io.busy_info(0).valid := inst.preg =/= 0.U
       } .otherwise {
         io.out(1).bits.inst_vec(cnt) := inst
         io.out(1).bits.inst_cnt := cnt + 1.U
@@ -84,11 +80,25 @@ class Dispatch extends Module {
         io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).valid := inst.preg =/= 0.U
 
         alu_dispatched := true.B
-        // dispatch_dest(i) := 1.U
-        // dispatch_vec_dest(i) := cnt
-        // io.busy_info(1).preg := inst.preg
-        // io.busy_info(1).valid := inst.preg =/= 0.U
       }
+      // switch(alu_cnt_before) {
+      //   is(0.U) {
+      //     io.out(0).bits.inst_vec(0) := inst
+      //     io.out(0).bits.inst_cnt := 1.U
+      //   }
+      //   is(1.U) {
+      //     io.out(1).bits.inst_vec(0) := inst
+      //     io.out(1).bits.inst_cnt := 1.U
+      //   }
+      //   is(2.U) {
+      //     io.out(0).bits.inst_vec(1) := inst
+      //     io.out(0).bits.inst_cnt := 2.U
+      //   }
+      //   is(3.U) {
+      //     io.out(1).bits.inst_vec(1) := inst
+      //     io.out(1).bits.inst_cnt := 2.U
+      //   }
+      // }
     } .elsewhen(inst.ctrl.fuType === FuType.mdu) { // MUL/DIV 指令
       io.out(2).bits.inst_vec(muldiv_cnt_before) := inst
       io.out(2).bits.inst_cnt := muldiv_cnt_before + 1.U
