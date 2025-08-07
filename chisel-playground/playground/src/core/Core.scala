@@ -121,11 +121,6 @@ class Core extends Module {
   PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, flush)
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, flush)
   PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), flush)
-  // PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
-  // PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)
-  // PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
-  // PipelineConnect2(Dispatch.io.out(3), Issue.io.in(3), Issue.io.out(3).fire, flush)
-  // PipelineConnect2(Dispatch.io.out(4), Issue.io.in(4), Issue.io.out(4).fire, flush)
   Issue.io.in(0).bits := Dispatch.io.out(0).bits
   Issue.io.in(1).bits := Dispatch.io.out(1).bits
   Issue.io.in(2).bits := Dispatch.io.out(2).bits
@@ -146,8 +141,6 @@ class Core extends Module {
   PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
   Issue.io.out(3) <> Ex.io.in(3)
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
-  Issue.io.inst_cnt := Dispatch.io.inst_cnt
-
 
   val ifAXI = Wire(new AXI)
 

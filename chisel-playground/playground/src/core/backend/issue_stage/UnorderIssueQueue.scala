@@ -3,12 +3,11 @@ package core
 import chisel3._
 import IssueConfig._
 
-class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
+class UnorderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info)) // 从 Dispatch 模块传入的指令
     val out = Decoupled(Output(new PipelineConnectIO)) // 从队列中取出的指令
-    val inst_cnt = Input(UInt(3.W)) // 指令数量
     val allReady = Input(Bool())
     // val from_ready = Output(Bool())  // 发射队列没满为真
     // val from_valid = Input(Bool())  
@@ -20,42 +19,27 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
     val flush = Input(Bool())
   })
 
-  val io_raw = IO(new Bundle {
-    val dest = Input(UInt(PHYS_REG_BITS.W))
-  })
+  // val io_raw = IO(new Bundle {
+  //   val dest = Input(UInt(PHYS_REG_BITS.W))
+  // })
 
   val mem = RegInit(VecInit(Seq.fill(SIZE)(0.U.asTypeOf(new PipelineConnectIO))))
   val valid_vec = RegInit(VecInit(Seq.fill(SIZE.toInt)(false.B)))
-  val valid_count= RegInit(0.U((log2Ceil(SIZE.toInt) + 1).W))
-  val next_mem = WireInit(mem)
-  val next_valid_vec = WireInit(valid_vec)
-  dontTouch(next_valid_vec)
-
-  // 判断是否可以接受
-  // val can_accept = valid_count === 0.U || (valid_count + io.in.bits.inst_cnt) <= SIZE.asUInt
-  val valid_count_wire = PopCount(valid_vec)
-  val can_accept = valid_count_wire === 0.U || valid_count_wire <= (SIZE).U - io.inst_cnt
+  val valid_count = PopCount(valid_vec)
+  val can_accept = valid_count === 0.U || valid_count <= (SIZE).U - io.in.bits.inst_cnt + io.out.fire // deqCount = io.out.fire
   io.in.ready := can_accept
   val inFire = io.in.valid && io.allReady
-
-  // 计算下一拍的valid_count
-  val enq_count = Wire(UInt(3.W))  // 最多一次入两条指令
-  enq_count := 0.U
-  when(io.in.valid) {
-    enq_count := io.in.bits.inst_cnt
-  }
-  val deq_count = Mux(io.out.fire, 1.U, 0.U)
 
   // 判断指令是否可以发射
   val can_issue_vec = Wire(Vec(SIZE, Bool()))
   for(i <- 0 until SIZE) {
-    if(check_dest){
-      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i) &&
-                          mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
-    }
-    else {
+    // if(check_dest){
+    //   can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i) &&
+    //                       mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
+    // }
+    // else {
       can_issue_vec(i) := (!io.busyreg(mem(i).prj) || mem(i).jIsArf) && (!io.busyreg(mem(i).prk) || mem(i).kIsArf) && valid_vec(i)
-    }
+    // }
   }
   val can_issue = can_issue_vec.reduce(_ || _)
   io.out.valid := can_issue
@@ -74,27 +58,16 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
                       Mux(io.out.bits.jIsArf, io.out.bits.dataj, prj_0 & io.pram_read.pram_data1))
   io.out.bits.src2 := Mux(io.out.bits.kIsArf, io.out.bits.datak, prk_0 & io.pram_read.pram_data2)
 
-  // 压缩队列
-  next_mem := mem
-  next_valid_vec := valid_vec
-
-  val shifted_mem = WireInit(mem)
-  val shifted_valid_vec = WireInit(valid_vec)
-
   // Apply the shift (dequeue) operation
   when(io.out.fire) {
     for (i <- 0 until SIZE - 1) {
       when(i.U >= first_can_issue_index) {
-        shifted_mem(i) := mem((i + 1) % SIZE)
-        shifted_valid_vec(i) := valid_vec((i + 1) % SIZE)
+        mem(i) := mem(i + 1)
+        valid_vec(i) := valid_vec(i + 1)
       }
     }
-    shifted_valid_vec(SIZE - 1) := false.B
+    valid_vec(SIZE - 1) := false.B
   }
-  
-  // Apply shift results to next state
-  next_mem := shifted_mem
-  next_valid_vec := shifted_valid_vec
 
   // Apply the enqueue operation to the shifted state
   when(inFire) {
@@ -102,10 +75,10 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
     for (i <- 1 to MAX_CNT) {
       when(io.in.bits.inst_cnt === i.U) {
         for (j <- 0 until i) {
-          val idx = base +& j.U
+          val idx = base + j.U
           when(idx < SIZE.U) {
-            next_mem(idx) := io.in.bits.inst_vec(j)
-            next_valid_vec(idx) := true.B
+            mem(idx) := io.in.bits.inst_vec(j)
+            valid_vec(idx) := true.B
           }
         }
       }
@@ -115,14 +88,8 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   // flush
   when(io.flush) {
     for (i <- 0 until SIZE.toInt) {
-      next_valid_vec(i) := false.B
-      next_mem(i).valid := false.B
+      valid_vec(i) := false.B
+      mem(i).valid := false.B
     }
   }
-
-  // 更新状态
-  mem := next_mem
-  valid_vec := next_valid_vec
-  // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
-  valid_count := PopCount(next_valid_vec)
 }

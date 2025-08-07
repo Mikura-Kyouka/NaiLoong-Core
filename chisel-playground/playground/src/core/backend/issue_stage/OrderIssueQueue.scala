@@ -7,7 +7,6 @@ class OrderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info))
     val out = Decoupled(Output(new PipelineConnectIO))
-    val inst_cnt = Input(UInt(3.W))
     val allReady = Input(Bool())
     // val from_ready = Output(Bool()) io.in.ready
     // val from_valid = Input(Bool()) io.in.valid
@@ -23,20 +22,14 @@ class OrderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
   val valid_vec = RegInit(VecInit(Seq.fill(SIZE.toInt)(false.B)))
   val write_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
   val read_ptr = RegInit(0.U(log2Ceil(SIZE).W + 1.W))
-  val valid_count = RegInit(0.U((log2Ceil(SIZE.toInt) + 1).W))
-  val enq_count = Wire(UInt(3.W))
+  val valid_count = PopCount(valid_vec)
+  val enq_count = io.in.bits.inst_cnt
   val deq_count = Mux(io.out.fire, 1.U, 0.U)
 
   // FIXME: ???
   val inFire = io.in.valid && io.allReady
-  val valid_count_wire = PopCount(valid_vec)
-  val next_count = valid_count_wire +& Mux(inFire, enq_count, 0.U) - deq_count
-  io.in.ready := RegNext(next_count) + io.inst_cnt <= (SIZE).U
-  dontTouch(next_count)
-  
-  enq_count := io.in.bits.inst_cnt
-  // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
-  valid_count := PopCount(valid_vec)
+  val can_accept = valid_count === 0.U || valid_count <= (SIZE).U - io.in.bits.inst_cnt + io.out.fire // deqCount = io.out.fire
+  io.in.ready := can_accept
 
   // read
   val debug_read_ptr = WireInit(read_ptr)
