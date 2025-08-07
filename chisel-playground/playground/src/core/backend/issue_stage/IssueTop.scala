@@ -19,9 +19,9 @@ class IssueTop extends Module {
     val flush = Input(Bool())
   })
 
-  val alu1rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
-  val alu2rs = Module(new UnorderIssueQueue(check_dest = false, SIZE = UNORDER_QUEUE_SIZE, MAX_CNT = 2))
-  val mdurs  = Module(new UnorderIssueQueue(check_dest = false, SIZE = MDU_QUEUE_SIZE, MAX_CNT = 4))
+  val alu1rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE1, MAX_CNT = 2))
+  val alu2rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE2, MAX_CNT = 2))
+  val mdurs  = Module(new UnorderIssueQueue(wakeup = false, SIZE = MDU_QUEUE_SIZE, MAX_CNT = 4))
   val lsurs  = Module(new OrderIssueQueue(SIZE = 8, MAX_CNT = 4))
   val brurs  = Module(new OrderIssueQueue(SIZE = 6, MAX_CNT = 4))
   alu1rs.io.in <> io.in(0)
@@ -89,6 +89,16 @@ class IssueTop extends Module {
     when(io.rtrInstr(i).valid) {
       busyreg(io.rtrInstr(i).bits.preg) := false.B
     }
+  }
+
+  // early wakeup
+  val wakeup_info1 = alu1rs.io.wakeup
+  val wakeup_info2 = alu2rs.io.wakeup
+  when(wakeup_info1.valid) {
+    busyreg(wakeup_info1.preg) := false.B
+  }
+  when(wakeup_info2.valid) {
+    busyreg(wakeup_info2.preg) := false.B
   }
 
   // Connect busy signal

@@ -3,7 +3,7 @@ package core
 import chisel3._
 import IssueConfig._
 
-class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
+class UnorderIssueQueue(val wakeup: Boolean = false, val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
   import chisel3.util._
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(new dispatch_out_info)) // 从 Dispatch 模块传入的指令
@@ -18,6 +18,8 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
     val busyreg = Input(Vec(PHYS_REG_NUM + 1, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
     val flush = Input(Bool())
+
+    val wakeup = Output(new wakeup_info)
   })
 
   val io_raw = IO(new Bundle {
@@ -49,13 +51,7 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   // 判断指令是否可以发射
   val can_issue_vec = Wire(Vec(SIZE, Bool()))
   for(i <- 0 until SIZE) {
-    if(check_dest){
-      can_issue_vec(i) := !io.busyreg(mem(i).prj) && !io.busyreg(mem(i).prk) && valid_vec(i) &&
-                          mem(i).prj =/= io_raw.dest && mem(i).prk =/= io_raw.dest
-    }
-    else {
       can_issue_vec(i) := (!io.busyreg(mem(i).prj) || mem(i).jIsArf) && (!io.busyreg(mem(i).prk) || mem(i).kIsArf) && valid_vec(i)
-    }
   }
   val can_issue = can_issue_vec.reduce(_ || _)
   io.out.valid := can_issue
@@ -125,4 +121,14 @@ class UnorderIssueQueue(val check_dest: Boolean = false, val SIZE: Int = 8, val 
   valid_vec := next_valid_vec
   // valid_count := Mux(io.flush, 0.U, valid_count + enq_count - deq_count)
   valid_count := PopCount(next_valid_vec)
+
+  val fire_next = RegNext(io.out.fire)
+  val preg_next = RegNext(io.out.bits.preg)
+  if(wakeup) {
+    io.wakeup.preg := preg_next
+    io.wakeup.valid := fire_next && preg_next =/= 0.U
+  } else {
+    io.wakeup.preg := 0.U
+    io.wakeup.valid := false.B
+  }
 }

@@ -78,3 +78,8 @@ class bypass_info extends Bundle {
   val data = UInt(32.W)
   val dest = UInt(PHYS_REG_BITS.W)
 }
+
+class wakeup_info extends Bundle {
+  val preg = UInt(PHYS_REG_BITS.W)
+  val valid = Bool()
+}
