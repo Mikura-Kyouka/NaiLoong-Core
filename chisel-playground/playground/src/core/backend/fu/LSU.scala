@@ -280,7 +280,7 @@ class LSU extends Module with HasLSUConst {
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
   val storeQueueDequeue = storeQueueReqsend//  || storeQueue(0).failsc
-  when(storeQueueDequeue || storeQueue(0).failsc){
+  when(storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)){
     // storeQueue := Cat(storeQueue(0), storeQueue(storeQueueSize-1, 1))
     // 将队列中第 1 ~ N 项依次赋值给第 0 ~ N-1 项，所有元素整体前移一位
     List.tabulate(storeQueueSize - 1)(i => {
@@ -298,8 +298,8 @@ class LSU extends Module with HasLSUConst {
   storeCmtPtr := nextStoreCmtPtr
 
   // move storeHeadPtr ptr
-  when((storeQueueDequeue || storeQueue(0).failsc) && !storeQueueEnqueue){storeHeadPtr := storeHeadPtr - 1.U}
-  when(!(storeQueueDequeue || storeQueue(0).failsc) && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
+  when((storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)) && !storeQueueEnqueue){storeHeadPtr := Mux(storeHeadPtr === 0.U, 0.U, storeHeadPtr - 1.U)}
+  when(!(storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)) && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
   val flushStoreHeadPtr = PriorityMux(
     (nextStoreCmtPtr === 0.U) +: (0 until storeQueueSize).map(i => {
       PopCount(VecInit((0 to i).map(j => storeQueue(j).valid))) === nextStoreCmtPtr
@@ -307,6 +307,7 @@ class LSU extends Module with HasLSUConst {
     (0 to storeQueueSize).map(i => i.U)
   )
   when(io.flush){storeHeadPtr := flushStoreHeadPtr}
+  dontTouch(flushStoreHeadPtr)
 
   val storeQueueEnqPtr = Mux(storeQueueDequeue, storeHeadPtr - 1.U, storeHeadPtr)
   val storeQueueEnqSrcPick = moqDmemPtr
