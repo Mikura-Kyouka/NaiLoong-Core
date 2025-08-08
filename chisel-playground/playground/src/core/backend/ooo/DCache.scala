@@ -389,4 +389,21 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
         delayCounter := delayCounter + 1.U
       }
     }
+
+    if(GenCtrl.USE_COUNT) {
+      // 1. 周期计数器
+      val cycle_counter = RegInit(0.U(32.W))
+      cycle_counter := cycle_counter + 1.U
+
+      // 2. 写回计数器
+      val writeback_counter = RegInit(0.U(32.W))
+      when(io.axi.bvalid && state === s_write_mem3 && !isMMIO) {
+        writeback_counter := writeback_counter + 1.U
+      }
+
+      // 3. 每隔500周期打印统计信息
+      when(cycle_counter % 500.U === 0.U && cycle_counter =/= 0.U) {
+        printf(p"  Writeback: ${writeback_counter} times\n")
+      }
+    }
 }

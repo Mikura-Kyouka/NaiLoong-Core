@@ -148,4 +148,46 @@ class IssueTop extends Module {
     brurs_debug.io.inst_info := brurs.io.out.bits
     brurs_debug.io.ready := brurs.io.out.ready
   }
+
+  if(GenCtrl.USE_COUNT) {
+    // 1. 周期计数器
+    val cycle_counter = RegInit(0.U(32.W))
+    cycle_counter := cycle_counter + 1.U
+
+    // 2. 为每个RS添加低电平计数器
+    val alu1rs_not_ready_counter = RegInit(0.U(32.W))
+    val alu2rs_not_ready_counter = RegInit(0.U(32.W))
+    val mdurs_not_ready_counter = RegInit(0.U(32.W))
+    val lsurs_not_ready_counter = RegInit(0.U(32.W))
+    val brurs_not_ready_counter = RegInit(0.U(32.W))
+
+    // 3. 计数器更新逻辑
+    when(!alu1rs.io.in.ready) {
+      alu1rs_not_ready_counter := alu1rs_not_ready_counter + 1.U
+    }
+    when(!alu2rs.io.in.ready) {
+      alu2rs_not_ready_counter := alu2rs_not_ready_counter + 1.U
+    }
+    when(!mdurs.io.in.ready) {
+      mdurs_not_ready_counter := mdurs_not_ready_counter + 1.U
+    }
+    when(!lsurs.io.in.ready) {
+      lsurs_not_ready_counter := lsurs_not_ready_counter + 1.U
+    }
+    when(!brurs.io.in.ready) {
+      brurs_not_ready_counter := brurs_not_ready_counter + 1.U
+    }
+
+    // 4. 每隔500周期打印统计信息
+    when(cycle_counter % 500.U === 0.U && cycle_counter =/= 0.U) {
+      printf("----------------------------------------\n") 
+      printf(p"Cycle ${cycle_counter}: RS Stall Statistics\n")
+      printf(p"  ALU1RS: ${alu1rs_not_ready_counter} cycles\n")
+      printf(p"  ALU2RS: ${alu2rs_not_ready_counter} cycles\n")
+      printf(p"  MDURS:  ${mdurs_not_ready_counter} cycles\n")
+      printf(p"  LSURS:  ${lsurs_not_ready_counter} cycles\n")
+      printf(p"  BRURS:  ${brurs_not_ready_counter} cycles\n")
+      printf("----------------------------------------\n")
+    }
+  }
 }
