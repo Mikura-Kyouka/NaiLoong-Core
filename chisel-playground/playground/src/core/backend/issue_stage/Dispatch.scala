@@ -11,7 +11,6 @@ class Dispatch extends Module {
   val io = IO(new Bundle {
     val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO)))
     val out = Vec(ISSUE_WIDTH, Decoupled(new dispatch_out_info))
-    val busy_info = Output(Vec(5, new busy_info))
     val inst_cnt = Vec(ISSUE_WIDTH, Output(UInt(3.W)))
   })
 
@@ -25,22 +24,14 @@ class Dispatch extends Module {
     }
   }
 
-  for (q <- io.busy_info) {
-    q.valid := false.B
-    q.preg := 0.U
-  }
-
   // FIXME: paramiterize FETCH_WITDTH
   io.in.ready := io.out(0).ready && io.out(1).ready && io.out(2).ready && io.out(3).ready && io.out(4).ready
   
   for (i <- 0 until ISSUE_WIDTH) {
      io.out(i).valid := io.in.valid 
-  } 
-
-  val alu_dispatched = RegInit(false.B)
-  when(io.out.map(_.valid).reduce(_ || _)) {
-    alu_dispatched := false.B
   }
+
+  val alu_rr = RegInit(false.B)
 
   for(i <- 0 until 4) { // TODO: FETCH_WIDTH
     val inst = io.in.bits(i)
@@ -64,73 +55,37 @@ class Dispatch extends Module {
     }.reduceOption(_ + _).getOrElse(0.U(3.W))
 
     // 根据指令类型分发
-    when(inst.ctrl.fuType === FuType.alu) { // ALU 指令
+    when(inst.ctrl.fuType === FuType.alu && inst.valid) { // ALU 指令
       val cnt = Cat(0.U(1.W), alu_cnt_before >> 1)
-      when((alu_cnt_before % 2.U) === 0.U) {
+      val firstPick = alu_rr ^ alu_cnt_before(0)
+      when (firstPick === false.B) {
         io.out(0).bits.inst_vec(cnt) := inst
-        io.out(0).bits.inst_cnt := cnt + 1.U
-        io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).preg := inst.preg
-        io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).valid := inst.preg =/= 0.U
-
-        alu_dispatched := true.B
+        io.out(0).bits.inst_cnt      := cnt + 1.U
       } .otherwise {
         io.out(1).bits.inst_vec(cnt) := inst
-        io.out(1).bits.inst_cnt := cnt + 1.U
-        io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).preg := inst.preg
-        io.busy_info(Mux(alu_dispatched, 1.U, 0.U)).valid := inst.preg =/= 0.U
-
-        alu_dispatched := true.B
+        io.out(1).bits.inst_cnt      := cnt + 1.U
       }
-      // switch(alu_cnt_before) {
-      //   is(0.U) {
-      //     io.out(0).bits.inst_vec(0) := inst
-      //     io.out(0).bits.inst_cnt := 1.U
-      //   }
-      //   is(1.U) {
-      //     io.out(1).bits.inst_vec(0) := inst
-      //     io.out(1).bits.inst_cnt := 1.U
-      //   }
-      //   is(2.U) {
-      //     io.out(0).bits.inst_vec(1) := inst
-      //     io.out(0).bits.inst_cnt := 2.U
-      //   }
-      //   is(3.U) {
-      //     io.out(1).bits.inst_vec(1) := inst
-      //     io.out(1).bits.inst_cnt := 2.U
-      //   }
-      // }
-    } .elsewhen(inst.ctrl.fuType === FuType.mdu) { // MUL/DIV 指令
+    } .elsewhen(inst.ctrl.fuType === FuType.mdu && inst.valid) { // MUL/DIV 指令
       io.out(2).bits.inst_vec(muldiv_cnt_before) := inst
       io.out(2).bits.inst_cnt := muldiv_cnt_before + 1.U
-      // dispatch_dest(i) := 2.U
-      // dispatch_vec_dest(i) := muldiv_cnt_before
-      io.busy_info(2).preg := inst.preg
-      io.busy_info(2).valid := inst.preg =/= 0.U
-    } .elsewhen(inst.ctrl.fuType === FuType.lsu) { // Load/Store 指令
+    } .elsewhen(inst.ctrl.fuType === FuType.lsu && inst.valid) { // Load/Store 指令
       io.out(3).bits.inst_vec(loadstore_cnt_before) := inst
       io.out(3).bits.inst_cnt := loadstore_cnt_before + 1.U
-      // dispatch_dest(i) := 3.U
-      // dispatch_vec_dest(i) := loadstore_cnt_before
-      io.busy_info(3).preg := inst.preg
-      io.busy_info(3).valid := inst.preg =/= 0.U
-    }.elsewhen(inst.ctrl.fuType === FuType.bru) { // Branch 指令
+    }.elsewhen(inst.ctrl.fuType === FuType.bru && inst.valid) { // Branch 指令
       io.out(4).bits.inst_vec(branch_cnt_before) := inst
       io.out(4).bits.inst_cnt := branch_cnt_before + 1.U
-      // dispatch_dest(i) := 4.U
-      // dispatch_vec_dest(i) := branch_cnt_before
-      io.busy_info(4).preg := inst.preg
-      io.busy_info(4).valid := inst.preg =/= 0.U
     }
   }
 
-  io.inst_cnt := io.out.map(_.bits.inst_cnt)
+  val alu_cnt_this_cycle = (0 until 4).map { j =>
+    Mux(io.in.bits(j).ctrl.fuType === FuType.alu && io.in.bits(j).valid, 1.U(3.W), 0.U(3.W))
+  }.reduceOption(_ + _).getOrElse(0.U(3.W))
+  when(io.in.fire) {
+    // 若本拍ALU数为奇数，则翻转
+    alu_rr := alu_rr ^ alu_cnt_this_cycle(0)
+  }
 
-  // // for busy reg
-  // for (i <- 0 until 4) {
-  //   io.busy_info(i).valid := io.out(dispatch_dest(i)).bits.inst_vec(dispatch_vec_dest(i)).preg =/= 0.U && 
-  //                            io.out(dispatch_dest(i)).valid
-  //   io.busy_info(i).preg  := io.out(dispatch_dest(i)).bits.inst_vec(dispatch_vec_dest(i)).preg
-  // }
+  io.inst_cnt := io.out.map(_.bits.inst_cnt)
 
   /* 
    * 0 => ALU 
