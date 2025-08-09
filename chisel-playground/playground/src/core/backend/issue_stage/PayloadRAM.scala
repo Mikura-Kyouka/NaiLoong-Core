@@ -12,21 +12,21 @@ class PayloadRAM extends Module {
   val pram = Reg(Vec(PHYS_REG_NUM, UInt(32.W)))
  
   // read
-  io.read(0).pram_data1 := pram(io.read(0).src1 - 1.U)
-  io.read(0).pram_data2 := pram(io.read(0).src2 - 1.U)
-  io.read(1).pram_data1 := pram(io.read(1).src1 - 1.U)
-  io.read(1).pram_data2 := pram(io.read(1).src2 - 1.U)
-  io.read(2).pram_data1 := pram(io.read(2).src1 - 1.U)
-  io.read(2).pram_data2 := pram(io.read(2).src2 - 1.U)
-  io.read(3).pram_data1 := pram(io.read(3).src1 - 1.U)
-  io.read(3).pram_data2 := pram(io.read(3).src2 - 1.U)
-  io.read(4).pram_data1 := pram(io.read(4).src1 - 1.U)
-  io.read(4).pram_data2 := pram(io.read(4).src2 - 1.U)
+  io.read(0).pram_data1 := pram(io.read(0).src1)
+  io.read(0).pram_data2 := pram(io.read(0).src2)
+  io.read(1).pram_data1 := pram(io.read(1).src1)
+  io.read(1).pram_data2 := pram(io.read(1).src2)
+  io.read(2).pram_data1 := pram(io.read(2).src1)
+  io.read(2).pram_data2 := pram(io.read(2).src2)
+  io.read(3).pram_data1 := pram(io.read(3).src1)
+  io.read(3).pram_data2 := pram(io.read(3).src2)
+  io.read(4).pram_data1 := pram(io.read(4).src1)
+  io.read(4).pram_data2 := pram(io.read(4).src2)
 
   // write
   for(i <- 0 until 5) {
     when(io.write(i).valid && io.write(i).dest.orR) {
-      pram(io.write(i).dest - 1.U) := io.write(i).pram_data
+      pram(io.write(i).dest) := io.write(i).pram_data
     }
   }
 

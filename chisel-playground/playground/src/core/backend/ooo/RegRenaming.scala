@@ -9,7 +9,7 @@ import utils.PipelineConnect
 object RegConfig {
   val ARCH_REG_NUM = 32
   val PHYS_REG_NUM = 64
-  val PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM) + 1
+  val PHYS_REG_BITS = log2Ceil(PHYS_REG_NUM)
   val CHECKPOINT_DEPTH = 48
   val CHECKPOINT_BITS = log2Ceil(CHECKPOINT_DEPTH)
 }
@@ -95,11 +95,11 @@ class Rename extends Module {
       val flTail    = Output(UInt((RegConfig.PHYS_REG_BITS + 1).W))
     })
     // 寄存器初始化
-    val entries = RegInit(VecInit((1 to RegConfig.PHYS_REG_NUM).map(_.U)))
+    val entries = RegInit(VecInit((0 until RegConfig.PHYS_REG_NUM).map(_.U)))
     // val entryUsed = RegInit(VecInit(Seq.fill(RegConfig.PHYS_REG_NUM)(false.B)))
     // val entryUsedCount = PopCount(entryUsed)
-    val head = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
-    val tail = RegInit(0.U((RegConfig.PHYS_REG_BITS + 1).W))
+    val head = RegInit(1.U((RegConfig.PHYS_REG_BITS + 1).W))
+    val tail = RegInit(1.U((RegConfig.PHYS_REG_BITS + 1).W))
     val full = RegInit(false.B)
 
     io.flHead := head
@@ -130,16 +130,39 @@ class Rename extends Module {
     // 并行分配逻辑
     val allocCnt = PopCount(reqValid.zip(reqReady).map { case (v, r) => v && r })
     
+    val finalAllocIndexes = WireInit(allocIndexes)
+
+    // 如果分配的索引为0，则将其和其后的加1
+    val allocIndexesHasZeroVec = VecInit(Seq.fill(4)(false.B))
+    val allocZeroIndex = WireInit(0.U(2.W))
+    for (i <- 0 until 4) {
+      allocIndexesHasZeroVec(i) := allocIndexes(i) === 0.U && respValid(i)
+    }
+    val allocIndexesHasZero = allocIndexesHasZeroVec.reduce(_ || _)
+    when(allocIndexesHasZero) {
+      allocZeroIndex := PriorityEncoder(allocIndexesHasZeroVec)
+    }
+    when(allocIndexesHasZero) {
+      for (i <- 0 until 4) {
+        when(respValid(i) && i.asUInt >= allocZeroIndex) {
+          finalAllocIndexes(i) := allocIndexes(i) +& 1.U
+        }
+      }
+    }
+
     // 响应生成
     for (i <- 0 until 4) {
       io.allocResp(i).valid := reqValid(i) && reqReady(i)
-      io.allocResp(i).bits := entries(allocIndexes(i))
+      io.allocResp(i).bits := entries(finalAllocIndexes(i))
     }
 
     // Head指针更新
     when(io.allocResp.map(_.valid).reduce(_||_) && io.fire) {
-      head := (head +& allocCnt) % entries.size.U
-      when((head +& allocCnt) % entries.size.U === tail) {
+      val newHead = Mux(head +& allocCnt >= entries.size.U,
+                    head +& allocCnt - entries.size.U + 1.U,
+                    head +& allocCnt)
+      head := newHead
+      when(newHead === tail) {
         full := true.B
       }
     }
@@ -161,22 +184,24 @@ class Rename extends Module {
       for (i <- 0 until RobConfig.ROB_CMT_NUM) {
         when(freeValid(i) && prefixSum(i) < freeCount) {
           val freeIndex = (tail +& prefixSum(i)) % entries.size.U
-          entries(freeIndex) := io.free(i).bits
+          val finalFreeIndex = Mux(freeIndex === 0.U, 1.U, freeIndex)
+          entries(finalFreeIndex) := io.free(i).bits
           // entryUsed(freeIndex) := false.B
         }
       }
-
-      tail := (tail +& freeCount) % entries.size.U
-      //full := false.B
     }
 
+    tail := Mux(tail +& freeCount >= entries.size.U,
+                tail +& freeCount - entries.size.U + 1.U,
+                tail +& freeCount)
+
     io.count := Mux(tail === head && !full, entries.size.U, 
-                Mux(tail >= head, tail - head, (entries.size.U - head) + tail))  
+                Mux(tail >= head, tail - head, (entries.size.U - head) + tail - 1.U))  
 
     when(io.rollback.valid) {
       head := io.rollback.bits.head % entries.size.U
       tail := io.rollback.bits.tail % entries.size.U
-      entries := VecInit((1 to RegConfig.PHYS_REG_NUM).map(_.U))
+      entries := VecInit((0 until RegConfig.PHYS_REG_NUM).map(_.U))
     }
   }
 
@@ -524,8 +549,8 @@ class RegRenaming1 extends Module {
 
   // 分支预测错误/异常回滚
   when(io.flush) {
-    freeList.io.rollback.bits.head := 0.U
-    freeList.io.rollback.bits.tail := 0.U
+    freeList.io.rollback.bits.head := 1.U
+    freeList.io.rollback.bits.tail := 1.U
     freeList.io.rollback.valid := true.B
   }.otherwise {
     freeList.io.rollback.bits := DontCare
