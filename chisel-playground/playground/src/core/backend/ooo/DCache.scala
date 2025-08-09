@@ -12,6 +12,7 @@ class reqBundle extends Bundle{
     val cmd   = Output(Bool())// 0: read, 1: write
     val moqIdx = Output(UInt(3.W)) // moq entry index
     val isMMIO = Input(Bool())
+    val failsc = Input(Bool())
     val cacopOp = Input(UInt(2.W))
     val cacopEn = Input(Bool())
 }
@@ -123,6 +124,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     resp := DontCare
     resp.moqIdx := req.moqIdx // 保留moq entry index
     val addr = req.addr.asTypeOf(addrBundle)
+    val failsc = req.failsc 
     // when(cacopOp0 || cacopOp1) {
     //   addr := io.cacop.VA.asTypeOf(addrBundle)
     // }
@@ -207,7 +209,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // because store may only write to specific byte
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.fire && !cacopOp0, 
+        s_idle -> Mux(io.req.fire && !cacopOp0 && !failsc, 
                         Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
                         s_idle),
         s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
@@ -226,7 +228,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                       (isMMIO && io.axi.bvalid) || 
                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
                       (hit && cacopOp2 && !dirty && state === s_judge) ||
-                      (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
+                      (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle) || (io.req.valid && failsc && state === s_idle)
 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
