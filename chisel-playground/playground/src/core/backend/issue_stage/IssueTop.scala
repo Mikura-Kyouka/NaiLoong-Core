@@ -83,22 +83,18 @@ class IssueTop extends Module {
     }
   }
 
-  // retire inst
-  for(i <- 0 until RobConfig.ROB_CMT_NUM) { // busyreg update
-    // fu output update
-    when(io.rtrInstr(i).valid) {
-      busyreg(io.rtrInstr(i).bits.preg) := false.B
-    }
-  }
+  // // retire inst
+  // for(i <- 0 until RobConfig.ROB_CMT_NUM) { // busyreg update
+  //   // fu output update
+  //   when(io.rtrInstr(i).valid) {
+  //     busyreg(io.rtrInstr(i).bits.preg) := false.B
+  //   }
+  // }
 
-  // early wakeup
-  val wakeup_info1 = alu1rs.io.wakeup
-  val wakeup_info2 = alu2rs.io.wakeup
-  when(wakeup_info1.valid) {
-    busyreg(wakeup_info1.preg) := false.B
-  }
-  when(wakeup_info2.valid) {
-    busyreg(wakeup_info2.preg) := false.B
+  for(i <- 0 until 5) {
+    when(io.ex_bypass(i).valid) {
+      busyreg(io.ex_bypass(i).dest) := false.B
+    }
   }
 
   // Connect busy signal

@@ -18,8 +18,6 @@ class UnorderIssueQueue(val wakeup: Boolean = false, val SIZE: Int = 8, val MAX_
     val busyreg = Input(Vec(PHYS_REG_NUM + 1, Bool()))  // 物理寄存器是否被占用
     val pram_read = Flipped(new payloadram_read_info)  // 读取 payload ram
     val flush = Input(Bool())
-
-    val wakeup = Output(new wakeup_info)
   })
 
   val io_raw = IO(new Bundle {
@@ -124,11 +122,4 @@ class UnorderIssueQueue(val wakeup: Boolean = false, val SIZE: Int = 8, val MAX_
 
   val fire_next = RegNext(io.out.fire)
   val preg_next = RegNext(io.out.bits.preg)
-  if(wakeup) {
-    io.wakeup.preg := preg_next
-    io.wakeup.valid := fire_next && preg_next =/= 0.U
-  } else {
-    io.wakeup.preg := 0.U
-    io.wakeup.valid := false.B
-  }
 }
