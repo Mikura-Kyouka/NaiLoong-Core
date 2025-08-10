@@ -96,8 +96,8 @@ class LSU extends Module with HasLSUConst {
     val lladdr = Input(UInt(32.W))
   })
   
-  val (valid, src1, src2, func) = (io.in.bits.valid, io.in.bits.src1, Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2), io.in.bits.ctrl.fuOpType)
-  val addr = io.in.bits.src1 + io.in.bits.imm
+  val func = io.in.bits.ctrl.fuOpType
+  val addr = io.in.bits.src1 // TODO: CAUTION: in AGU, we let src1 = src1 + imm
   val failsc = io.in.bits.ctrl.fuOpType === LSUOpType.sc && (!io.llbit || addr =/= io.lladdr)
   val succsc = io.in.bits.ctrl.fuOpType === LSUOpType.sc && io.llbit && addr === io.lladdr
   dontTouch(io.in.bits.pc)
