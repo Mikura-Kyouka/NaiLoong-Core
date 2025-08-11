@@ -10,6 +10,6 @@ class AGU extends Module {
   })
   io.out.bits := io.in.bits
   io.out.bits.src1 := io.in.bits.src1 + io.in.bits.imm
-  io.out.valid := false.B
-  io.in.ready := false.B
+  io.in.ready := io.out.ready
+  io.out.valid := io.in.valid
 }

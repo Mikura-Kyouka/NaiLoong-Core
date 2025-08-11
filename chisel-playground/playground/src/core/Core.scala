@@ -147,7 +147,7 @@ class Core extends Module {
 
   val agu = Module(new AGU)
   PipelineConnect(Issue.io.out(3), agu.io.in, agu.io.out.fire, flush)
-  PipelineConnect(agu.io.out, Ex.io.in(3), Ex.io.out(3).fire, flush)
+  agu.io.out <> Ex.io.in(3)
 
   PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
   Issue.io.inst_cnt := Dispatch.io.inst_cnt
