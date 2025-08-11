@@ -126,7 +126,7 @@ class Core extends Module {
   // PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
   // PipelineConnect2(Dispatch.io.out(3), Issue.io.in(3), Issue.io.out(3).fire, flush)
   // PipelineConnect2(Dispatch.io.out(4), Issue.io.in(4), Issue.io.out(4).fire, flush)
-  val q = Module(new FlushableQueue(chiselTypeOf(Rn.io.out.bits), 1, pipe=false, flow=false))
+  val q = Module(new FlushableQueue(chiselTypeOf(Rn.io.out.bits), 2, pipe=false, flow=false))
   q.io.enq <> Rn.io.out
   q.io.deq <> Dispatch.io.in
   q.io.flush := RegNext(rob.io.flush)
