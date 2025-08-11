@@ -21,7 +21,6 @@ class Rename extends Module {
     val s1Fire = Output(Bool())
     val rob = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
-    val exception = Input(Bool())
     val robAllocate = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
     val flush = Input(Bool())
@@ -46,7 +45,6 @@ class Rename extends Module {
   regRenaming.io.out.ready := io.out.ready
   io.out.valid := regRenaming.io.out.valid
   regRenaming.io.brMispredict := io.brMispredict
-  regRenaming.io.exception := io.exception
   regRenaming.io.flush := io.flush
   regRenaming1.io.flush := io.flush
   // regRenaming.io.rollbackChkpt := io.rollbackChkpt
@@ -249,7 +247,6 @@ class RegRenaming extends Module {
     val preg         = Flipped(Decoupled(Vec(4, UInt(RegConfig.PHYS_REG_BITS.W))))
     val rob          = Input(new RobCommit)
     val brMispredict = Input(new BrMisPredInfo)
-    val exception    = Input(Bool())
     val robAllocate  = new RobAllocateIO
     val arf = Output(Vec(32, UInt(32.W))) // 逻辑寄存器
     val flush = Input(Bool())

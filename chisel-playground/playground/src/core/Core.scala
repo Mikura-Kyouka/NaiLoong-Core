@@ -118,9 +118,9 @@ class Core extends Module {
 
   val flush = rob.io.flush || RegNext(rob.io.flush)
 
-  PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, flush)
-  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, flush)
-  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), flush)
+  PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, RegNext(rob.io.flush))
+  PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, RegNext(rob.io.flush))
+  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), RegNext(rob.io.flush))
   // PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
   // PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)
   // PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
@@ -290,17 +290,6 @@ class Core extends Module {
   io.debug1_wb_rf_wen := If.io.debug1_wb_rf_wen
   io.debug1_wb_rf_wnum := If.io.debug1_wb_rf_wnum
   io.debug1_wb_rf_wdata := If.io.debug1_wb_rf_wdata
-  
-  dontTouch(Rn.io.robAllocate)
-
-  // Rn.io.out.ready := true.B
-  // dontTouch(Rn.io.out)
-  // dontTouch(Issue.io.out)
-  // Issue.io.out(0).ready := true.B
-  // Issue.io.out(1).ready := true.B
-  // Issue.io.out(2).ready := true.B
-  // Issue.io.out(3).ready := true.B
-  // Issue.io.out(4).ready := true.B
 
   Issue.io.rtrInstr := DontCare
   
@@ -316,7 +305,7 @@ class Core extends Module {
     Issue.io.rtrInstr(i).bits.preg := rob.io.commit.commit(i).bits.preg
   }
 
-  Issue.io.flush := flush
+  Issue.io.flush := RegNext(rob.io.flush)
   
   Ex.io.out(0).ready := true.B
   Ex.io.out(1).ready := true.B
@@ -364,7 +353,6 @@ class Core extends Module {
 
   // branch handle logic
   Rn.io.brMispredict := rob.io.brMisPredInfo
-  Rn.io.exception := rob.io.exceptionInfo.valid
 
   Rn.io.flush := RegNext(rob.io.flush)
 
