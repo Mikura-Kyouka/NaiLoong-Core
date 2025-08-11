@@ -136,7 +136,19 @@ class LSU extends Module with HasLSUConst {
   val moqDtlbPtr  = RegInit(0.U((log2Up(moqSize)).W))
   val moqDmemPtr  = RegInit(0.U((log2Up(moqSize)).W))
   val moqTailPtr  = RegInit(0.U((log2Up(moqSize)).W))
-  val moqFull = moqHeadPtr === (moqTailPtr - 1.U)
+
+  val fullReg = RegInit(false.B)
+  when(moqHeadPtr =/= moqTailPtr) {
+    fullReg := false.B
+  }
+  when(moqHeadPtr + 1.U === moqTailPtr && io.in.valid) {
+    fullReg := true.B
+  }
+  when(io.flush) {
+    fullReg := false.B
+  }
+
+  val moqFull = moqHeadPtr === (moqTailPtr - 1.U) || moqHeadPtr === moqTailPtr && fullReg
   val moqEmpty = moqHeadPtr === moqTailPtr
   val havePendingDtlbReq = moqDtlbPtr =/= moqHeadPtr
   val AAAAA = LSUOpType.isLoad(moq(moqDmemPtr).func)
@@ -162,7 +174,7 @@ class LSU extends Module with HasLSUConst {
   // }
 
   // load queue enqueue
-  val moqEnqueue = io.in.fire && io.in.bits.valid // FIXME:
+  val moqEnqueue = io.in.valid && io.in.bits.valid // FIXME:
   when(moqEnqueue){moqHeadPtr := moqHeadPtr + 1.U}
   // move moqDtlbptr
   // 如果有等待的Dtlb请求，DtlbPtr下个周期增加1（Dtlb一个周期后总能返回数据）
@@ -182,7 +194,7 @@ class LSU extends Module with HasLSUConst {
     moq(writebackSelect).finished := true.B
   }
   dontTouch(moqTailPtr)
-  when((moqTailPtr =/= moqDmemPtr) && !moq(moqTailPtr).valid && moq(moqTailPtr).finished){
+  when((moqTailPtr =/= moqDmemPtr || moqTailPtr === moqDmemPtr && moqFull) && !moq(moqTailPtr).valid && moq(moqTailPtr).finished){
     moqTailPtr := moqTailPtr + 1.U
     moq(moqTailPtr).valid := false.B
     moq(moqTailPtr).finished := false.B
@@ -345,8 +357,8 @@ class LSU extends Module with HasLSUConst {
     "b01".U   -> (addr(0) === 0.U),   //h
     "b10".U   -> (addr(1,0) === 0.U)  //w
   ))
-  findLoadAddrMisaligned  := io.in.fire && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
-  findStoreAddrMisaligned := io.in.fire && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
+  findLoadAddrMisaligned  := io.in.valid && io.in.bits.valid && LSUOpType.isLoad(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
+  findStoreAddrMisaligned := io.in.valid && io.in.bits.valid && LSUOpType.isStore(func) && !addrAligned && !(io.in.bits.ctrl.cType === CACOPType.d) && !failsc 
 
   //-------------------------------------------------------
   // LSU Stage 2,3,4,5: mem req
@@ -359,7 +371,7 @@ class LSU extends Module with HasLSUConst {
   //-------------------------------------------------------
   // Send request to dtlb
   val dtlbMoqIdx = moqDtlbPtr
-  io.addr_trans_out.trans_en := io.in.fire && io.in.bits.valid && !cacopOp0 && !cacopOp1 && !failsc
+  io.addr_trans_out.trans_en := io.in.valid && io.in.bits.valid && !cacopOp0 && !cacopOp1 && !failsc
   io.addr_trans_out.vaddr := addr
   io.addr_trans_out.mem_type := Mux(LSUOpType.isStore(func), MemType.store, MemType.load) // cacop的func是lw
   when(havePendingDtlbReq){
