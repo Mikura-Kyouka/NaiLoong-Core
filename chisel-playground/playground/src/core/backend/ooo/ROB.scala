@@ -460,20 +460,28 @@ class Rob extends Module {
     head := nextHead
   }
 
-  when ((exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)) {
-    // 回滚ROB尾指针
-    val rollbackTail = (head + minIdx + 1.U)
-    tail := rollbackTail
-    // 清除所有在tail之后的条目
-    for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
-      val idx = i.U
-      when (isAfter(idx, rollbackTail, nextHead)) {
-        robEntries(idx).valid := false.B
-      }
+  val flush = (exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)
+  val flush2 = flush || RegNext(flush)
+
+  when (flush2) {
+    // // 回滚ROB尾指针
+    // val rollbackTail = (head + minIdx + 1.U)
+    // tail := rollbackTail
+    // // 清除所有在tail之后的条目
+    // for (i <- 0 until RobConfig.ROB_ENTRY_NUM) {
+    //   val idx = i.U
+    //   when (isAfter(idx, rollbackTail, nextHead)) {
+    //     robEntries(idx).valid := false.B
+    //   }
+    // }
+    head := 0.U
+    tail := 0.U
+    for(i <- 0 until RobConfig.ROB_ENTRY_NUM) {
+      robEntries(i).valid := false.B
     }
   }
 
-  io.flush := (exception || brMisPred || csrWrite || tlbOperation) && shouldCommit.reduce(_ || _)
+  io.flush := flush
   val flushEntry = robEntries(head + minIdx)
   io.newPC := Mux(flushEntry.exception || flushEntry.eret, io.exceptionInfo.exceptionNewPC, 
                   Mux(flushEntry.brMispredict, io.brMisPredInfo.brMisPredTarget, 

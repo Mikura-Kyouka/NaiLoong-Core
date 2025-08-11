@@ -120,12 +120,16 @@ class Core extends Module {
 
   PipelineConnect(If.io.out, Id.io.in, Id.io.out.fire, RegNext(rob.io.flush))
   PipelineConnect(Id.io.out, Rn.io.in, Rn.io.s1Fire, RegNext(rob.io.flush))
-  PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), RegNext(rob.io.flush))
+  // PipelineConnect(Rn.io.out, Dispatch.io.in, Dispatch.io.out.map(_.fire).reduce(_ || _), RegNext(rob.io.flush))
   // PipelineConnect2(Dispatch.io.out(0), Issue.io.in(0), Issue.io.out(0).fire, flush)
   // PipelineConnect2(Dispatch.io.out(1), Issue.io.in(1), Issue.io.out(1).fire, flush)
   // PipelineConnect2(Dispatch.io.out(2), Issue.io.in(2), Issue.io.out(2).fire, flush)
   // PipelineConnect2(Dispatch.io.out(3), Issue.io.in(3), Issue.io.out(3).fire, flush)
   // PipelineConnect2(Dispatch.io.out(4), Issue.io.in(4), Issue.io.out(4).fire, flush)
+  val q = Module(new FlushableQueue(chiselTypeOf(Rn.io.out.bits), 1, pipe=false, flow=false))
+  q.io.enq <> Rn.io.out
+  q.io.deq <> Dispatch.io.in
+  q.io.flush := RegNext(rob.io.flush)
   Issue.io.in(0).bits := Dispatch.io.out(0).bits
   Issue.io.in(1).bits := Dispatch.io.out(1).bits
   Issue.io.in(2).bits := Dispatch.io.out(2).bits
@@ -141,11 +145,11 @@ class Core extends Module {
   Dispatch.io.out(2).ready := Issue.io.in_allReady
   Dispatch.io.out(3).ready := Issue.io.in_allReady
   Dispatch.io.out(4).ready := Issue.io.in_allReady
-  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.out(0).fire, flush)
-  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.out(1).fire, flush)
-  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, flush)
+  PipelineConnect(Issue.io.out(0), Ex.io.in(0), Ex.io.out(0).fire, RegNext(rob.io.flush))
+  PipelineConnect(Issue.io.out(1), Ex.io.in(1), Ex.io.out(1).fire, RegNext(rob.io.flush))
+  PipelineConnect(Issue.io.out(2), Ex.io.in(2), Ex.io.out(2).fire, RegNext(rob.io.flush))
   Issue.io.out(3) <> Ex.io.in(3)
-  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, flush)
+  PipelineConnect(Issue.io.out(4), Ex.io.in(4), Ex.io.out(4).fire, RegNext(rob.io.flush))
   Issue.io.inst_cnt := Dispatch.io.inst_cnt
 
 
@@ -346,7 +350,7 @@ class Core extends Module {
 
   // lsu <=> rob
   Ex.io.scommit := rob.io.scommit
-  Ex.io.flush := flush
+  Ex.io.flush := RegNext(rob.io.flush)
 
   // arf and rat update
   Rn.io.rob <> rob.io.commit
