@@ -210,9 +210,9 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.req.fire && !cacopOp0 && !failsc, 
-                        Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
+                        Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), 
                         s_idle),
-        s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
+        s_judge -> Mux(hit, Mux(cacopOp1 || cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
                             Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), 
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
@@ -371,7 +371,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       resp.rdata := io.axi.rdata
     }
 
-    when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
+    when((cacopOp1 || cacopOp2) && hit && state === s_judge) {
       // valid
       metaValidArray.io.wea := true.B
       metaValidArray.io.addra := addr.index
