@@ -449,8 +449,7 @@ class Rob extends Module {
   io.tlbInfo := robEntries(head + tlbIdx).tlbInfo
   io.tlbInfo.en := tlbOperation && io.commitInstr(tlbIdx).valid && io.tlbInfo.inst_type =/= TlbOp.nop
 
-  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore)) && 
-                !robEntries(head + PriorityEncoder(hasStore)).failsc
+  io.scommit := hasStore.reduce(_ || _) && shouldCommit(PriorityEncoder(hasStore))
 
   val commitNum = PopCount(shouldCommit)
 
