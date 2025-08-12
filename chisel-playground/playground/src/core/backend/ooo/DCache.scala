@@ -377,7 +377,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
       resp.rdata := io.axi.rdata
     }
 
-    when((cacopOp1 || cacopOp2) && hit && state === s_judge) {
+    when(cacopOp1 || (cacopOp2 && hit && state === s_judge)) {
       // valid
       metaValidArray.io.wea := true.B
       metaValidArray.io.addra := addr.index
