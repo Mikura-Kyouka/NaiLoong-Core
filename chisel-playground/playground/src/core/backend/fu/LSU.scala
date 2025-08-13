@@ -258,7 +258,7 @@ class LSU extends Module with HasLSUConst {
   val storeCmtPtr     = RegInit(0.U((log2Up(storeQueueSize)+1).W))
   val nextStoreCmtPtr = Wire(UInt((log2Up(storeQueueSize)+1).W))
   val haveUnconfirmedStore = storeHeadPtr =/= storeCmtPtr
-  val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid && !storeQueue(0).failsc
+  val haveUnrequiredStore = storeCmtPtr =/= 0.U && storeQueue(0).valid
   val haveUnfinishedStore = 0.U =/= storeHeadPtr
   val storeQueueFull = storeHeadPtr === storeQueueSize.U
   // io.haveUnfinishedStore := haveUnfinishedStore // FIXME: 
@@ -280,7 +280,7 @@ class LSU extends Module with HasLSUConst {
   // FIXIT: in current case, we can always assume a store is succeed after req.fire
   // therefore storeQueueDequeue is not necessary
   val storeQueueDequeue = storeQueueReqsend//  || storeQueue(0).failsc
-  when(storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)){
+  when(storeQueueDequeue){
     // storeQueue := Cat(storeQueue(0), storeQueue(storeQueueSize-1, 1))
     // 将队列中第 1 ~ N 项依次赋值给第 0 ~ N-1 项，所有元素整体前移一位
     List.tabulate(storeQueueSize - 1)(i => {
@@ -298,8 +298,8 @@ class LSU extends Module with HasLSUConst {
   storeCmtPtr := nextStoreCmtPtr
 
   // move storeHeadPtr ptr
-  when((storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)) && !storeQueueEnqueue){storeHeadPtr := Mux(storeHeadPtr === 0.U, 0.U, storeHeadPtr - 1.U)}
-  when(!(storeQueueDequeue || (storeQueue(0).failsc && storeQueue(0).valid)) && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
+  when(storeQueueDequeue && !storeQueueEnqueue){storeHeadPtr := Mux(storeHeadPtr === 0.U, 0.U, storeHeadPtr - 1.U)}
+  when(!storeQueueDequeue && storeQueueEnqueue){storeHeadPtr := storeHeadPtr + 1.U}
   val flushStoreHeadPtr = PriorityMux(
     (nextStoreCmtPtr === 0.U) +: (0 until storeQueueSize).map(i => {
       PopCount(VecInit((0 to i).map(j => storeQueue(j).valid))) === nextStoreCmtPtr
@@ -406,9 +406,10 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.cmd := 0.U
     io.dmemReq.bits.moqIdx := moqDmemPtr // moq entry index
     io.dmemReq.bits.isMMIO := moq(moqDmemPtr).isMMIO
-    io.dmemReq.valid := true.B
     io.dmemReq.bits.cacopOp := moq(moqDmemPtr).cacopOp
+    io.dmemReq.bits.failsc := false.B 
     io.dmemReq.bits.cacopEn := moq(moqDmemPtr).cacopEn // ONLY HERE, not store    
+    io.dmemReq.valid := true.B
   }.elsewhen(haveUnrequiredStore){
     io.dmemReq.bits.addr := storeQueue(0.U).paddr
     io.dmemReq.bits.size := storeQueue(0.U).size
@@ -417,6 +418,7 @@ class LSU extends Module with HasLSUConst {
     io.dmemReq.bits.cmd := 1.U
     io.dmemReq.bits.moqIdx := storeQueue(0.U).moqIdx
     io.dmemReq.bits.isMMIO := storeQueue(0.U).isMMIO
+    io.dmemReq.bits.failsc := storeQueue(0.U).failsc
     io.dmemReq.bits.cacopEn := false.B // store queue does not support cacop
     io.dmemReq.valid := true.B
   }
@@ -539,6 +541,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.redirect.rtype := moq(writebackSelect).redirect.rtype
   io.out.bits.redirect.valid := moq(writebackSelect).redirect.valid
   io.out.bits.exceptionVec := moq(writebackSelect).exceptionVec
+  assert(!(LSUOpType.isStore(moq(writebackSelect).func) && !LSUOpType.isSC(moq(writebackSelect).func) && io.out.bits.preg =/= 0.U))
   // io.out.bits.tlbInfo := moq(writebackSelect).robIdx
 
   // for load/store difftest

@@ -12,6 +12,7 @@ class reqBundle extends Bundle{
     val cmd   = Output(Bool())// 0: read, 1: write
     val moqIdx = Output(UInt(3.W)) // moq entry index
     val isMMIO = Input(Bool())
+    val failsc = Input(Bool())
     val cacopOp = Input(UInt(2.W))
     val cacopEn = Input(Bool())
 }
@@ -123,6 +124,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     resp := DontCare
     resp.moqIdx := req.moqIdx // 保留moq entry index
     val addr = req.addr.asTypeOf(addrBundle)
+    val failsc = req.failsc 
     // when(cacopOp0 || cacopOp1) {
     //   addr := io.cacop.VA.asTypeOf(addrBundle)
     // }
@@ -168,15 +170,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     metaFlagArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    // val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
-    // val is_collision = RegInit(false.B)
-    // val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
-    // syncReadAddr := addr.index
-    // is_collision := (io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO || state === s_write_cache
-    // collison_data := Mux((io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
-    //                                                                         VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
-
-    // val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
     val metaFlagData = metaFlagArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
@@ -207,11 +200,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     // because store may only write to specific byte
 
     state := MuxLookup(state, s_idle)(Seq(
-        s_idle -> Mux(io.req.fire && !cacopOp0, 
-                        Mux(cacopOp1, Mux(dirty, s_write_mem1, s_idle), Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge)), 
+        s_idle -> Mux(io.req.fire && !cacopOp0 && !failsc, 
+                        Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), 
                         s_idle),
-        s_judge -> Mux(hit, Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
-                            Mux(dirty, s_write_mem1, Mux(cacopOp2, s_idle, s_read_mem1))), 
+        s_judge -> Mux(cacopOp1, 
+                        Mux(dirty, s_write_mem1, s_idle),
+                        Mux(hit, 
+                            Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
+                            Mux(!cacopOp2, Mux(dirty, s_write_mem1, s_read_mem1), s_idle))), 
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
         s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
@@ -223,10 +219,13 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     io.req.ready := state === s_idle
     io.resp.valid := (((isMMIO && io.axi.rvalid) || 
-                      (isMMIO && io.axi.bvalid) || 
-                      ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
-                      (hit && cacopOp2 && !dirty && state === s_judge) ||
-                      (!hit && cacopOp2 && state === s_judge)) && !flushed)  || (io.req.valid && cacopOp0 && state === s_idle) || (io.req.valid && cacopOp1 && !dirty && state === s_idle)
+                       (isMMIO && io.axi.bvalid) || 
+                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
+                       (hit && cacopOp2 && !dirty && state === s_judge) ||
+                       (!hit && cacopOp2 && state === s_judge) || 
+                       (cacopOp1 && !dirty && state === s_judge)) && !flushed) || 
+                       (io.req.fire && cacopOp0 && state === s_idle) || 
+                       (io.req.fire && failsc && state === s_idle)
 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
