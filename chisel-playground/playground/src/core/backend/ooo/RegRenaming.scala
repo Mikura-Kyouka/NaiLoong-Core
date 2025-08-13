@@ -366,7 +366,7 @@ class RegRenaming extends Module {
 
     // 目标寄存器分配
     val needAlloc = !rfWen && !isZeroReg && instValid
-    io.out.bits(i).preg := Mux(instValid, preg, 0.U)
+    io.out.bits(i).preg := Mux(needAlloc, preg, 0.U)
 
     // 更新ROB条目中的物理寄存器信息
     io.robAllocate.allocEntries(i).preg := preg

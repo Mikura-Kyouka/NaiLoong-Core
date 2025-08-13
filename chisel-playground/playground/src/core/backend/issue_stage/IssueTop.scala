@@ -76,12 +76,6 @@ class IssueTop extends Module {
       }
     }
   }
-  
-  when(io.flush) {
-    for(i <- 0 until PHYS_REG_NUM + 1) {
-      busyreg(i) := false.B
-    }
-  }
 
   // // retire inst
   // for(i <- 0 until RobConfig.ROB_CMT_NUM) { // busyreg update
@@ -94,6 +88,12 @@ class IssueTop extends Module {
   for(i <- 0 until 5) {
     when(io.ex_bypass(i).valid) {
       busyreg(io.ex_bypass(i).dest) := false.B
+    }
+  }
+
+  when(io.flush) {
+    for(i <- 0 until PHYS_REG_NUM + 1) {
+      busyreg(i) := false.B
     }
   }
 

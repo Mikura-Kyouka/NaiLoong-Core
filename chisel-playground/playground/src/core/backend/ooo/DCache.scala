@@ -218,14 +218,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     ))
 
     io.req.ready := state === s_idle
-    io.resp.valid := ((isMMIO && io.axi.rvalid) || 
-                      (isMMIO && io.axi.bvalid) || 
-                      ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
-                      (hit && cacopOp2 && !dirty && state === s_judge) ||
-                      (!hit && cacopOp2 && state === s_judge) || 
-                      (cacopOp1 && !dirty && state === s_judge) || 
-                      (io.req.fire && cacopOp0 && state === s_idle) || 
-                      (io.req.fire && failsc && state === s_idle)) && !(flushed || io.flush)
+    io.resp.valid := (((isMMIO && io.axi.rvalid) || 
+                       (isMMIO && io.axi.bvalid) || 
+                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
+                       (hit && cacopOp2 && !dirty && state === s_judge) ||
+                       (!hit && cacopOp2 && state === s_judge) || 
+                       (cacopOp1 && !dirty && state === s_judge)) && !flushed) || 
+                       (io.req.fire && cacopOp0 && state === s_idle) || 
+                       (io.req.fire && failsc && state === s_idle)
 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)

@@ -541,6 +541,7 @@ class LSU extends Module with HasLSUConst {
   io.out.bits.redirect.rtype := moq(writebackSelect).redirect.rtype
   io.out.bits.redirect.valid := moq(writebackSelect).redirect.valid
   io.out.bits.exceptionVec := moq(writebackSelect).exceptionVec
+  assert(!(LSUOpType.isStore(moq(writebackSelect).func) && !LSUOpType.isSC(moq(writebackSelect).func) && io.out.bits.preg =/= 0.U))
   // io.out.bits.tlbInfo := moq(writebackSelect).robIdx
 
   // for load/store difftest
