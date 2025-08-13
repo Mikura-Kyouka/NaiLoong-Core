@@ -170,15 +170,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     metaFlagArray.io.addrb := addr.index
 
     val metaReadData = metaArray.io.doutb.asTypeOf(Vec(Ways, new MetaBundle))
-    // val syncReadAddr = RegInit(0.U(log2Ceil(Sets).W))
-    // val is_collision = RegInit(false.B)
-    // val collison_data = RegInit(0.U.asTypeOf(VecInit(Seq.fill(Ways)(0.U.asTypeOf(new MetaFlagBundle)))))
-    // syncReadAddr := addr.index
-    // is_collision := (io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO || state === s_write_cache
-    // collison_data := Mux((io.axi.rvalid && io.axi.rlast) && state === s_read_mem2 && !isMMIO, VecInit(Seq.fill(Ways)(false.B.asTypeOf(new MetaFlagBundle))), 
-    //                                                                         VecInit(Seq.fill(Ways)(true.B.asTypeOf(new MetaFlagBundle))))
-
-    // val metaFlagData = Mux(is_collision, collison_data, metaFlagArray(syncReadAddr))
     val metaFlagData = metaFlagArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val metaValidData = metaValidArray.io.doutb.asTypeOf(Vec(Ways, Bool()))
     val dataReadData = dataArray.io.doutb.asTypeOf(Vec(Ways, Vec(LineBeats, UInt(32.W))))
@@ -227,14 +218,14 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     ))
 
     io.req.ready := state === s_idle
-    io.resp.valid := (((isMMIO && io.axi.rvalid) || 
+    io.resp.valid := ((isMMIO && io.axi.rvalid) || 
                       (isMMIO && io.axi.bvalid) || 
                       ((cacopOp1 || cacopOp2) && state === s_write_mem3) ||
                       (hit && cacopOp2 && !dirty && state === s_judge) ||
                       (!hit && cacopOp2 && state === s_judge) || 
-                      (cacopOp1 && !dirty && state === s_judge)) && !flushed)  || 
-                      (io.req.valid && cacopOp0 && state === s_idle) || 
-                      (io.req.valid && failsc && state === s_idle)
+                      (cacopOp1 && !dirty && state === s_judge) || 
+                      (io.req.fire && cacopOp0 && state === s_idle) || 
+                      (io.req.fire && failsc && state === s_idle)) && !(flushed || io.flush)
 
     io.resp.bits.resp := false.B
     io.resp.bits.rdata := 0.U(32.W)
