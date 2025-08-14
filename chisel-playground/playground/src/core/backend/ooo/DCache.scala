@@ -129,7 +129,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
     //   addr := io.cacop.VA.asTypeOf(addrBundle)
     // }
 
-    val isMMIO = req.isMMIO //FIXME：
+    val isMMIO = req.isMMIO && !cacopOp1 && !cacopOp2 //FIXME：
     // val isMMIO = false.B
 
     //    0          1              2               3             4                  5               6               7               8
@@ -209,10 +209,10 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
                             Mux(cacopOp2, Mux(dirty, s_write_mem1, s_idle), Mux(req.cmd, s_write_cache, s_read_cache)), 
                             Mux(!cacopOp2, Mux(dirty, s_write_mem1, s_read_mem1), s_idle))), 
         s_write_mem1 -> Mux(io.axi.awready, s_write_mem2, s_write_mem1),
-        s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || (isMMIO && !cacopOp1 && !cacopOp2))), s_write_mem3, s_write_mem2),
+        s_write_mem2 -> Mux((io.axi.wready && (wburst === 3.U || isMMIO)), s_write_mem3, s_write_mem2),
         s_write_mem3 -> Mux(io.axi.bvalid, Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, s_read_mem1), s_write_mem3),
         s_read_mem1 -> Mux(io.axi.arready, s_read_mem2, s_read_mem1),
-        s_read_mem2 -> Mux((io.axi.rvalid && io.axi.rlast), Mux(isMMIO || cacopOp1 || cacopOp2, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
+        s_read_mem2 -> Mux((io.axi.rvalid && io.axi.rlast), Mux(isMMIO, s_idle, Mux(req.cmd, s_write_cache, s_read_cache)), s_read_mem2), // FIXME:
         s_write_cache -> s_idle,
         s_read_cache -> s_idle
     ))
