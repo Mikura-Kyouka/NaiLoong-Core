@@ -14,7 +14,7 @@ class OrderIssueQueue(val SIZE: Int = 8, val MAX_CNT: Int = 4) extends Module {
     // val to_valid = Output(Bool()) io.out.valid
     // val to_ready = Input(Bool()) io.out.ready
 
-    val busyreg = Input(Vec(PHYS_REG_NUM + 1, Bool()))
+    val busyreg = Input(Vec(PHYS_REG_NUM, Bool()))
     val pram_read = Flipped(new payloadram_read_info)
     val flush = Input(Bool())
   })
