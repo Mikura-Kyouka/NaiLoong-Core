@@ -270,26 +270,29 @@ class TLB extends Module {
         tlb_refill_idx := tlb_refill_idx + 1.U
       }
       is(TlbOp.inv) {
-        for(i <- 0 until TLB_NUM) {
-          switch(io.tlb_inst.op) {
-            is(0.U) { tlb(i).e := 0.U } // 全部清除
-            is(1.U) { tlb(i).e := 0.U } // 全部清除
-            is(2.U) { // 全局清除
-              when(tlb(i).g === 1.U) { tlb(i).e := 0.U }
-            }
-            is(3.U) { // 非全局清除
-              when(tlb(i).g === 0.U) { tlb(i).e := 0.U }
-            }
-            is(4.U) { // 按 ASID 清除
-              when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid) { tlb(i).e := 0.U }
-            }
-            is(5.U) {
-              when(tlb(i).g === 0.U && tlb(i).asid === io.tlb_inst.asid && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
-            }
-            is(6.U) {
-              when((tlb(i).g === 1.U || tlb(i).asid === io.tlb_inst.asid) && tlb(i).vppn === io.tlb_inst.va(31, 13)) { tlb(i).e := 0.U }
-            }
-          }
+        val g_vec = VecInit(tlb.map(_.g)).asUInt
+        val e_vec = VecInit(tlb.map(_.e)).asUInt
+        val asid_eq_vec  = VecInit(tlb.map(_.asid === io.tlb_inst.asid)).asUInt
+        val vppn_eq_vec  = VecInit(tlb.map(_.vppn === io.tlb_inst.va(31,13))).asUInt
+        val inv_all_vec = Fill(TLB_NUM, 1.U(1.W))
+
+        val opOH = UIntToOH(io.tlb_inst.op, 7) // 0..6 共7种
+
+        val m0 = inv_all_vec                                            // 0: 全清
+        val m1 = inv_all_vec                                            // 1: 全清（同上）
+        val m2 = g_vec                                                  // 2: 清全局
+        val m3 = ~g_vec                                                 // 3: 清非全局
+        val m4 = (~g_vec) & asid_eq_vec                                 // 4: 按ASID清（仅非全局）
+        val m5 = (~g_vec) & asid_eq_vec & vppn_eq_vec                   // 5: ASID+VPPN（仅非全局）
+        val m6 = (g_vec | asid_eq_vec) & vppn_eq_vec                    // 6: (全局 | ASID命中) + VPPN
+
+        val inv_mask = Mux1H(opOH, Seq(m0, m1, m2, m3, m4, m5, m6))
+
+        // 命中的 e 清零；未命中保持
+        val e_next = e_vec & ~inv_mask
+
+        for (i <- 0 until TLB_NUM) {
+          tlb(i).e := e_next(i)
         }
       }
     }
