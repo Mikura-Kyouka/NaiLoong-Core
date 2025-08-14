@@ -80,6 +80,9 @@ class Execute extends Module {
   alu1.io.ecode := DontCare
   alu2.io.excp_en := DontCare
   alu2.io.ecode := DontCare
+  alu1.io.flush := io.flush
+  alu2.io.flush := io.flush
+  bru.io.flush := io.flush
 
   lsu.io.llbit := io.llbit
   lsu.io.lladdr := io.lladdr

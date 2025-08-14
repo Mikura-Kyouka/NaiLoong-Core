@@ -201,7 +201,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule{
 
     state := MuxLookup(state, s_idle)(Seq(
         s_idle -> Mux(io.req.fire && !cacopOp0 && !failsc, 
-                        Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), 
+                        Mux(isMMIO && !cacopOp1 && !cacopOp2, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), 
                         s_idle),
         s_judge -> Mux(cacopOp1, 
                         Mux(dirty, s_write_mem1, s_idle),

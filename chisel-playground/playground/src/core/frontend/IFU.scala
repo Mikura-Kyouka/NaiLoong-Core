@@ -113,8 +113,8 @@ class IFU extends Module{
     // io.out.bits.pc := icache.io.out.bits.addr
 
     io.addr_trans_out := DontCare
-    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, io.cacop.VA, pc.io.nextPC)
-    io.addr_trans_out.mem_type := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2, MemType.load, MemType.fetch)
+    io.addr_trans_out.vaddr := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2 && !io.flush, io.cacop.VA, pc.io.nextPC)
+    io.addr_trans_out.mem_type := Mux(io.cacop.en && io.cacop.op === CACOPOp.op2 && !io.flush, MemType.load, MemType.fetch)
     io.addr_trans_out.trans_en := true.B
     io.addr_trans_in.ready := true.B
 

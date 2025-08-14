@@ -405,6 +405,8 @@ class Core extends Module {
   If.io.dnpc := Mux(csr.io.exceptionInfo.valid || csr.io.exceptionInfo.eret, csr.io.exceptionInfo.exceptionNewPC, RegNext(rob.io.newPC))
   If.io.pcSel := RegNext(rob.io.flush)
 
+  dontTouch(rob.io.commitInstr)
+
   if (GenCtrl.USE_DIFF) {
     val DiffCommit = Module(new DiffCommit)
 
