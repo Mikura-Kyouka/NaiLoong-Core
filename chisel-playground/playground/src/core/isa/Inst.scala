@@ -153,7 +153,7 @@ object Inst {
         csrrd           -> List(ImmType.nop     , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.rd,      TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         csrwr           -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y, CSROp.wr,      TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         csrxchg         -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y, CSROp.xchg,    TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
-        dbar            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
+        dbar            -> List(ImmType.si12    , FuType.lsu, LSUOpType.dbar,  SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         ibar            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         rdcntid_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rj, RfWen.y, IsLegal.y, CSROp.cntid,   TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         rdcntvl_w       -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.cntvl,   TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
