@@ -21,7 +21,7 @@ class IssueTop extends Module {
 
   val alu1rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE1, MAX_CNT = 2))
   val alu2rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE2, MAX_CNT = 2))
-  val mdurs  = Module(new UnorderIssueQueue(wakeup = false, SIZE = MDU_QUEUE_SIZE, MAX_CNT = 4))
+  val mdurs  = Module(new UnorderIssueQueue(wakeup = false, SIZE = UNORDER_QUEUE_SIZE1, MAX_CNT = 4))
   val lsurs  = Module(new OrderIssueQueue(SIZE = 8, MAX_CNT = 4))
   val brurs  = Module(new OrderIssueQueue(SIZE = 6, MAX_CNT = 4))
   alu1rs.io.in <> io.in(0)
@@ -66,7 +66,7 @@ class IssueTop extends Module {
   brurs.io.flush := io.flush
   io.in_allReady := all_ready
 
-  val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM + 1)(false.B)))
+  val busyreg = RegInit(VecInit(Seq.fill(PHYS_REG_NUM)(false.B)))
   for(i <- 0 until ISSUE_WIDTH) {
     when(io.in(i).valid) {
       for(j <- 0 until 4) {
@@ -92,7 +92,7 @@ class IssueTop extends Module {
   }
 
   when(io.flush) {
-    for(i <- 0 until PHYS_REG_NUM + 1) {
+    for(i <- 0 until PHYS_REG_NUM) {
       busyreg(i) := false.B
     }
   }
