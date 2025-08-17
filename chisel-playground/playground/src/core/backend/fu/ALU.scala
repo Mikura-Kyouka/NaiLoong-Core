@@ -303,7 +303,7 @@ class AligendALU extends Module{
   io.in.ready := alu.io.in.ready && (!(io.in.valid && io.in.bits.valid && cacopOp2 && !op2Reg) || io.out.fire) // FIXME 是cacop，并且'没有被接收'，ready不能为高
 
   io.out.valid := Mux(cacopOp2, 
-                      RegNext(alu.io.out.valid && io.in.bits.valid), // 延迟一拍再发送
+                      op2Reg, // 延迟一拍再发送
                       alu.io.out.valid && io.in.bits.valid)
   alu.io.out.ready := io.out.ready
 
