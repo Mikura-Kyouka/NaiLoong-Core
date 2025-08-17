@@ -584,7 +584,7 @@ class RegRenaming1 extends Module {
 
   io.out.bits := io.in.bits
 
-  io.in.ready := canAlloc && io.out.ready
+  io.in.ready := canAlloc && io.out.ready && freeList.io.count > 4.U
 
   io.out.valid := (io.in.valid || validLatch) && canAlloc && 
                   PopCount(freeList.io.allocResp.map(_.valid)) === PopCount(freeList.io.allocReq.map(_.valid))
