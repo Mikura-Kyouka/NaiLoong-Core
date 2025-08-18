@@ -126,7 +126,7 @@ class CPUCSR extends Module {
   val csr_save3 = RegInit(0.U(32.W))
   val csr_tid = RegInit(0.U(32.W))
   val csr_tcfg = RegInit(0.U.asTypeOf(new csr_tcfg_bundle))
-  val csr_tval = RegInit("hffffffff".U(32.W))
+  val csr_tval = WireInit("hffffffff".U(32.W))
   val csr_cntc = RegInit(0.U(32.W))
   val csr_ticlr = RegInit(0.U(1.W))
   val csr_llbctl = RegInit(0.U.asTypeOf(new csr_llbctl_bundle))
@@ -136,18 +136,29 @@ class CPUCSR extends Module {
   val csr_dmw1 = RegInit(0.U.asTypeOf(new csr_dmw_bundle))
   val timer64 = RegInit(0.U(64.W))
   timer64 := timer64 + 1.U
+  val timer_cnt = RegInit("hffffffff".U(32.W))
   
   val pgd = WireInit(0.U.asTypeOf(new csr_pgdx_bundle))
   pgd.base := Mux(csr_badv(31) === 0.U, csr_pgdl.base, csr_pgdh.base)
   pgd.zero11_0 := 0.U
 
-  when(csr_tcfg.en === 1.U && csr_tval =/= "hffffffff".U) {
-    when(csr_tval === 0.U && csr_tcfg.periodic === 1.U) {
-      csr_tval := Cat(csr_tcfg.initval, 0.U(2.W)) // 重新加载定时器值
+  val write0tcfg = io.write(0).valid && csr_crmd.plv === 0.U && !(io.write(0).bits.ll || io.write(0).bits.sc) && io.write(0).bits.csr_num === CsrName.TCFG
+  val write1tcfg = io.write(1).valid && csr_crmd.plv === 0.U && !(io.write(1).bits.ll || io.write(1).bits.sc) && io.write(1).bits.csr_num === CsrName.TCFG
+
+  val tcfg_next_value = Mux(write0tcfg, io.write(0).bits.csr_data.asTypeOf(new csr_tcfg_bundle),
+                        Mux(write1tcfg, io.write(1).bits.csr_data.asTypeOf(new csr_tcfg_bundle), csr_tcfg))
+
+  when((write0tcfg || write1tcfg) && tcfg_next_value.en.asBool) {
+    timer_cnt := Cat(tcfg_next_value.initval, 0.U(2.W))
+  }.elsewhen(csr_tcfg.en.asBool && timer_cnt =/= "hffffffff".U) {
+    when(timer_cnt === 0.U && csr_tcfg.periodic === 1.U) {
+      timer_cnt := Cat(csr_tcfg.initval, 0.U(2.W))
     }.otherwise {
-      csr_tval := csr_tval - 1.U 
+      timer_cnt := timer_cnt - 1.U
     }
   }
+
+  csr_tval := timer_cnt
   
   csr_estat.is9_2 := io.hardIntrpt
 
