@@ -145,8 +145,17 @@ class CPUCSR extends Module {
   val write0tcfg = io.write(0).valid && csr_crmd.plv === 0.U && !(io.write(0).bits.ll || io.write(0).bits.sc) && io.write(0).bits.csr_num === CsrName.TCFG
   val write1tcfg = io.write(1).valid && csr_crmd.plv === 0.U && !(io.write(1).bits.ll || io.write(1).bits.sc) && io.write(1).bits.csr_num === CsrName.TCFG
 
-  val tcfg_next_value = Mux(write0tcfg, io.write(0).bits.csr_data.asTypeOf(new csr_tcfg_bundle),
-                        Mux(write1tcfg, io.write(1).bits.csr_data.asTypeOf(new csr_tcfg_bundle), csr_tcfg))
+  val tcfgWidth = csr_tcfg.asUInt.getWidth
+  val sel0 = Fill(tcfgWidth, write0tcfg)
+  val sel1 = Fill(tcfgWidth, write1tcfg)
+  val selDef = Fill(tcfgWidth, !(write0tcfg || write1tcfg))
+
+  val w0_u = io.write(0).bits.csr_data.asTypeOf(new csr_tcfg_bundle).asUInt
+  val w1_u = io.write(1).bits.csr_data.asTypeOf(new csr_tcfg_bundle).asUInt
+  val cur_u = csr_tcfg.asUInt
+
+  val tcfg_next_u = (sel0 & w0_u) | (sel1 & w1_u) | (selDef & cur_u)
+  val tcfg_next_value = tcfg_next_u.asTypeOf(new csr_tcfg_bundle)
 
   when((write0tcfg || write1tcfg) && tcfg_next_value.en.asBool) {
     timer_cnt := Cat(tcfg_next_value.initval, 0.U(2.W))
