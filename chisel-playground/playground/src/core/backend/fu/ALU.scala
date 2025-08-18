@@ -68,7 +68,7 @@ object cpucfg {
   
   def word17 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     4.U( 7.W),   // Linesize-log2 [30: 24]
-                   11.U( 8.W),   // Index-log2    [23: 16]
+                   10.U( 8.W),   // Index-log2    [23: 16]
                     0.U(16.W))   // Way-1         [15:  0]
 
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
