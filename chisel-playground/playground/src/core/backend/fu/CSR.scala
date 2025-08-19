@@ -357,9 +357,6 @@ class CPUCSR extends Module {
         }
         is(CsrName.TCFG) {
           csr_tcfg := io.write(i).bits.csr_data.asTypeOf(new csr_tcfg_bundle)
-          when(io.write(i).bits.csr_data(0) === 1.U) {
-            csr_tval := Cat(io.write(i).bits.csr_data(31, 2), 0.U(2.W))   // 初始化定时器值
-          }
         }
         is(CsrName.TICLR) {
           when(io.write(i).bits.csr_data(0) === 1.U) {
