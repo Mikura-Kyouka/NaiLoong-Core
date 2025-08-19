@@ -21,7 +21,7 @@ class IssueTop extends Module {
 
   val alu1rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE1, MAX_CNT = 2))
   val alu2rs = Module(new UnorderIssueQueue(wakeup = true, SIZE = UNORDER_QUEUE_SIZE2, MAX_CNT = 2))
-  val mdurs  = Module(new UnorderIssueQueue(wakeup = false, SIZE = UNORDER_QUEUE_SIZE1, MAX_CNT = 4))
+  val mdurs  = Module(new UnorderIssueQueue(wakeup = false, SIZE = MDU_QUEUE_SIZE, MAX_CNT = 4))
   val lsurs  = Module(new OrderIssueQueue(SIZE = 8, MAX_CNT = 4))
   val brurs  = Module(new OrderIssueQueue(SIZE = 6, MAX_CNT = 4))
   alu1rs.io.in <> io.in(0)
