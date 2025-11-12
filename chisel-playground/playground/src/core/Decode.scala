@@ -10,6 +10,7 @@ object ImmType {
   def si16_pc = "b011".U  
   def si20    = "b100".U  
   def si26_pc = "b101".U  
+  def rriwinz = "b110".U
   def nop     = "b111".U
   def apply = UInt(3.W)
 }

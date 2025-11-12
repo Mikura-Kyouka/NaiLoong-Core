@@ -97,6 +97,8 @@ object Inst {
     
     def ertn            = BitPat("b00000110010010000011100000000000")
     def idle            = BitPat("b00000110010010001_???????????????")
+
+    def rriwinz         = BitPat("b111000??????????????????????????")
     
     val table = Array(
         add_w           -> List(ImmType.nop     , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop),  
@@ -173,5 +175,6 @@ object Inst {
         invtlb          -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.reg, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.inv,  CACOPType.i, CACOPOp.nop), 
         ertn            -> List(ImmType.si12    , FuType.alu, ALUOpType.add,   SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.ertn,    TlbOp.nop,  CACOPType.i, CACOPOp.nop), 
         idle            -> List(ImmType.si12    , FuType.bru, ALUOpType.idle,  SrcType.reg, SrcType.imm, SrcIsRd.n, Dest.rd, RfWen.n, IsLegal.y, CSROp.nop,     TlbOp.nop,  CACOPType.i, CACOPOp.nop),
+        rriwinz         -> List(ImmType.rriwinz , FuType.alu, ALUOpType.rriwinz,SrcType.reg, SrcType.reg, SrcIsRd.y, Dest.rd, RfWen.y, IsLegal.y, CSROp.nop,    TlbOp.nop,  CACOPType.i, CACOPOp.nop)
     )
 }

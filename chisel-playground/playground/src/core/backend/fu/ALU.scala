@@ -6,6 +6,8 @@ import chisel3.util._
 
 import utils._
 import core.ALUOpType.add
+import core.CSROp.rd
+import core.Dest.rj
 
 object ALUOpType {
   def add  = "b1000000".U
@@ -37,6 +39,7 @@ object ALUOpType {
   def call = "b1011100".U
   def ret  = "b1011110".U
 
+  def rriwinz = "b0100000".U
 
   def isAdd(func: UInt) = func(6)
   def isBru(func: UInt) = func(4)
@@ -180,7 +183,81 @@ class ALU extends Module {
   
   // actually for bl and jirl to write pc + 4 to rd 
   dontTouch(aluRes)
-  io.out.bits := Mux(isBru, io.pc + 4.U, aluRes) // out only has a single 32-bit field
+
+  val rriImm = io.cfIn.instr(25, 10)
+  dontTouch(rriImm)
+
+  val rj_base = rriImm(4, 0)
+  val offset = rriImm(9, 5)
+  val rd_base = rriImm(14, 10)
+  dontTouch(rj_base)
+  dontTouch(offset)
+  dontTouch(rd_base)
+
+  val a = Wire(UInt(6.W))
+  a := rj_base +& offset
+  dontTouch(a)
+
+  val b = Wire(UInt(6.W))
+  b := rd_base +& offset
+  dontTouch(b)
+
+  val aa = Wire(UInt(6.W))
+  aa := Mux(a >= 32.U, 32.U, a)
+  val bb = Wire(UInt(6.W))
+  bb := Mux(b >= 32.U, 32.U, b)
+  dontTouch(aa)
+  dontTouch(bb)
+
+  val t1 = (1.U << aa) - 1.U
+  val t2 = ~((1.U << rj_base) - 1.U)
+  val tt = t1 & t2
+  dontTouch(t1)
+  dontTouch(t2)
+  dontTouch(tt)
+
+  val rj_num = PopCount(src1 & tt) % offset
+  dontTouch(rj_num)
+
+  val offset_mask = (1.U << offset) - 1.U
+
+  val to_be_ror = ((src2 >> rd_base) & offset_mask)
+
+  dontTouch(to_be_ror)
+
+  val len1 = rj_num
+  val len2 = offset - rj_num
+
+  dontTouch(len1)
+  dontTouch(len2)
+
+  val right = (to_be_ror & ((1.U << len1) - 1.U))
+  val left  = (to_be_ror & (((1.U << len2) - 1.U) << rj_num))
+
+  dontTouch(right)
+  dontTouch(left)
+
+  val AAA = right << len2
+  val BBB = left >> rj_num
+  val CCC = AAA | BBB
+
+  // val ror_num = ((to_be_ror << (offset - rj_num)) | (src2 >> rj_num)) & offset_mask
+
+  val x = (src2 & ~(((1.U << offset) - 1.U) << rd_base)) | (CCC << rd_base)
+
+  // dontTouch(ror_num)
+  dontTouch(AAA)
+  dontTouch(BBB)
+  dontTouch(CCC)
+  dontTouch(x)
+  dontTouch(offset_mask)
+
+  // ror(src, rd_base, offset, shift):
+  //   offset_mask = (1 << shift) - 1
+  //   ror_num = ((((src>>rd_base) & offset_mask)<< (offset-shift)) | (src >> shift)) & offset_mask
+  //   return (src & ~(offset_mask << rd_base)) | (ror_num << rd_base)
+
+  io.out.bits := Mux(func === ALUOpType.rriwinz, x, Mux(isBru, io.pc + 4.U, aluRes)) // out only has a single 32-bit field
   
   io.in.ready := io.out.ready
   io.out.valid := valid 
@@ -242,6 +319,7 @@ class AligendALU extends Module{
 
   val alu = Module(new ALU)
   alu.io := DontCare
+  alu.io.cfIn.instr := io.in.bits.instr
   alu.io.redirect_in := io.in.bits.redirect
   alu.io.in.bits.src1 := io.in.bits.src1
   alu.io.in.bits.src2 := Mux(io.in.bits.ctrl.src2Type === 1.U, io.in.bits.imm, io.in.bits.src2)

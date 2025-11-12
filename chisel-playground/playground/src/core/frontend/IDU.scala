@@ -72,7 +72,8 @@ class Decoder extends Module {
         ImmType.si16_pc -> SignExt(Cat(instr(25, 10), 0.U(2.W)), 32), // si16_pc jirl beq bne blt[u] bge[u]
         ImmType.si26_pc -> SignExt(Cat(instr(9, 0), instr(25, 10), 0.U(2.W)), 32), // si26_pc b bl
         ImmType.si20    -> Cat(instr(24, 5), 0.U(12.W)), // lu12i_w pcaddu12i
-        ImmType.si14_pc -> SignExt(Cat(instr(23, 10), 0.U(2.W)), 32)   //si14_pc ll sc
+        ImmType.si14_pc -> SignExt(Cat(instr(23, 10), 0.U(2.W)), 32),   //si14_pc ll sc
+        ImmType.rriwinz -> ZeroExt(instr(25, 10), 32) // rriwinz
     ))
     io.out.bits.data.imm := imm
     // // for RAS 
