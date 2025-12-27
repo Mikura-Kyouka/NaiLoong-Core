@@ -1,43 +1,28 @@
-## About
-This is the respository for NSCSCC 2025. 
+# NaiLoong Core
+NaiLoong Core 是一个使用 LoongArch 32 Reduced 指令集的乱序超标量处理器核，使用 Chisel 语言编写，并作为 2025 年龙芯杯团队赛中，吉林大学我才是奶龙队的参赛作品。
 
-## Features
-### Completed
-- None for now.
+## 特点
+NaiLoong Core 支持 `LA32R` 指令集中除浮点指令之外绝大多数指令，能在龙芯实验箱上启动 Linux。
 
-### WIP
-- Base Core
-  - OOE
-    - Basic instructions
-    - CSR (later)
-    - ...And more
-  - Exception support
-  - Tomasulo Algorithm
-  - Difftest
-  - ...And more
-- Profiler
-- Caches (L1_i, L1_d)
-- Branch Prediction
-- Other functions
+已实现：
+- 16KB 流水化直接映射 ICache，32KB 直接映射 DCache（大小可配置）
+- BTB、BHT、PHT 相结合的 BPU
+- 前端4路译码，后端5路发射
+- 两级流水的寄存器重命名
+- 16项全相联 TLB MMU
+- 部分发射队列乱序
+- 访存队列
+- 除浮点相关外所有 CSR
 
-## Code Formatting Criteria
-While coding with C/C++, consider styling as [GNU format](https://www.gnu.org/prep/standards/html_node/Formatting.html). It is also recommended to apply that style to other languages if could.
-
-## Commits related
-While committing, consider formatting in the style below:
+## 编译&使用方法
+正确设置环境变量 `CHIPLAB_HOME` 后，进入 `chisel-playground`,使用
+```bash
+make chiplab
 ```
-<verb>(<scope>): <what you did>
-```
-If you the scope is global, simply use a "*".
+生成用于 `Verilator` 仿真的代码。
 
-Examples:
+使用
+```bash
+make vivado
 ```
-feat(*): add xxxxx
-chore(Makefile): modify info
-fix(build): changed xxx build process
-... And more
-```
-
-Every commit should be signatured with GnuPG (aka GPG key), so that all commits will be verified.
-
-It is discouraged that directly commit into the main branch, use Pull Request instead. 
+生成用于 `Vivado` 上板的代码。
