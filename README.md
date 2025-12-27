@@ -15,7 +15,7 @@ NaiLoong Core 支持 `LA32R` 指令集中除浮点指令之外绝大多数指令
 - 除浮点相关外所有 CSR
 
 ## 编译&使用方法
-正确设置环境变量 `CHIPLAB_HOME` 后，进入 `chisel-playground`,使用
+正确设置环境变量 `CHIPLAB_HOME` 后，进入 `chisel-playground`，使用
 ```bash
 make chiplab
 ```
