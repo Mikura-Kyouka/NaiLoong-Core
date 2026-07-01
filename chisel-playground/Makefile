@@ -18,7 +18,7 @@ chiplab:
 	cp ./playground/src/utils/DiffTest/DiffBridge.v $(CHIPLAB_HOME)/IP/myCPU/
 	cp ./playground/src/core/backend/issue_stage/FileLoggerBlackBox.v $(CHIPLAB_HOME)/IP/myCPU/
 	cp ./playground/src/core/frontend/temp_if/core_top.sv $(CHIPLAB_HOME)/IP/myCPU/
-	find $(BUILD_DIR) -name "*.sv" -exec sh -c 'cp "$$1" "$(CHIPLAB_HOME)/IP/myCPU/$$(basename $$1 .sv).v"' sh {} \;
+	find $(BUILD_DIR) -name "*.sv" -exec sh -c 'cp "$$1" "$(CHIPLAB_HOME)/IP/myCPU/"' sh {} \;
 
 vivado:
 	rm -rf $(CHIPLAB_HOME)/IP/myCPU
