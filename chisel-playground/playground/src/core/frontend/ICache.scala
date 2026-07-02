@@ -483,7 +483,7 @@ class Stage2(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     dataArray.io.wea := io.in.bits.mat === 1.U // 一致可缓存
     dataArray.io.dina := Cat(rdata, axiDataLatch(2), axiDataLatch(1), axiDataLatch(0))
     // metaArray update
-    io.metaArrayWrite.valid := io.in.bits.mat === 1.U // 一致可缓存
+    io.metaArrayWrite.valid := io.in.bits.mat === 1.U && !io.in.bits.isCACOP // 一致可缓存
     io.metaArrayWrite.index := index
     io.metaArrayWrite.tag := tag
   }
