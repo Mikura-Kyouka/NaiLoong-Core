@@ -404,6 +404,8 @@ class CPUCSR extends Module {
     }
   }
 
+  val idling = RegInit(false.B)
+
   for(i <- 0 until RobConfig.ROB_CMT_NUM) {
     when(io.write(i).valid) {
       when(io.write(i).bits.ll) {
@@ -412,6 +414,9 @@ class CPUCSR extends Module {
       }
       when(io.write(i).bits.sc) {
         csr_llbctl.rollb := 0.U
+      }
+      when(io.write(i).bits.idle) {
+        idling := true.B
       }
     }
   }
@@ -457,11 +462,14 @@ class CPUCSR extends Module {
     csr_crmd.plv := 0.U
     csr_crmd.ie := 0.U
 
-    csr_era := io.exceptionInfo.exceptionPC + Mux(io.exceptionInfo.idle, 4.U, 0.U)
+    csr_era := io.exceptionInfo.exceptionPC + Mux(cause === 0.U && idling, 4.U, 0.U)
     csr_estat.ecode := io.exceptionInfo.cause
     csr_estat.esubcode := 0.U             // TODO: 异常子码
-    
+
     switch(cause) {
+      is(0.U) {
+        idling := false.B
+      }
       is(3.U) {
         csr_badv := io.exceptionInfo.exceptionPC // 取指页无效
         csr_tlbehi.vppn := io.exceptionInfo.exceptionPC(31, 13)
