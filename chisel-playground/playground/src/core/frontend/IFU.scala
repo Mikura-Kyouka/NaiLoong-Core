@@ -143,7 +143,8 @@ class IFU extends Module{
                                            VecInit(Seq.fill(4)(notValidPredict))))
 
     icache.io.flush := io.flush
-    icache.io.in.valid := io.out.ready && !io.flush && io.addr_trans_in.valid // TODO
+    var single_workaround = io.addr_trans_in.bits.paddr(31, 24) === "h1c".U(8.W) || true.B
+    icache.io.in.valid := io.out.ready && !io.flush && io.addr_trans_in.valid && single_workaround
     // io.out.bits.inst := icache.io.out.bits.rdata
     // val adef = Wire(new IFU2IDU)
     // adef.Valid := true.B

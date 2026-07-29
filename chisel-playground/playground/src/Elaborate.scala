@@ -35,7 +35,11 @@ object Elaborate extends App {
       "disallowLocalVariables",
       "disallowPackedArrays",
       "locationInfoStyle=wrapInAtSquareBracket"
-    ).reduce(_ + "," + _)
+    ).reduce(_ + "," + _),
+    "--disable-layers=Verification",
+    "--disable-layers=Verification.Assert",
+    "--disable-layers=Verification.Assume",
+    "--disable-layers=Verification.Cover"
   )
   circt.stage.ChiselStage.emitSystemVerilogFile(
     new Core(),

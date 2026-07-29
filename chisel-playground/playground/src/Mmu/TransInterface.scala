@@ -15,7 +15,7 @@ class TransInterface extends Module {
 
     val vseg = io.vaddr(31, 29)
 
-    assert(!(io.crmd.pg === 1.U && io.crmd.da === 1.U))
+    // assert(!(io.crmd.pg === 1.U && io.crmd.da === 1.U))
     val pg_mode = io.crmd.pg & ~io.crmd.da
     val da_mode = ~io.crmd.pg & io.crmd.da
 

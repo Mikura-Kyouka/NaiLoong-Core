@@ -34,7 +34,7 @@ class Execute extends Module {
   val lsu  = Module(new LSU)
   val bru  = Module(new AligendALU) // TODO
 
-  val dmem = Module(new DCache()(new DCacheConfig(totalSize = 2048 * 16, ways = 1)))
+  val dmem = Module(new DCache()(new DCacheConfig(totalSize = 4096 * 16, ways = 2)))
   dmem.io.req <> lsu.io.dmemReq
   dmem.io.resp <> lsu.io.dmemResp
   dmem.io.axi <> io.lsAXI

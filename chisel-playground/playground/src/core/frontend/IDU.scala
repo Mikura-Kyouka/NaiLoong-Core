@@ -9,6 +9,7 @@ class Decoder extends Module {
     val io = IO(new Bundle{
         val in = Flipped(Decoupled(new CtrlFlowIO))
         val out = Decoupled(new DecodeIO)
+        val plv = Input(UInt(2.W))
     })
 
     // val hasInstr = Wire(Bool())
@@ -133,6 +134,8 @@ class Decoder extends Module {
         io.out.bits.cf.exceptionVec(1) := true.B // adef
     }.elsewhen(isLegal === IsLegal.n || tlbOp === TlbOp.inv && instr(4, 0) > 6.U) {
         io.out.bits.cf.exceptionVec(7) := true.B // ine
+    }.elsewhen((csrOp(0) && csrOp(1)) && !(csrOp(2) || csrOp(3)) && io.plv =/= 0.U) {
+        io.out.bits.cf.exceptionVec(8) := true.B // ipe
     }.elsewhen(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.pif) {
         io.out.bits.cf.exceptionVec(3) := true.B // pif
     }.elsewhen(io.in.bits.excp.en && io.in.bits.excp.ecode === Ecode.ppi) {
@@ -152,6 +155,7 @@ class IDU extends Module {
         // val in = Flipped(Decoupled(Vec(4, new PipelineConnectIO))) //TODO: Temporarily 4-way
         val in = Flipped(Decoupled(Vec(4, new IFU2IDU)))
         val out = Decoupled(Vec(4, new PipelineConnectIO))
+        val plv = Input(UInt(2.W))
     })
     val decoder1 = Module(new Decoder)
     val decoder2 = Module(new Decoder)
@@ -181,6 +185,10 @@ class IDU extends Module {
     decoder2.io.in.bits.excp := io.in.bits(1).excp
     decoder3.io.in.bits.excp := io.in.bits(2).excp
     decoder4.io.in.bits.excp := io.in.bits(3).excp
+    decoder1.io.plv := io.plv
+    decoder2.io.plv := io.plv
+    decoder3.io.plv := io.plv
+    decoder4.io.plv := io.plv
     io.in.ready := decoder1.io.in.ready && decoder2.io.in.ready && decoder3.io.in.ready && decoder4.io.in.ready
 
     decoder1.io.in.bits.instr := io.in.bits(0).inst

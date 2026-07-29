@@ -343,6 +343,9 @@ class Stage1(implicit val cacheConfig: ICacheConfig) extends ICacheModule {
     metaArray.io.wea := true.B
     metaArray.io.addra := line
     metaArray.io.dina := 0.U(TagBits.W) // Write 0 to the line
+    metaValidArray.io.wea := true.B
+    metaValidArray.io.addra := line
+    metaValidArray.io.dina := false.B // Write false to the line
   }.elsewhen(io.in.cacop.en && io.in.cacop.op === CACOPOp.op1) {
     metaValidArray.io.wea := true.B
     metaValidArray.io.addra := line

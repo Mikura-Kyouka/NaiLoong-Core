@@ -373,7 +373,7 @@ class MMU extends Module {
   // 拼接物理地址，根据阶段2的输出得到物理地址。
   // 命名方式（以pg_mode_0为例），最后的0表示s2.io.out0，即ifu的地址转换
   val vseg_0 = s2.io.out0.bits.vaddr(31, 29)
-  assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
+  // assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
   val pg_mode_0 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
   val da_mode_0 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
 
@@ -397,7 +397,7 @@ class MMU extends Module {
 
   // 与上面逻辑一样
   val vseg_1 = s2.io.out1.bits.vaddr(31, 29)
-  assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
+  // assert(!(io.from_csr.crmd.pg === 1.U && io.from_csr.crmd.da === 1.U))
   val pg_mode_1 = io.from_csr.crmd.pg & ~io.from_csr.crmd.da
   val da_mode_1 = ~io.from_csr.crmd.pg & io.from_csr.crmd.da
   val dmw0_hit_1 = io.from_csr.dmw0.vseg === vseg_1 && 

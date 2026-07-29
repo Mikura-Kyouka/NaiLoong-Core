@@ -259,6 +259,8 @@ class Core extends Module {
   arb.io.out.bvalid := io.bvalid
   io.bready := arb.io.out.bready
 
+  Id.io.plv := csr.io.plv
+
   val traceBridge = Module(new TraceBridge)
   
   traceBridge.io.in_items := VecInit(rob.io.commit.commit.map { item =>

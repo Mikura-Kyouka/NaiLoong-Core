@@ -74,7 +74,7 @@ object cpucfg {
   def word18 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     4.U( 7.W),   // Linesize-log2 [30: 24]
                    11.U( 8.W),   // Index-log2    [23: 16]
-                    0.U(16.W))   // Way-1         [15:  0]
+                    1.U(16.W))   // Way-1         [15:  0]
 
   def word19 = Cat( 0.U( 1.W),   // not used      [31: 31]
                     0.U( 7.W),   // Linesize-log2 [30: 24]
@@ -327,4 +327,4 @@ class AligendALU extends Module{
   io.out.bits.optype := DontCare
   io.out.bits.failsc := false.B // ALU does not handle sc
   io.out.bits.timer64 := io.csrRead.timer64
-} 
+}
