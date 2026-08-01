@@ -174,7 +174,7 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule {
   val wburst = RegInit(0.U(WordIndexBits.W))
   state := MuxLookup(state, s_idle)(Seq(
     s_idle -> Mux(io.req.fire && !cacopOp0 && !req.failsc &&
-      !(single_workaround && !req.cacopEn),
+      (single_workaround && !req.cacopEn),
       Mux(isMMIO, Mux(req.cmd, s_write_mem1, s_read_mem1), s_judge), s_idle),
     s_judge -> Mux(cacopOp1,
       Mux(accessDirty, s_write_mem1, s_idle),
@@ -293,9 +293,6 @@ class DCache(implicit val cacheConfig: DCacheConfig) extends CacheModule {
     io.resp.valid := !flushed
   }
 
-  when(io.req.fire && single_workaround && !req.cacopEn) {
-    io.resp.valid := !io.flush
-  }
   when(isMMIO) { resp.rdata := io.axi.rdata }
 
   // CACOP op0 is immediate index invalidation.  op1/op2 invalidate only after
