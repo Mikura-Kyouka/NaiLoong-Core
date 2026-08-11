@@ -366,17 +366,32 @@ class Core extends Module {
   // rob <=> csr
   csr.io.write <> rob.io.commitCSR
   // csr.io.exceptionInfo <> rob.io.exceptionInfo
-  csr.io.exceptionInfo.valid := RegNext(rob.io.exceptionInfo.valid)
-  csr.io.exceptionInfo.exceptionPC := RegNext(rob.io.exceptionInfo.exceptionPC)
-  csr.io.exceptionInfo.exceptionInst := RegNext(rob.io.exceptionInfo.exceptionInst)
-  csr.io.exceptionInfo.eret := RegNext(rob.io.exceptionInfo.eret)
-  csr.io.exceptionInfo.exceptionVec := RegNext(rob.io.exceptionInfo.exceptionVec)
-  csr.io.exceptionInfo.exceptionVAddr := RegNext(rob.io.exceptionInfo.exceptionVAddr)
-  csr.io.exceptionInfo.idle := RegNext(rob.io.exceptionInfo.idle)
 
-  rob.io.exceptionInfo.intrNo := csr.io.exceptionInfo.intrNo
-  rob.io.exceptionInfo.cause := csr.io.exceptionInfo.cause
-  rob.io.exceptionInfo.exceptionNewPC := csr.io.exceptionInfo.exceptionNewPC
+  if (GenCtrl.USE_SIMU) {
+    csr.io.exceptionInfo.valid := (rob.io.exceptionInfo.valid)
+    csr.io.exceptionInfo.exceptionPC := (rob.io.exceptionInfo.exceptionPC)
+    csr.io.exceptionInfo.exceptionInst := (rob.io.exceptionInfo.exceptionInst)
+    csr.io.exceptionInfo.eret := (rob.io.exceptionInfo.eret)
+    csr.io.exceptionInfo.exceptionVec := (rob.io.exceptionInfo.exceptionVec)
+    csr.io.exceptionInfo.exceptionVAddr := (rob.io.exceptionInfo.exceptionVAddr)
+    csr.io.exceptionInfo.idle := (rob.io.exceptionInfo.idle)
+
+    rob.io.exceptionInfo.intrNo := (csr.io.exceptionInfo.intrNo)
+    rob.io.exceptionInfo.cause := (csr.io.exceptionInfo.cause)
+    rob.io.exceptionInfo.exceptionNewPC := (csr.io.exceptionInfo.exceptionNewPC)
+
+  } else {
+    csr.io.exceptionInfo.exceptionPC := RegNext(rob.io.exceptionInfo.exceptionPC)
+    csr.io.exceptionInfo.exceptionInst := RegNext(rob.io.exceptionInfo.exceptionInst)
+    csr.io.exceptionInfo.eret := RegNext(rob.io.exceptionInfo.eret)
+    csr.io.exceptionInfo.exceptionVec := RegNext(rob.io.exceptionInfo.exceptionVec)
+    csr.io.exceptionInfo.exceptionVAddr := RegNext(rob.io.exceptionInfo.exceptionVAddr)
+    csr.io.exceptionInfo.idle := RegNext(rob.io.exceptionInfo.idle)
+
+    rob.io.exceptionInfo.intrNo := RegNext(csr.io.exceptionInfo.intrNo)
+    rob.io.exceptionInfo.cause := RegNext(csr.io.exceptionInfo.cause)
+    rob.io.exceptionInfo.exceptionNewPC := RegNext(csr.io.exceptionInfo.exceptionNewPC)
+  }
 
   // ex <=> csr
   csr.io.read <> Ex.io.csrRead
